@@ -2,6 +2,14 @@
   var Element, Parallelio, Spark,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
+  if (typeof Parallelio === "undefined" || Parallelio === null) {
+    Parallelio = {};
+  }
+
+  if (typeof Spark === "undefined" || Spark === null) {
+    Spark = {};
+  }
+
   Element = (function() {
     function Element() {}
 
@@ -115,16 +123,8 @@
 
   })();
 
-  if (typeof Spark !== "undefined" && Spark !== null) {
+  if (Spark != null) {
     Spark.Element = Element;
-  }
-
-  if (typeof Parallelio === "undefined" || Parallelio === null) {
-    Parallelio = {};
-  }
-
-  if (typeof Spark === "undefined" || Spark === null) {
-    Spark = {};
   }
 
 
