@@ -1,5 +1,5 @@
 (function() {
-  var Element, ref,
+  var Element, Parallelio, Spark,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Element = (function() {
@@ -115,24 +115,30 @@
 
   })();
 
-  if (typeof this.exports === 'undefined') {
-    this.exports = Element;
-  } else {
-    if (typeof this.Spark === 'undefined') {
-      this.Spark = {};
-    }
-    this.Spark.Element = Element;
+  if (typeof Spark !== "undefined" && Spark !== null) {
+    Spark.Element = Element;
   }
 
-  Element = ((ref = this.Spark) != null ? ref.Element : void 0) || require('spark-starter');
-
-  if (typeof this.exports === 'undefined') {
-    this.exports = Element;
-  } else {
-    if (typeof this.Spark === 'undefined') {
-      this.Parallelio = {};
-    }
-    this.Parallelio.Element = Element;
+  if (typeof Parallelio === "undefined" || Parallelio === null) {
+    Parallelio = {};
   }
+
+  if (typeof Spark === "undefined" || Spark === null) {
+    Spark = {};
+  }
+
+
+  /* Concatened */
+
+  Parallelio.Element = Spark.Element;
+
+  if (typeof module !== "undefined" && module !== null) {
+    module.exports = Parallelio;
+  } else {
+    this.Parallelio = Parallelio;
+  }
+
+
+  /* Concatened end */
 
 }).call(this);

@@ -1,5 +1,7 @@
 # Parallelio
 
+Game engine behind Parallelium
+
 ## Installation
 
 ```sh
