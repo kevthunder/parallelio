@@ -1,5 +1,6 @@
 {
   "name": "parallelio",
+  "version": "1.0.0",
   "description": "Game engine behind Parallelium",
   "main": "lib/parallelio.js",
   "scripts": {
