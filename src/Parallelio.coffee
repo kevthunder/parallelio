@@ -1,17 +1,19 @@
 #= require <_start>
 #= require <Element>
+#= require <PathFinder>
 
-### Concatened ###
+#--- Concatened ---
 Parallelio.Element = Spark.Element
 if module?
   module.exports = Parallelio
 else 
   @Parallelio = Parallelio
-### Concatened end ###
+#--- Concatened end ---
 
-### Standalone ###
+#--- Standalone ---
 if module?
   module.exports = {
-    Element: require('spark-starter')
+    Element: require('spark-starter'),
+    PathFinder: require('parallelio-pathfinder')
   }
-### Standalone end ###
+#--- Standalone end ---
