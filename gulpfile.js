@@ -19,6 +19,7 @@ gulp.task('coffee', function() {
 gulp.task('concat', function() {
   return gulp.src([
     './node_modules/parallelio-pathfinder/src/*.coffee',
+    './node_modules/parallelio-tiles/src/*.coffee',
     './node_modules/spark-starter/src/*.coffee',
     './src/*.coffee'
   ])

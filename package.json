@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "spark-starter": "kevthunder/spark-starter",
-    "parallelio-pathfinder": "kevthunder/parallelio-pathfinder"
+    "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
+    "parallelio-tiles": "kevthunder/parallelio-tiles"
   }
 }

@@ -1,6 +1,8 @@
 #= require <_start>
 #= require <Element>
 #= require <PathFinder>
+#= require <Tile>
+#= require <TileContainer>
 
 #--- Concatened ---
 Parallelio.Element = Spark.Element
@@ -13,7 +15,9 @@ else
 #--- Standalone ---
 if module?
   module.exports = {
-    Element: require('spark-starter'),
+    Element: require('spark-starter')
     PathFinder: require('parallelio-pathfinder')
+    Tile: require('parallelio-tiles').Tile
+    TileContainer: require('parallelio-tiles').TileContainer
   }
 #--- Standalone end ---

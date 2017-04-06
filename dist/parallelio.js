@@ -1,5 +1,5 @@
 (function() {
-  var Element, Parallelio, PathFinder, Spark,
+  var Element, Parallelio, PathFinder, Spark, Tile, TileContainer,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
@@ -67,16 +67,14 @@
       if (!((desc.get != null) && desc.get === false)) {
         if (desc.get != null) {
           this.prototype['get' + maj] = desc.get;
-        } else if (desc.init != null) {
-          this.prototype['init' + maj] = desc.init;
+        } else {
+          if (desc.init != null) {
+            this.prototype['init' + maj] = desc.init;
+          }
           this.prototype['get' + maj] = function() {
-            if (this['_' + prop] == null) {
+            if (typeof this['init' + maj] === 'function' && (this['_' + prop] == null)) {
               this['_' + prop] = this['init' + maj]();
             }
-            return this['_' + prop];
-          };
-        } else {
-          this.prototype['get' + maj] = function() {
             return this['_' + prop];
           };
         }
@@ -87,20 +85,19 @@
       if (!((desc.set != null) && desc.set === false)) {
         if (desc.set != null) {
           this.prototype['set' + maj] = desc.set;
-        } else if (desc.change != null) {
-          this.prototype['change' + maj] = desc.change;
+        } else {
+          if (desc.change != null) {
+            this.prototype['change' + maj] = desc.change;
+          }
           this.prototype['set' + maj] = function(val) {
             var old;
-            if (this['_' + prop] !== val) {
+            if (typeof this['change' + maj] === 'function' && this['_' + prop] !== val) {
               old = this['_' + prop];
               this['_' + prop] = val;
               this['change' + maj](old);
+            } else {
+              this['_' + prop] = val;
             }
-            return this;
-          };
-        } else {
-          this.prototype['set' + maj] = function(val) {
-            this['_' + prop] = val;
             return this;
           };
         }
@@ -436,6 +433,131 @@
 
   if (Parallelio != null) {
     Parallelio.PathFinder = PathFinder;
+  }
+
+  Tile = (function(superClass) {
+    extend(Tile, superClass);
+
+    function Tile(x1, y1) {
+      this.x = x1;
+      this.y = y1;
+      this.init();
+    }
+
+    Tile.prototype.init = function() {
+      return this.children = [];
+    };
+
+    Tile.prototype.getRelativeTile = function(x, y) {
+      return this.container.getTile(this.x + x, this.y + y);
+    };
+
+    Tile.prototype.addChild = function(child) {
+      var index;
+      index = this.children.indexOf(child);
+      if (index === -1) {
+        this.children.push(child);
+      }
+      child.tile = this;
+      return child;
+    };
+
+    Tile.prototype.removeChild = function(child) {
+      var index;
+      index = this.children.indexOf(child);
+      if (index > -1) {
+        this.children.splice(index, 1);
+      }
+      if (child.tile === this) {
+        return child.tile = null;
+      }
+    };
+
+    return Tile;
+
+  })(Element);
+
+  if (Parallelio != null) {
+    Parallelio.Tile = Tile;
+  }
+
+  TileContainer = (function(superClass) {
+    extend(TileContainer, superClass);
+
+    function TileContainer() {
+      this.init();
+    }
+
+    TileContainer.prototype.init = function() {
+      this.coords = {};
+      return this.tiles = [];
+    };
+
+    TileContainer.prototype.addTile = function(tile) {
+      this.tiles.push(tile);
+      if (this.coords[tile.x] == null) {
+        this.coords[tile.x] = {};
+      }
+      this.coords[tile.x][tile.y] = tile;
+      return tile.container = this;
+    };
+
+    TileContainer.prototype.getTile = function(x, y) {
+      var ref1;
+      if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+        return this.coords[x][y];
+      }
+    };
+
+    TileContainer.prototype.loadMatrix = function(matrix) {
+      var options, results, row, tile, x, y;
+      results = [];
+      for (y in matrix) {
+        row = matrix[y];
+        results.push((function() {
+          var results1;
+          results1 = [];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              results1.push(this.addTile(tile(options)));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              results1.push(this.addTile(tile));
+            }
+          }
+          return results1;
+        }).call(this));
+      }
+      return results;
+    };
+
+    TileContainer.prototype.allTiles = function() {
+      return this.tiles.slice();
+    };
+
+    TileContainer.prototype.clearAll = function() {
+      var i, len, ref1, tile;
+      ref1 = this.tiles;
+      for (i = 0, len = ref1.length; i < len; i++) {
+        tile = ref1[i];
+        tile.container = null;
+      }
+      this.coords = {};
+      return this.tiles = [];
+    };
+
+    return TileContainer;
+
+  })(Element);
+
+  if (Parallelio != null) {
+    Parallelio.TileContainer = TileContainer;
   }
 
   Parallelio.Element = Spark.Element;
