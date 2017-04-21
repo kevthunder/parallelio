@@ -1,5 +1,6 @@
 (function() {
   var Element, Parallelio, PathFinder, Spark, Tile, TileContainer,
+    slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
@@ -26,6 +27,20 @@
         this[name].apply(this, args.slice(1));
       }
       return this;
+    };
+
+    Element.prototype.callback = function(name) {
+      if (this._callbacks[name] != null) {
+        return this._callbacks[name];
+      } else {
+        return this._callbacks[name] = (function(_this) {
+          return function() {
+            var args;
+            args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+            return _this[name].call(_this, args);
+          };
+        })(this);
+      }
     };
 
     Element.extend = function(obj) {
