@@ -756,7 +756,7 @@
 
     Star.prototype.linkTo = function(star) {
       if (!this.links.findStar(star)) {
-        return this.addLink(new Star.Link(this, star));
+        return this.addLink(new this.constructor.Link(this, star));
       }
     };
 

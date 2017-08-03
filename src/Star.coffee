@@ -16,7 +16,7 @@ class Star extends Element
   init: ->
   linkTo: (star)->
     unless @links.findStar(star)
-      @addLink(new Star.Link(this,star))
+      @addLink(new @constructor.Link(this,star))
   addLink: (link)->
     @links.add(link)
     link.otherStar(this).links.add(link)
