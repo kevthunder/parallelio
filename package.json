@@ -1,6 +1,6 @@
 {
   "name": "parallelio",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Game engine behind Parallelium",
   "main": "lib/parallelio.js",
   "repository": {
@@ -25,7 +25,7 @@
     "mocha": "^3.2.0"
   },
   "dependencies": {
-    "spark-starter": "kevthunder/spark-starter#v0.3",
+    "spark-starter": "kevthunder/spark-starter#v0.3.x",
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
     "parallelio-tiles": "kevthunder/parallelio-tiles"
   }
