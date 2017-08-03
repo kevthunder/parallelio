@@ -1,5 +1,6 @@
 assert = require('chai').assert
 Star = require('../lib/Star')
+Collection = require('spark-starter/lib/Collection')
 
 describe 'Star', ->
   it 'can calcul the distance to a point', ->
@@ -7,7 +8,28 @@ describe 'Star', ->
     b = new Star(3,4)
     assert.equal a.dist(b.x, b.y), 5
     
-describe 'Star.link', ->
+describe 'Star.collenctionFn', ->
+  it 'can get closest point', ->
+    coll = Collection.newSubClass(Star.collenctionFn,[
+      a = new Star(2,4)
+      b = new Star(0,0)
+      c = new Star(3,4)
+    ])
+    d = new Star(1,1)
+    assert.equal coll.closest(d.x,d.y), b
+  it 'can get closests points', ->
+    coll = Collection.newSubClass(Star.collenctionFn,[
+      a = new Star(2,4)
+      b = new Star(0,0)
+      c = new Star(3,4)
+    ])
+    d = new Star(1,1)
+    closests = coll.closests(d.x,d.y)
+    assert.equal closests.get(0), b
+    assert.equal closests.get(1), a
+    assert.equal closests.get(2), c
+    
+describe 'Star.Link', ->
   it 'can get the length', ->
     a = new Star(0,0)
     b = new Star(3,4)

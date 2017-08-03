@@ -1,9 +1,11 @@
 (function() {
-  var Star, assert;
+  var Collection, Star, assert;
 
   assert = require('chai').assert;
 
   Star = require('../lib/Star');
+
+  Collection = require('spark-starter/lib/Collection');
 
   describe('Star', function() {
     return it('can calcul the distance to a point', function() {
@@ -14,7 +16,25 @@
     });
   });
 
-  describe('Star.link', function() {
+  describe('Star.collenctionFn', function() {
+    it('can get closest point', function() {
+      var a, b, c, coll, d;
+      coll = Collection.newSubClass(Star.collenctionFn, [a = new Star(2, 4), b = new Star(0, 0), c = new Star(3, 4)]);
+      d = new Star(1, 1);
+      return assert.equal(coll.closest(d.x, d.y), b);
+    });
+    return it('can get closests points', function() {
+      var a, b, c, closests, coll, d;
+      coll = Collection.newSubClass(Star.collenctionFn, [a = new Star(2, 4), b = new Star(0, 0), c = new Star(3, 4)]);
+      d = new Star(1, 1);
+      closests = coll.closests(d.x, d.y);
+      assert.equal(closests.get(0), b);
+      assert.equal(closests.get(1), a);
+      return assert.equal(closests.get(2), c);
+    });
+  });
+
+  describe('Star.Link', function() {
     it('can get the length', function() {
       var a, ab, b;
       a = new Star(0, 0);

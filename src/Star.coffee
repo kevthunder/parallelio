@@ -25,6 +25,21 @@ class Star extends Element
     xDist = @x - x
     yDist = @y - y
     Math.sqrt((xDist*xDist)+(yDist*yDist))
+  @collenctionFn:
+    closest: (x,y)->
+      min = null
+      minDist = null
+      @forEach (star)->
+        dist = star.dist(x,y)
+        if !min? or minDist > dist
+          min = star
+          minDist = dist
+      min
+    closests: (x,y)->
+      dists = @map (star)-> {dist:star.dist(x,y), star:star}
+      dists.sort (a, b)->
+        a.dist - b.dist
+      @copy(dists.map (dist)-> dist.star)
 
 class Star.Link extends Element
   constructor: (@star1, @star2) ->
