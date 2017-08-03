@@ -7,6 +7,7 @@
 
 #--- Concatened ---
 Parallelio.Element = Spark.Element
+Parallelio.spark = spark
 if module?
   module.exports = Parallelio
 else 
@@ -17,7 +18,8 @@ else
 if module?
   module.exports = {
     Star: require('./Star')
-    Element: require('spark-starter')
+    Element: require('spark-starter').Element
+    spark: require('spark-starter')
     PathFinder: require('parallelio-pathfinder')
     Tile: require('parallelio-tiles').Tile
     TileContainer: require('parallelio-tiles').TileContainer

@@ -1353,6 +1353,8 @@
 
   Parallelio.Element = Spark.Element;
 
+  Parallelio.spark = spark;
+
   if (typeof module !== "undefined" && module !== null) {
     module.exports = Parallelio;
   } else {
