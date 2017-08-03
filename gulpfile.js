@@ -4,6 +4,7 @@ var coffee = require('gulp-coffee');
 var uglify = require('gulp-uglify');
 var concat = require('gulp-coffeescript-concat');
 var stripCode = require('gulp-strip-code');
+var mocha = require('gulp-mocha');
 
 gulp.task('coffee', function() {
   return gulp.src(['./src/*.coffee', '!./src/_*.coffee'])
@@ -41,6 +42,17 @@ gulp.task('compress', ['concatCoffee'], function () {
     .pipe(uglify())
     .pipe(rename('parallelio.min.js'))
     .pipe(gulp.dest('./dist/'));
+});
+
+gulp.task('coffeeTest', function() {
+  return gulp.src('./test/src/*.coffee')
+    .pipe(coffee())
+    .pipe(gulp.dest('./test/'));
+});
+
+gulp.task('test', ['coffee','coffeeTest'], function() {
+  return gulp.src('./test/tests.js')
+    .pipe(mocha());
 });
 
 gulp.task('build', ['coffee', 'concatCoffee', 'compress'], function () {

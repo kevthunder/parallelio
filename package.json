@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "Game engine behind Parallelium",
   "main": "lib/parallelio.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kevthunder/parallelio.git"
+  },
   "scripts": {
-    "test": "mocha test",
+    "test": "gulp test",
     "build": "gulp build"
   },
   "author": "kevthunder",
@@ -17,10 +21,11 @@
     "gulp-rename": "^1.2.2",
     "gulp-strip-code": "^0.1.4",
     "gulp-uglify": "^2.0.1",
+    "gulp-mocha": "^4.3.0",
     "mocha": "^3.2.0"
   },
   "dependencies": {
-    "spark-starter": "kevthunder/spark-starter",
+    "spark-starter": "kevthunder/spark-starter#v0.3",
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
     "parallelio-tiles": "kevthunder/parallelio-tiles"
   }
