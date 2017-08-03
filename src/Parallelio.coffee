@@ -7,7 +7,7 @@
 
 #--- Concatened ---
 Parallelio.Element = Spark.Element
-Parallelio.spark = spark
+Parallelio.spark = Spark
 if module?
   module.exports = Parallelio
 else 
