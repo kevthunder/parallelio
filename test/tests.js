@@ -5,4 +5,6 @@
 
   require('parallelio-pathfinder/test/path_finder.js');
 
+  require('./concat');
+
 }).call(this);

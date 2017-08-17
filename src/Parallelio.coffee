@@ -23,5 +23,6 @@ if module?
     PathFinder: require('parallelio-pathfinder')
     Tile: require('parallelio-tiles').Tile
     TileContainer: require('parallelio-tiles').TileContainer
+    strings: require('parallelio-strings')
   }
 #--- Standalone end ---
