@@ -1,5 +1,5 @@
 (function() {
-  var Collection, Element, EventBind, Invalidator, Parallelio, PathFinder, Property, PropertyInstance, Spark, Star, Tile, TileContainer, pluck,
+  var Collection, Element, EventBind, Invalidator, Parallelio, PathFinder, Property, PropertyInstance, RoomGenerator, Spark, Star, Tile, TileContainer, pluck,
     slice = [].slice,
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
@@ -335,16 +335,23 @@
       this.obj = obj1;
       this.value = this.ingest(this.property.options["default"]);
       this.calculated = false;
+      this.initiated = false;
     }
 
     PropertyInstance.prototype.get = function() {
+      var initiated, old;
       if (this.property.options.get === false) {
         return void 0;
       } else if (typeof this.property.options.get === 'function') {
         return this.callOptionFunct("get");
       } else {
         if (!this.calculated) {
+          old = this.value;
+          initiated = this.initiated;
           this.calcul();
+          if (initiated && this.value !== old) {
+            this.changed(old);
+          }
         }
         return this.output();
       }
@@ -368,15 +375,10 @@
     };
 
     PropertyInstance.prototype.invalidate = function() {
-      var old;
       if (this.calculated) {
         this.calculated = false;
         if (this.isImmediate()) {
-          old = this.value;
-          this.get();
-          if (this.value !== old) {
-            return this.changed(old);
-          }
+          return this.get();
         } else if (this.invalidator != null) {
           return this.invalidator.unbind();
         }
@@ -425,6 +427,7 @@
         })(this));
       }
       this.calculated = true;
+      this.initiated = true;
       return this.value;
     };
 
@@ -476,7 +479,7 @@
     };
 
     PropertyInstance.prototype.isImmediate = function() {
-      return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.property.getChangeEventName()).length > 0) || typeof this.property.options.change === 'function');
+      return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : (typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.property.getChangeEventName()).length > 0) || typeof this.property.options.change === 'function'));
     };
 
     return PropertyInstance;
@@ -934,6 +937,527 @@
     Parallelio.Star = Star;
   }
 
+  Tile = (function(superClass) {
+    extend(Tile, superClass);
+
+    function Tile(x5, y5) {
+      this.x = x5;
+      this.y = y5;
+      this.init();
+    }
+
+    Tile.prototype.init = function() {
+      return this.children = [];
+    };
+
+    Tile.prototype.getRelativeTile = function(x, y) {
+      return this.container.getTile(this.x + x, this.y + y);
+    };
+
+    Tile.prototype.addChild = function(child) {
+      var index;
+      index = this.children.indexOf(child);
+      if (index === -1) {
+        this.children.push(child);
+      }
+      child.tile = this;
+      return child;
+    };
+
+    Tile.prototype.removeChild = function(child) {
+      var index;
+      index = this.children.indexOf(child);
+      if (index > -1) {
+        this.children.splice(index, 1);
+      }
+      if (child.tile === this) {
+        return child.tile = null;
+      }
+    };
+
+    return Tile;
+
+  })(Element);
+
+  if (Parallelio != null) {
+    Parallelio.Tile = Tile;
+  }
+
+  TileContainer = (function(superClass) {
+    extend(TileContainer, superClass);
+
+    function TileContainer() {
+      this.init();
+    }
+
+    TileContainer.prototype.init = function() {
+      this.coords = {};
+      return this.tiles = [];
+    };
+
+    TileContainer.prototype.addTile = function(tile) {
+      this.tiles.push(tile);
+      if (this.coords[tile.x] == null) {
+        this.coords[tile.x] = {};
+      }
+      this.coords[tile.x][tile.y] = tile;
+      return tile.container = this;
+    };
+
+    TileContainer.prototype.getTile = function(x, y) {
+      var ref1;
+      if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+        return this.coords[x][y];
+      }
+    };
+
+    TileContainer.prototype.loadMatrix = function(matrix) {
+      var options, results, row, tile, x, y;
+      results = [];
+      for (y in matrix) {
+        row = matrix[y];
+        results.push((function() {
+          var results1;
+          results1 = [];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              results1.push(this.addTile(tile(options)));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              results1.push(this.addTile(tile));
+            }
+          }
+          return results1;
+        }).call(this));
+      }
+      return results;
+    };
+
+    TileContainer.prototype.allTiles = function() {
+      return this.tiles.slice();
+    };
+
+    TileContainer.prototype.clearAll = function() {
+      var k, len, ref1, tile;
+      ref1 = this.tiles;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        tile = ref1[k];
+        tile.container = null;
+      }
+      this.coords = {};
+      return this.tiles = [];
+    };
+
+    return TileContainer;
+
+  })(Element);
+
+  if (Parallelio != null) {
+    Parallelio.TileContainer = TileContainer;
+  }
+
+  RoomGenerator = (function(superClass) {
+    extend(RoomGenerator, superClass);
+
+    function RoomGenerator(options) {
+      this.setProperties(options);
+      this.directions = [
+        {
+          x: 1,
+          y: 0
+        }, {
+          x: -1,
+          y: 0
+        }, {
+          x: 0,
+          y: 1
+        }, {
+          x: 0,
+          y: -1
+        }
+      ];
+      this.corners = [
+        {
+          x: 1,
+          y: 1
+        }, {
+          x: -1,
+          y: -1
+        }, {
+          x: -1,
+          y: 1
+        }, {
+          x: 1,
+          y: -1
+        }
+      ];
+      this.allDirections = this.directions.concat(this.corners);
+    }
+
+    RoomGenerator.properties({
+      rng: {
+        "default": Math.random
+      },
+      maxVolume: {
+        "default": 25
+      },
+      minVolume: {
+        "default": 50
+      },
+      width: {
+        "default": 30
+      },
+      height: {
+        "default": 15
+      },
+      tiles: {
+        calcul: function() {
+          var k, l, ref1, ref2, tiles, x, y;
+          tiles = new TileContainer();
+          for (x = k = 0, ref1 = this.width; 0 <= ref1 ? k <= ref1 : k >= ref1; x = 0 <= ref1 ? ++k : --k) {
+            for (y = l = 0, ref2 = this.height; 0 <= ref2 ? l <= ref2 : l >= ref2; y = 0 <= ref2 ? ++l : --l) {
+              tiles.addTile(new Tile(x, y));
+            }
+          }
+          return tiles;
+        }
+      },
+      floorFactory: {
+        "default": function(opt) {
+          return new Tile(opt.x, opt.y);
+        }
+      },
+      wallFactory: {
+        "default": null
+      },
+      doorFactory: {
+        calcul: function() {
+          return this.floorFactory;
+        }
+      }
+    });
+
+    RoomGenerator.prototype.init = function() {
+      this.finalTiles = null;
+      this.rooms = [];
+      return this.free = this.tiles.allTiles().filter((function(_this) {
+        return function(tile) {
+          var direction, k, len, next, ref1;
+          ref1 = _this.allDirections;
+          for (k = 0, len = ref1.length; k < len; k++) {
+            direction = ref1[k];
+            next = _this.tiles.getTile(tile.x + direction.x, tile.y + direction.y);
+            if (next == null) {
+              return false;
+            }
+          }
+          return true;
+        };
+      })(this));
+    };
+
+    RoomGenerator.prototype.calcul = function() {
+      var i;
+      this.init();
+      i = 0;
+      while (this.step() || this.newRoom()) {
+        i++;
+      }
+      this.createDoors();
+      this.rooms;
+      return this.makeFinalTiles();
+    };
+
+    RoomGenerator.prototype.makeFinalTiles = function() {
+      return this.finalTiles = this.tiles.allTiles().map((function(_this) {
+        return function(tile) {
+          return typeof tile.factory === "function" ? tile.factory({
+            x: tile.x,
+            y: tile.y
+          }) : void 0;
+        };
+      })(this)).filter((function(_this) {
+        return function(tile) {
+          return tile != null;
+        };
+      })(this));
+    };
+
+    RoomGenerator.prototype.getTiles = function() {
+      if (this.finalTiles == null) {
+        this.calcul();
+      }
+      return this.finalTiles;
+    };
+
+    RoomGenerator.prototype.newRoom = function() {
+      if (this.free.length) {
+        this.volume = Math.floor(this.rng() * (this.maxVolume - this.minVolume)) + this.minVolume;
+        return this.room = new RoomGenerator.Room();
+      }
+    };
+
+    RoomGenerator.prototype.randomDirections = function() {
+      var i, j, o, x;
+      o = this.directions.slice();
+      j = void 0;
+      x = void 0;
+      i = o.length;
+      while (i) {
+        j = Math.floor(this.rng() * i);
+        x = o[--i];
+        o[i] = o[j];
+        o[j] = x;
+      }
+      return o;
+    };
+
+    RoomGenerator.prototype.step = function() {
+      var success, tries;
+      if (this.room) {
+        if (this.free.length && this.room.tiles.length < this.volume - 1) {
+          if (this.room.tiles.length) {
+            tries = this.randomDirections();
+            success = false;
+            while (tries.length && !success) {
+              success = this.expand(this.room, tries.pop(), this.volume);
+            }
+            if (!success) {
+              this.roomDone();
+            }
+            return success;
+          } else {
+            this.allocateTile(this.randomFreeTile(), this.room);
+            return true;
+          }
+        } else {
+          this.roomDone();
+          return false;
+        }
+      }
+    };
+
+    RoomGenerator.prototype.roomDone = function() {
+      this.rooms.push(this.room);
+      this.allocateWalls(this.room);
+      return this.room = null;
+    };
+
+    RoomGenerator.prototype.expand = function(room, direction, max) {
+      var k, len, next, ref1, second, success, tile;
+      if (max == null) {
+        max = 0;
+      }
+      success = false;
+      ref1 = room.tiles;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        tile = ref1[k];
+        if (max === 0 || room.tiles.length < max) {
+          if (next = this.tileOffsetIsFree(tile, direction)) {
+            this.allocateTile(next, room);
+            success = true;
+          }
+          if ((second = this.tileOffsetIsFree(tile, direction, 2)) && !this.tileOffsetIsFree(tile, direction, 3)) {
+            this.allocateTile(second, room);
+          }
+        }
+      }
+      return success;
+    };
+
+    RoomGenerator.prototype.allocateWalls = function(room) {
+      var direction, k, len, next, nextRoom, otherSide, ref1, results, tile;
+      ref1 = room.tiles;
+      results = [];
+      for (k = 0, len = ref1.length; k < len; k++) {
+        tile = ref1[k];
+        results.push((function() {
+          var l, len1, ref2, results1;
+          ref2 = this.allDirections;
+          results1 = [];
+          for (l = 0, len1 = ref2.length; l < len1; l++) {
+            direction = ref2[l];
+            next = this.tiles.getTile(tile.x + direction.x, tile.y + direction.y);
+            if ((next != null) && next.room !== room) {
+              if (indexOf.call(this.corners, direction) < 0) {
+                otherSide = this.tiles.getTile(tile.x + direction.x * 2, tile.y + direction.y * 2);
+                nextRoom = (otherSide != null ? otherSide.room : void 0) != null ? otherSide.room : null;
+                room.addWall(next, nextRoom);
+                if (nextRoom != null) {
+                  nextRoom.addWall(next, room);
+                }
+              }
+              next.factory = this.wallFactory;
+              results1.push(this.allocateTile(next));
+            } else {
+              results1.push(void 0);
+            }
+          }
+          return results1;
+        }).call(this));
+      }
+      return results;
+    };
+
+    RoomGenerator.prototype.createDoors = function() {
+      var door, k, len, ref1, results, room, walls;
+      ref1 = this.rooms;
+      results = [];
+      for (k = 0, len = ref1.length; k < len; k++) {
+        room = ref1[k];
+        results.push((function() {
+          var l, len1, ref2, results1;
+          ref2 = room.wallsByRooms();
+          results1 = [];
+          for (l = 0, len1 = ref2.length; l < len1; l++) {
+            walls = ref2[l];
+            if ((walls.room != null) && room.doorsForRoom(walls.room) < 1) {
+              door = walls.tiles[Math.floor(this.rng() * walls.tiles.length)];
+              door.factory = this.doorFactory;
+              room.addDoor(door, walls.room);
+              results1.push(walls.room.addDoor(door, room));
+            } else {
+              results1.push(void 0);
+            }
+          }
+          return results1;
+        }).call(this));
+      }
+      return results;
+    };
+
+    RoomGenerator.prototype.allocateTile = function(tile, room) {
+      var index;
+      if (room == null) {
+        room = null;
+      }
+      if (room != null) {
+        room.addTile(tile);
+        tile.factory = this.floorFactory;
+      }
+      index = this.free.indexOf(tile);
+      if (index > -1) {
+        return this.free.splice(index, 1);
+      }
+    };
+
+    RoomGenerator.prototype.tileOffsetIsFree = function(tile, direction, multiply) {
+      if (multiply == null) {
+        multiply = 1;
+      }
+      return this.tileIsFree(tile.x + direction.x * multiply, tile.y + direction.y * multiply);
+    };
+
+    RoomGenerator.prototype.tileIsFree = function(x, y) {
+      var tile;
+      tile = this.tiles.getTile(x, y);
+      if ((tile != null) && indexOf.call(this.free, tile) >= 0) {
+        return tile;
+      } else {
+        return false;
+      }
+    };
+
+    RoomGenerator.prototype.randomFreeTile = function() {
+      return this.free[Math.floor(this.rng() * this.free.length)];
+    };
+
+    return RoomGenerator;
+
+  })(Element);
+
+  RoomGenerator.Room = (function() {
+    function Room() {
+      this.tiles = [];
+      this.walls = [];
+      this.doors = [];
+    }
+
+    Room.prototype.addTile = function(tile) {
+      this.tiles.push(tile);
+      return tile.room = this;
+    };
+
+    Room.prototype.containsWall = function(tile) {
+      var k, len, ref1, wall;
+      ref1 = this.walls;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        wall = ref1[k];
+        if (wall.tile === tile) {
+          return wall;
+        }
+      }
+      return false;
+    };
+
+    Room.prototype.addWall = function(tile, nextRoom) {
+      var existing;
+      existing = this.containsWall(tile);
+      if (existing) {
+        return existing.nextRoom = nextRoom;
+      } else {
+        return this.walls.push({
+          tile: tile,
+          nextRoom: nextRoom
+        });
+      }
+    };
+
+    Room.prototype.wallsByRooms = function() {
+      var k, len, pos, ref1, res, rooms, wall;
+      rooms = [];
+      res = [];
+      ref1 = this.walls;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        wall = ref1[k];
+        pos = rooms.indexOf(wall.nextRoom);
+        if (pos === -1) {
+          pos = rooms.length;
+          rooms.push(wall.nextRoom);
+          res.push({
+            room: wall.nextRoom,
+            tiles: []
+          });
+        }
+        res[pos].tiles.push(wall.tile);
+      }
+      return res;
+    };
+
+    Room.prototype.addDoor = function(tile, nextRoom) {
+      return this.doors.push({
+        tile: tile,
+        nextRoom: nextRoom
+      });
+    };
+
+    Room.prototype.doorsForRoom = function(room) {
+      var door, k, len, ref1, res;
+      res = [];
+      ref1 = this.doors;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        door = ref1[k];
+        if (door.nextRoom === room) {
+          res.push(door.tile);
+        }
+      }
+      return res;
+    };
+
+    return Room;
+
+  })();
+
+  if (Parallelio != null) {
+    Parallelio.RoomGenerator = RoomGenerator;
+  }
+
   if (Spark == null) {
     Spark = {};
   }
@@ -1059,15 +1583,15 @@
     };
 
     PathFinder.prototype.addNextSteps = function(step) {
-      var j, len, next, ref1, results, tile;
+      var k, len, next, ref1, results, tile;
       if (step == null) {
         step = null;
       }
       tile = step != null ? step.nextTile : this.from;
       ref1 = this.getConnectedToTile(tile);
       results = [];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        next = ref1[j];
+      for (k = 0, len = ref1.length; k < len; k++) {
+        next = ref1[k];
         if (this.tileIsValid(next)) {
           results.push(this.addStep(new PathFinder.Step(this, (step != null ? step : null), tile, next)));
         } else {
@@ -1245,131 +1769,6 @@
 
   if (Parallelio != null) {
     Parallelio.PathFinder = PathFinder;
-  }
-
-  Tile = (function(superClass) {
-    extend(Tile, superClass);
-
-    function Tile(x5, y5) {
-      this.x = x5;
-      this.y = y5;
-      this.init();
-    }
-
-    Tile.prototype.init = function() {
-      return this.children = [];
-    };
-
-    Tile.prototype.getRelativeTile = function(x, y) {
-      return this.container.getTile(this.x + x, this.y + y);
-    };
-
-    Tile.prototype.addChild = function(child) {
-      var index;
-      index = this.children.indexOf(child);
-      if (index === -1) {
-        this.children.push(child);
-      }
-      child.tile = this;
-      return child;
-    };
-
-    Tile.prototype.removeChild = function(child) {
-      var index;
-      index = this.children.indexOf(child);
-      if (index > -1) {
-        this.children.splice(index, 1);
-      }
-      if (child.tile === this) {
-        return child.tile = null;
-      }
-    };
-
-    return Tile;
-
-  })(Element);
-
-  if (Parallelio != null) {
-    Parallelio.Tile = Tile;
-  }
-
-  TileContainer = (function(superClass) {
-    extend(TileContainer, superClass);
-
-    function TileContainer() {
-      this.init();
-    }
-
-    TileContainer.prototype.init = function() {
-      this.coords = {};
-      return this.tiles = [];
-    };
-
-    TileContainer.prototype.addTile = function(tile) {
-      this.tiles.push(tile);
-      if (this.coords[tile.x] == null) {
-        this.coords[tile.x] = {};
-      }
-      this.coords[tile.x][tile.y] = tile;
-      return tile.container = this;
-    };
-
-    TileContainer.prototype.getTile = function(x, y) {
-      var ref1;
-      if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
-        return this.coords[x][y];
-      }
-    };
-
-    TileContainer.prototype.loadMatrix = function(matrix) {
-      var options, results, row, tile, x, y;
-      results = [];
-      for (y in matrix) {
-        row = matrix[y];
-        results.push((function() {
-          var results1;
-          results1 = [];
-          for (x in row) {
-            tile = row[x];
-            options = {
-              x: parseInt(x),
-              y: parseInt(y)
-            };
-            if (typeof tile === "function") {
-              results1.push(this.addTile(tile(options)));
-            } else {
-              tile.x = options.x;
-              tile.y = options.y;
-              results1.push(this.addTile(tile));
-            }
-          }
-          return results1;
-        }).call(this));
-      }
-      return results;
-    };
-
-    TileContainer.prototype.allTiles = function() {
-      return this.tiles.slice();
-    };
-
-    TileContainer.prototype.clearAll = function() {
-      var j, len, ref1, tile;
-      ref1 = this.tiles;
-      for (j = 0, len = ref1.length; j < len; j++) {
-        tile = ref1[j];
-        tile.container = null;
-      }
-      this.coords = {};
-      return this.tiles = [];
-    };
-
-    return TileContainer;
-
-  })(Element);
-
-  if (Parallelio != null) {
-    Parallelio.TileContainer = TileContainer;
   }
 
   Parallelio.Element = Spark.Element;

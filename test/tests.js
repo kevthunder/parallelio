@@ -5,6 +5,8 @@
 
   require('parallelio-pathfinder/test/path_finder.js');
 
+  require('./room_generator');
+
   require('./concat');
 
 }).call(this);
