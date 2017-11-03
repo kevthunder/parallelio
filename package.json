@@ -23,10 +23,11 @@
     "gulp-strip-code": "^0.1.4",
     "gulp-uglify": "^2.0.1",
     "mocha": "^3.2.0",
-    "seedrandom": "^2.4.3"
+    "seedrandom": "^2.4.3",
+    "wolfy87-eventemitter": "^5.2.3"
   },
   "dependencies": {
-    "spark-starter": "kevthunder/spark-starter#v0.3.x",
+    "spark-starter": "kevthunder/spark-starter#v0.5.x",
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
     "parallelio-tiles": "kevthunder/parallelio-tiles",
     "parallelio-strings": "kevthunder/parallelio-strings"

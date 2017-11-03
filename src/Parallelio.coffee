@@ -3,7 +3,9 @@
 #= require <PathFinder>
 #= require <Tile>
 #= require <TileContainer>
-#= require <Star>
+#= require <Floor>
+#= require <Door>
+#= require <RoomGenerator>
 
 #--- Concatened ---
 Parallelio.Element = Spark.Element
@@ -22,7 +24,11 @@ if module?
     spark: require('spark-starter')
     PathFinder: require('parallelio-pathfinder')
     Tile: require('parallelio-tiles').Tile
+    Tiled: require('parallelio-tiles').Tiled
     TileContainer: require('parallelio-tiles').TileContainer
+    Floor: require('./Floor')
+    Door: require('./Door')
+    RoomGenerator: require('./RoomGenerator')
     strings: require('parallelio-strings')
   }
 #--- Standalone end ---
