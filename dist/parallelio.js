@@ -1,8 +1,8 @@
 (function() {
   var Parallelio,
+    slice = [].slice,
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
-    slice = [].slice,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Parallelio = {};
@@ -13,578 +13,6 @@
     "greekAlphabet": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"],
     "starNames": ["Achernar", "Maia", "Atlas", "Salm", "Alnilam", "Nekkar", "Elnath", "Thuban", "Achird", "Marfik", "Auva", "Sargas", "Alnitak", "Nihal", "Enif", "Torcularis", "Acrux", "Markab", "Avior", "Sarin", "Alphard", "Nunki", "Etamin", "Turais", "Acubens", "Matar", "Azelfafage", "Sceptrum", "Alphekka", "Nusakan", "Fomalhaut", "Tyl", "Adara", "Mebsuta", "Azha", "Scheat", "Alpheratz", "Peacock", "Fornacis", "Unukalhai", "Adhafera", "Megrez", "Azmidiske", "Segin", "Alrai", "Phad", "Furud", "Vega", "Adhil", "Meissa", "Baham", "Seginus", "Alrisha", "Phaet", "Gacrux", "Vindemiatrix", "Agena", "Mekbuda", "Becrux", "Sham", "Alsafi", "Pherkad", "Gianfar", "Wasat", "Aladfar", "Menkalinan", "Beid", "Sharatan", "Alsciaukat", "Pleione", "Gomeisa", "Wezen", "Alathfar", "Menkar", "Bellatrix", "Shaula", "Alshain", "Polaris", "Graffias", "Wezn", "Albaldah", "Menkent", "Betelgeuse", "Shedir", "Alshat", "Pollux", "Grafias", "Yed", "Albali", "Menkib", "Botein", "Sheliak", "Alsuhail", "Porrima", "Grumium", "Yildun", "Albireo", "Merak", "Brachium", "Sirius", "Altair", "Praecipua", "Hadar", "Zaniah", "Alchiba", "Merga", "Canopus", "Situla", "Altarf", "Procyon", "Haedi", "Zaurak", "Alcor", "Merope", "Capella", "Skat", "Alterf", "Propus", "Hamal", "Zavijah", "Alcyone", "Mesarthim", "Caph", "Spica", "Aludra", "Rana", "Hassaleh", "Zibal", "Alderamin", "Metallah", "Castor", "Sterope", "Alula", "Ras", "Heze", "Zosma", "Aldhibah", "Miaplacidus", "Cebalrai", "Sualocin", "Alya", "Rasalgethi", "Hoedus", "Aquarius", "Alfirk", "Minkar", "Celaeno", "Subra", "Alzirr", "Rasalhague", "Homam", "Aries", "Algenib", "Mintaka", "Chara", "Suhail", "Ancha", "Rastaban", "Hyadum", "Cepheus", "Algieba", "Mira", "Chort", "Sulafat", "Angetenar", "Regulus", "Izar", "Cetus", "Algol", "Mirach", "Cursa", "Syrma", "Ankaa", "Rigel", "Jabbah", "Columba", "Algorab", "Miram", "Dabih", "Tabit", "Anser", "Rotanev", "Kajam", "Coma", "Alhena", "Mirphak", "Deneb", "Talitha", "Antares", "Ruchba", "Kaus", "Corona", "Alioth", "Mizar", "Denebola", "Tania", "Arcturus", "Ruchbah", "Keid", "Crux", "Alkaid", "Mufrid", "Dheneb", "Tarazed", "Arkab", "Rukbat", "Kitalpha", "Draco", "Alkalurops", "Muliphen", "Diadem", "Taygeta", "Arneb", "Sabik", "Kocab", "Grus", "Alkes", "Murzim", "Diphda", "Tegmen", "Arrakis", "Sadalachbia", "Kornephoros", "Hydra", "Alkurhah", "Muscida", "Dschubba", "Tejat", "Ascella", "Sadalmelik", "Kraz", "Lacerta", "Almaak", "Naos", "Dsiban", "Terebellum", "Asellus", "Sadalsuud", "Kuma", "Mensa", "Alnair", "Nash", "Dubhe", "Thabit", "Asterope", "Sadr", "Lesath", "Maasym", "Alnath", "Nashira", "Electra", "Theemim", "Atik", "Saiph", "Phoenix", "Norma"]
   };
-
-  (function(definition) {
-    Parallelio.PathFinder = definition();
-    return Parallelio.PathFinder.definition = definition;
-  })(function(dependencies) {
-    var Element, PathFinder;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : require('spark-starter').Element;
-    PathFinder = (function(superClass) {
-      extend(PathFinder, superClass);
-
-      function PathFinder(tilesContainer, from1, to1, options) {
-        this.tilesContainer = tilesContainer;
-        this.from = from1;
-        this.to = to1;
-        if (options == null) {
-          options = {};
-        }
-        this.reset();
-        if (options.validTile != null) {
-          this.validTileCallback = options.validTile;
-        }
-      }
-
-      PathFinder.properties({
-        validTileCallback: {}
-      });
-
-      PathFinder.prototype.reset = function() {
-        this.queue = [];
-        this.paths = {};
-        this.solution = null;
-        return this.started = false;
-      };
-
-      PathFinder.prototype.calcul = function() {
-        while (!this.solution && (!this.started || this.queue.length)) {
-          this.step();
-        }
-        return this.getPath();
-      };
-
-      PathFinder.prototype.step = function() {
-        var next;
-        if (this.queue.length) {
-          next = this.queue.pop();
-          this.addNextSteps(next);
-          return true;
-        } else if (!this.started) {
-          this.started = true;
-          this.addNextSteps();
-          return true;
-        }
-      };
-
-      PathFinder.prototype.getPath = function() {
-        var res, step;
-        if (this.solution) {
-          res = [this.solution];
-          step = this.solution;
-          while (step.prev != null) {
-            res.unshift(step.prev);
-            step = step.prev;
-          }
-          return res;
-        }
-      };
-
-      PathFinder.prototype.getPosAtTime = function(time) {
-        var prc, step;
-        if (this.solution) {
-          if (time >= this.solution.getTotalLength()) {
-            return this.solution.posToTileOffset(this.solution.getExit().x, this.solution.getExit().y);
-          } else {
-            step = this.solution;
-            while (step.getStartLength() > time && (step.prev != null)) {
-              step = step.prev;
-            }
-            prc = (time - step.getStartLength()) / step.getLength();
-            return step.posToTileOffset(step.getEntry().x + (step.getExit().x - step.getEntry().x) * prc, step.getEntry().y + (step.getExit().y - step.getEntry().y) * prc);
-          }
-        }
-      };
-
-      PathFinder.prototype.tileIsValid = function(tile) {
-        if (this.validTileCallback != null) {
-          return this.validTileCallback(tile);
-        } else {
-          return !tile.emulated || (tile.tile !== 0 && tile.tile !== false);
-        }
-      };
-
-      PathFinder.prototype.getTile = function(x, y) {
-        var ref1;
-        if (this.tilesContainer.getTile != null) {
-          return this.tilesContainer.getTile(x, y);
-        } else if (((ref1 = this.tilesContainer[y]) != null ? ref1[x] : void 0) != null) {
-          return {
-            x: x,
-            y: y,
-            tile: this.tilesContainer[y][x],
-            emulated: true
-          };
-        }
-      };
-
-      PathFinder.prototype.getConnectedToTile = function(tile) {
-        var connected, t;
-        if (tile.getConnected != null) {
-          return tile.getConnected();
-        } else {
-          connected = [];
-          if (t = this.getTile(tile.x + 1, tile.y)) {
-            connected.push(t);
-          }
-          if (t = this.getTile(tile.x - 1, tile.y)) {
-            connected.push(t);
-          }
-          if (t = this.getTile(tile.x, tile.y + 1)) {
-            connected.push(t);
-          }
-          if (t = this.getTile(tile.x, tile.y - 1)) {
-            connected.push(t);
-          }
-          return connected;
-        }
-      };
-
-      PathFinder.prototype.addNextSteps = function(step) {
-        var k, len, next, ref1, results, tile;
-        if (step == null) {
-          step = null;
-        }
-        tile = step != null ? step.nextTile : this.from;
-        ref1 = this.getConnectedToTile(tile);
-        results = [];
-        for (k = 0, len = ref1.length; k < len; k++) {
-          next = ref1[k];
-          if (this.tileIsValid(next)) {
-            results.push(this.addStep(new PathFinder.Step(this, (step != null ? step : null), tile, next)));
-          } else {
-            results.push(void 0);
-          }
-        }
-        return results;
-      };
-
-      PathFinder.prototype.tileEqual = function(tileA, tileB) {
-        return tileA === tileB || ((tileA.emulated || tileB.emulated) && tileA.x === tileB.x && tileA.y === tileB.y);
-      };
-
-      PathFinder.prototype.addStep = function(step) {
-        if (this.paths[step.getExit().x] == null) {
-          this.paths[step.getExit().x] = {};
-        }
-        if (!((this.paths[step.getExit().x][step.getExit().y] != null) && this.paths[step.getExit().x][step.getExit().y].getTotalLength() <= step.getTotalLength())) {
-          if (this.paths[step.getExit().x][step.getExit().y] != null) {
-            this.removeStep(this.paths[step.getExit().x][step.getExit().y]);
-          }
-          this.paths[step.getExit().x][step.getExit().y] = step;
-          this.queue.splice(this.getStepRank(step), 0, step);
-          if (this.tileEqual(step.nextTile, this.to) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
-            return this.solution = new PathFinder.Step(this, step, step.nextTile, null);
-          }
-        }
-      };
-
-      PathFinder.prototype.removeStep = function(step) {
-        var index;
-        index = this.queue.indexOf(step);
-        if (index > -1) {
-          return this.queue.splice(index, 1);
-        }
-      };
-
-      PathFinder.prototype.best = function() {
-        return this.queue[this.queue.length - 1];
-      };
-
-      PathFinder.prototype.getStepRank = function(step) {
-        if (this.queue.length === 0) {
-          return 0;
-        } else {
-          return this._getStepRank(step.getEfficiency(), 0, this.queue.length - 1);
-        }
-      };
-
-      PathFinder.prototype._getStepRank = function(efficiency, min, max) {
-        var ref, refPos;
-        refPos = Math.floor((max - min) / 2) + min;
-        ref = this.queue[refPos].getEfficiency();
-        if (ref === efficiency) {
-          return refPos;
-        } else if (ref > efficiency) {
-          if (refPos === min) {
-            return min;
-          } else {
-            return this._getStepRank(efficiency, min, refPos - 1);
-          }
-        } else {
-          if (refPos === max) {
-            return max + 1;
-          } else {
-            return this._getStepRank(efficiency, refPos + 1, max);
-          }
-        }
-      };
-
-      return PathFinder;
-
-    })(Element);
-    PathFinder.Step = (function() {
-      function Step(pathFinder, prev1, tile1, nextTile) {
-        this.pathFinder = pathFinder;
-        this.prev = prev1;
-        this.tile = tile1;
-        this.nextTile = nextTile;
-      }
-
-      Step.prototype.posToTileOffset = function(x, y) {
-        var tile;
-        tile = Math.floor(x) === this.tile.x && Math.floor(y) === this.tile.y ? this.tile : Math.floor(x) === this.nextTile.x && Math.floor(y) === this.nextTile.y ? this.nextTile : (this.prev != null) && Math.floor(x) === this.prev.tile.x && Math.floor(y) === this.prev.tile.y ? this.prev.tile : console.log('Math.floor(' + x + ') == ' + this.tile.x, 'Math.floor(' + y + ') == ' + this.tile.y, this);
-        return {
-          x: x,
-          y: y,
-          tile: tile,
-          offsetX: x - tile.x,
-          offsetY: y - tile.y
-        };
-      };
-
-      Step.prototype.getExit = function() {
-        if (this.exit == null) {
-          if (this.nextTile != null) {
-            this.exit = {
-              x: (this.tile.x + this.nextTile.x + 1) / 2,
-              y: (this.tile.y + this.nextTile.y + 1) / 2
-            };
-          } else {
-            this.exit = {
-              x: this.tile.x + 0.5,
-              y: this.tile.y + 0.5
-            };
-          }
-        }
-        return this.exit;
-      };
-
-      Step.prototype.getEntry = function() {
-        if (this.entry == null) {
-          if (this.prev != null) {
-            this.entry = {
-              x: (this.tile.x + this.prev.tile.x + 1) / 2,
-              y: (this.tile.y + this.prev.tile.y + 1) / 2
-            };
-          } else {
-            this.entry = {
-              x: this.tile.x + 0.5,
-              y: this.tile.y + 0.5
-            };
-          }
-        }
-        return this.entry;
-      };
-
-      Step.prototype.getLength = function() {
-        if (this.length == null) {
-          this.length = (this.nextTile == null) || (this.prev == null) ? 0.5 : this.prev.tile.x === this.nextTile.x || this.prev.tile.y === this.nextTile.y ? 1 : Math.sqrt(0.5);
-        }
-        return this.length;
-      };
-
-      Step.prototype.getStartLength = function() {
-        if (this.startLength == null) {
-          this.startLength = this.prev != null ? this.prev.getTotalLength() : 0;
-        }
-        return this.startLength;
-      };
-
-      Step.prototype.getTotalLength = function() {
-        if (this.totalLength == null) {
-          this.totalLength = this.getStartLength() + this.getLength();
-        }
-        return this.totalLength;
-      };
-
-      Step.prototype.getEfficiency = function() {
-        if (this.efficiency == null) {
-          this.efficiency = -this.getRemaining() * 1.1 - this.getTotalLength();
-        }
-        return this.efficiency;
-      };
-
-      Step.prototype.getRemaining = function() {
-        var from, to, x, y;
-        if (this.remaining == null) {
-          from = this.getExit();
-          to = {
-            x: this.pathFinder.to.x + 0.5,
-            y: this.pathFinder.to.y + 0.5
-          };
-          x = to.x - from.x;
-          y = to.y - from.y;
-          this.remaining = Math.sqrt(x * x + y * y);
-        }
-        return this.remaining;
-      };
-
-      return Step;
-
-    })();
-    return PathFinder;
-  });
-
-  (function(definition) {
-    Parallelio.Tile = definition();
-    return Parallelio.Tile.definition = definition;
-  })(function(dependencies) {
-    var Element, Tile;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : require('spark-starter').Element;
-    Tile = (function(superClass) {
-      extend(Tile, superClass);
-
-      function Tile(x5, y5) {
-        this.x = x5;
-        this.y = y5;
-        this.init();
-      }
-
-      Tile.prototype.init = function() {
-        return this.children = [];
-      };
-
-      Tile.prototype.getRelativeTile = function(x, y) {
-        return this.container.getTile(this.x + x, this.y + y);
-      };
-
-      Tile.prototype.addChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (index === -1) {
-          this.children.push(child);
-        }
-        child.tile = this;
-        return child;
-      };
-
-      Tile.prototype.removeChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (index > -1) {
-          this.children.splice(index, 1);
-        }
-        if (child.tile === this) {
-          return child.tile = null;
-        }
-      };
-
-      return Tile;
-
-    })(Element);
-    return Tile;
-  });
-
-  (function(definition) {
-    Parallelio.Door = definition();
-    return Parallelio.Door.definition = definition;
-  })(function(dependencies) {
-    var Door, Tiled;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tile;
-    Door = (function(superClass) {
-      extend(Door, superClass);
-
-      function Door(direction1) {
-        this.direction = direction1 != null ? direction1 : Door.directions.horizontal;
-      }
-
-      Door.properties({
-        tile: {
-          change: function(old, overrided) {
-            var ref1, ref2, ref3, ref4;
-            overrided();
-            if (old != null) {
-              if ((ref1 = old.walkableMembers) != null) {
-                ref1.removePropertyRef('open', this);
-              }
-              if ((ref2 = old.transparentMembers) != null) {
-                ref2.removePropertyRef('open', this);
-              }
-            }
-            if (this.tile) {
-              if ((ref3 = this.tile.walkableMembers) != null) {
-                ref3.addPropertyRef('open', this);
-              }
-              return (ref4 = this.tile.transparentMembers) != null ? ref4.addPropertyRef('open', this) : void 0;
-            }
-          }
-        },
-        open: {
-          "default": false
-        },
-        direction: {}
-      });
-
-      Door.directions = {
-        horizontal: 'horizontal',
-        vertical: 'vertical'
-      };
-
-      return Door;
-
-    })(Tiled);
-    return Door;
-  });
-
-  (function(definition) {
-    Parallelio.TileContainer = definition();
-    return Parallelio.TileContainer.definition = definition;
-  })(function(dependencies) {
-    var Element, TileContainer;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : require('spark-starter').Element;
-    TileContainer = (function(superClass) {
-      extend(TileContainer, superClass);
-
-      function TileContainer() {
-        this.init();
-      }
-
-      TileContainer.prototype.init = function() {
-        this.coords = {};
-        return this.tiles = [];
-      };
-
-      TileContainer.prototype.addTile = function(tile) {
-        if (!this.tiles.includes(tile)) {
-          this.tiles.push(tile);
-          if (this.coords[tile.x] == null) {
-            this.coords[tile.x] = {};
-          }
-          this.coords[tile.x][tile.y] = tile;
-          tile.container = this;
-        }
-        return this;
-      };
-
-      TileContainer.prototype.getTile = function(x, y) {
-        var ref1;
-        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
-          return this.coords[x][y];
-        }
-      };
-
-      TileContainer.prototype.loadMatrix = function(matrix) {
-        var options, row, tile, x, y;
-        for (y in matrix) {
-          row = matrix[y];
-          for (x in row) {
-            tile = row[x];
-            options = {
-              x: parseInt(x),
-              y: parseInt(y)
-            };
-            if (typeof tile === "function") {
-              this.addTile(tile(options));
-            } else {
-              tile.x = options.x;
-              tile.y = options.y;
-              this.addTile(tile);
-            }
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.allTiles = function() {
-        return this.tiles.slice();
-      };
-
-      TileContainer.prototype.clearAll = function() {
-        var k, len, ref1, tile;
-        ref1 = this.tiles;
-        for (k = 0, len = ref1.length; k < len; k++) {
-          tile = ref1[k];
-          tile.container = null;
-        }
-        this.coords = {};
-        this.tiles = [];
-        return this;
-      };
-
-      return TileContainer;
-
-    })(Element);
-    return TileContainer;
-  });
-
-  (function(definition) {
-    Parallelio.Tiled = definition();
-    return Parallelio.Tiled.definition = definition;
-  })(function(dependencies) {
-    var Element, Tiled;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : require('spark-starter').Element;
-    Tiled = (function(superClass) {
-      extend(Tiled, superClass);
-
-      function Tiled() {
-        return Tiled.__super__.constructor.apply(this, arguments);
-      }
-
-      Tiled.properties({
-        tile: {
-          change: function(old) {
-            if (old != null) {
-              old.removeChild(this);
-            }
-            if (this.tile) {
-              return this.tile.addChild(this);
-            }
-          }
-        }
-      });
-
-      return Tiled;
-
-    })(Element);
-    return Tiled;
-  });
-
-  (function(definition) {
-    Parallelio.Floor = definition();
-    return Parallelio.Floor.definition = definition;
-  })(function(dependencies) {
-    var Floor, Tile;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : require('parallelio-tiles').Tile;
-    Floor = (function(superClass) {
-      extend(Floor, superClass);
-
-      function Floor() {
-        return Floor.__super__.constructor.apply(this, arguments);
-      }
-
-      Floor.properties({
-        walkable: {
-          composed: true
-        },
-        transparent: {
-          composed: true
-        }
-      });
-
-      return Floor;
-
-    })(Tile);
-    return Floor;
-  });
 
   (function(definition) {
     Parallelio.Spark.Collection = definition();
@@ -1663,6 +1091,240 @@
   });
 
   (function(definition) {
+    Parallelio.Tile = definition();
+    return Parallelio.Tile.definition = definition;
+  })(function(dependencies) {
+    var Element, Tile;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Tile = (function(superClass) {
+      extend(Tile, superClass);
+
+      function Tile(x5, y5) {
+        this.x = x5;
+        this.y = y5;
+        this.init();
+      }
+
+      Tile.prototype.init = function() {
+        return this.children = [];
+      };
+
+      Tile.prototype.getRelativeTile = function(x, y) {
+        return this.container.getTile(this.x + x, this.y + y);
+      };
+
+      Tile.prototype.addChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index === -1) {
+          this.children.push(child);
+        }
+        child.tile = this;
+        return child;
+      };
+
+      Tile.prototype.removeChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index > -1) {
+          this.children.splice(index, 1);
+        }
+        if (child.tile === this) {
+          return child.tile = null;
+        }
+      };
+
+      return Tile;
+
+    })(Element);
+    return Tile;
+  });
+
+  (function(definition) {
+    Parallelio.Door = definition();
+    return Parallelio.Door.definition = definition;
+  })(function(dependencies) {
+    var Door, Tiled;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tile;
+    Door = (function(superClass) {
+      extend(Door, superClass);
+
+      function Door(direction1) {
+        this.direction = direction1 != null ? direction1 : Door.directions.horizontal;
+      }
+
+      Door.properties({
+        tile: {
+          change: function(old, overrided) {
+            var ref1, ref2, ref3, ref4;
+            overrided();
+            if (old != null) {
+              if ((ref1 = old.walkableMembers) != null) {
+                ref1.removePropertyRef('open', this);
+              }
+              if ((ref2 = old.transparentMembers) != null) {
+                ref2.removePropertyRef('open', this);
+              }
+            }
+            if (this.tile) {
+              if ((ref3 = this.tile.walkableMembers) != null) {
+                ref3.addPropertyRef('open', this);
+              }
+              return (ref4 = this.tile.transparentMembers) != null ? ref4.addPropertyRef('open', this) : void 0;
+            }
+          }
+        },
+        open: {
+          "default": false
+        },
+        direction: {}
+      });
+
+      Door.directions = {
+        horizontal: 'horizontal',
+        vertical: 'vertical'
+      };
+
+      return Door;
+
+    })(Tiled);
+    return Door;
+  });
+
+  (function(definition) {
+    Parallelio.Element = definition();
+    return Parallelio.Element.definition = definition;
+  })(function(dependencies) {
+    var Element;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    return Element;
+  });
+
+  (function(definition) {
+    Parallelio.Floor = definition();
+    return Parallelio.Floor.definition = definition;
+  })(function(dependencies) {
+    var Floor, Tile;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : Parallelio.Tile;
+    Floor = (function(superClass) {
+      extend(Floor, superClass);
+
+      function Floor() {
+        return Floor.__super__.constructor.apply(this, arguments);
+      }
+
+      Floor.properties({
+        walkable: {
+          composed: true
+        },
+        transparent: {
+          composed: true
+        }
+      });
+
+      return Floor;
+
+    })(Tile);
+    return Floor;
+  });
+
+  (function(definition) {
+    Parallelio.TileContainer = definition();
+    return Parallelio.TileContainer.definition = definition;
+  })(function(dependencies) {
+    var Element, TileContainer;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileContainer = (function(superClass) {
+      extend(TileContainer, superClass);
+
+      function TileContainer() {
+        this.init();
+      }
+
+      TileContainer.prototype.init = function() {
+        this.coords = {};
+        return this.tiles = [];
+      };
+
+      TileContainer.prototype.addTile = function(tile) {
+        if (!this.tiles.includes(tile)) {
+          this.tiles.push(tile);
+          if (this.coords[tile.x] == null) {
+            this.coords[tile.x] = {};
+          }
+          this.coords[tile.x][tile.y] = tile;
+          tile.container = this;
+        }
+        return this;
+      };
+
+      TileContainer.prototype.getTile = function(x, y) {
+        var ref1;
+        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+          return this.coords[x][y];
+        }
+      };
+
+      TileContainer.prototype.loadMatrix = function(matrix) {
+        var options, row, tile, x, y;
+        for (y in matrix) {
+          row = matrix[y];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              this.addTile(tile(options));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              this.addTile(tile);
+            }
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.allTiles = function() {
+        return this.tiles.slice();
+      };
+
+      TileContainer.prototype.clearAll = function() {
+        var k, len, ref1, tile;
+        ref1 = this.tiles;
+        for (k = 0, len = ref1.length; k < len; k++) {
+          tile = ref1[k];
+          tile.container = null;
+        }
+        this.coords = {};
+        this.tiles = [];
+        return this;
+      };
+
+      return TileContainer;
+
+    })(Element);
+    return TileContainer;
+  });
+
+  (function(definition) {
     Parallelio.RoomGenerator = definition();
     return Parallelio.RoomGenerator.definition = definition;
   })(function(dependencies) {
@@ -1671,8 +1333,8 @@
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.Tile;
-    Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : require('parallelio-tiles').Tile;
+    TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
+    Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : Parallelio.Tile;
     RoomGenerator = (function(superClass) {
       extend(RoomGenerator, superClass);
 
@@ -2238,6 +1900,356 @@
 
     })(Element);
     return Star;
+  });
+
+  (function(definition) {
+    Parallelio.PathFinder = definition();
+    return Parallelio.PathFinder.definition = definition;
+  })(function(dependencies) {
+    var Element, PathFinder;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    PathFinder = (function(superClass) {
+      extend(PathFinder, superClass);
+
+      function PathFinder(tilesContainer, from1, to1, options) {
+        this.tilesContainer = tilesContainer;
+        this.from = from1;
+        this.to = to1;
+        if (options == null) {
+          options = {};
+        }
+        this.reset();
+        if (options.validTile != null) {
+          this.validTileCallback = options.validTile;
+        }
+      }
+
+      PathFinder.properties({
+        validTileCallback: {}
+      });
+
+      PathFinder.prototype.reset = function() {
+        this.queue = [];
+        this.paths = {};
+        this.solution = null;
+        return this.started = false;
+      };
+
+      PathFinder.prototype.calcul = function() {
+        while (!this.solution && (!this.started || this.queue.length)) {
+          this.step();
+        }
+        return this.getPath();
+      };
+
+      PathFinder.prototype.step = function() {
+        var next;
+        if (this.queue.length) {
+          next = this.queue.pop();
+          this.addNextSteps(next);
+          return true;
+        } else if (!this.started) {
+          this.started = true;
+          this.addNextSteps();
+          return true;
+        }
+      };
+
+      PathFinder.prototype.getPath = function() {
+        var res, step;
+        if (this.solution) {
+          res = [this.solution];
+          step = this.solution;
+          while (step.prev != null) {
+            res.unshift(step.prev);
+            step = step.prev;
+          }
+          return res;
+        }
+      };
+
+      PathFinder.prototype.getPosAtTime = function(time) {
+        var prc, step;
+        if (this.solution) {
+          if (time >= this.solution.getTotalLength()) {
+            return this.solution.posToTileOffset(this.solution.getExit().x, this.solution.getExit().y);
+          } else {
+            step = this.solution;
+            while (step.getStartLength() > time && (step.prev != null)) {
+              step = step.prev;
+            }
+            prc = (time - step.getStartLength()) / step.getLength();
+            return step.posToTileOffset(step.getEntry().x + (step.getExit().x - step.getEntry().x) * prc, step.getEntry().y + (step.getExit().y - step.getEntry().y) * prc);
+          }
+        }
+      };
+
+      PathFinder.prototype.tileIsValid = function(tile) {
+        if (this.validTileCallback != null) {
+          return this.validTileCallback(tile);
+        } else {
+          return !tile.emulated || (tile.tile !== 0 && tile.tile !== false);
+        }
+      };
+
+      PathFinder.prototype.getTile = function(x, y) {
+        var ref1;
+        if (this.tilesContainer.getTile != null) {
+          return this.tilesContainer.getTile(x, y);
+        } else if (((ref1 = this.tilesContainer[y]) != null ? ref1[x] : void 0) != null) {
+          return {
+            x: x,
+            y: y,
+            tile: this.tilesContainer[y][x],
+            emulated: true
+          };
+        }
+      };
+
+      PathFinder.prototype.getConnectedToTile = function(tile) {
+        var connected, t;
+        if (tile.getConnected != null) {
+          return tile.getConnected();
+        } else {
+          connected = [];
+          if (t = this.getTile(tile.x + 1, tile.y)) {
+            connected.push(t);
+          }
+          if (t = this.getTile(tile.x - 1, tile.y)) {
+            connected.push(t);
+          }
+          if (t = this.getTile(tile.x, tile.y + 1)) {
+            connected.push(t);
+          }
+          if (t = this.getTile(tile.x, tile.y - 1)) {
+            connected.push(t);
+          }
+          return connected;
+        }
+      };
+
+      PathFinder.prototype.addNextSteps = function(step) {
+        var k, len, next, ref1, results, tile;
+        if (step == null) {
+          step = null;
+        }
+        tile = step != null ? step.nextTile : this.from;
+        ref1 = this.getConnectedToTile(tile);
+        results = [];
+        for (k = 0, len = ref1.length; k < len; k++) {
+          next = ref1[k];
+          if (this.tileIsValid(next)) {
+            results.push(this.addStep(new PathFinder.Step(this, (step != null ? step : null), tile, next)));
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
+      };
+
+      PathFinder.prototype.tileEqual = function(tileA, tileB) {
+        return tileA === tileB || ((tileA.emulated || tileB.emulated) && tileA.x === tileB.x && tileA.y === tileB.y);
+      };
+
+      PathFinder.prototype.addStep = function(step) {
+        if (this.paths[step.getExit().x] == null) {
+          this.paths[step.getExit().x] = {};
+        }
+        if (!((this.paths[step.getExit().x][step.getExit().y] != null) && this.paths[step.getExit().x][step.getExit().y].getTotalLength() <= step.getTotalLength())) {
+          if (this.paths[step.getExit().x][step.getExit().y] != null) {
+            this.removeStep(this.paths[step.getExit().x][step.getExit().y]);
+          }
+          this.paths[step.getExit().x][step.getExit().y] = step;
+          this.queue.splice(this.getStepRank(step), 0, step);
+          if (this.tileEqual(step.nextTile, this.to) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
+            return this.solution = new PathFinder.Step(this, step, step.nextTile, null);
+          }
+        }
+      };
+
+      PathFinder.prototype.removeStep = function(step) {
+        var index;
+        index = this.queue.indexOf(step);
+        if (index > -1) {
+          return this.queue.splice(index, 1);
+        }
+      };
+
+      PathFinder.prototype.best = function() {
+        return this.queue[this.queue.length - 1];
+      };
+
+      PathFinder.prototype.getStepRank = function(step) {
+        if (this.queue.length === 0) {
+          return 0;
+        } else {
+          return this._getStepRank(step.getEfficiency(), 0, this.queue.length - 1);
+        }
+      };
+
+      PathFinder.prototype._getStepRank = function(efficiency, min, max) {
+        var ref, refPos;
+        refPos = Math.floor((max - min) / 2) + min;
+        ref = this.queue[refPos].getEfficiency();
+        if (ref === efficiency) {
+          return refPos;
+        } else if (ref > efficiency) {
+          if (refPos === min) {
+            return min;
+          } else {
+            return this._getStepRank(efficiency, min, refPos - 1);
+          }
+        } else {
+          if (refPos === max) {
+            return max + 1;
+          } else {
+            return this._getStepRank(efficiency, refPos + 1, max);
+          }
+        }
+      };
+
+      return PathFinder;
+
+    })(Element);
+    PathFinder.Step = (function() {
+      function Step(pathFinder, prev1, tile1, nextTile) {
+        this.pathFinder = pathFinder;
+        this.prev = prev1;
+        this.tile = tile1;
+        this.nextTile = nextTile;
+      }
+
+      Step.prototype.posToTileOffset = function(x, y) {
+        var tile;
+        tile = Math.floor(x) === this.tile.x && Math.floor(y) === this.tile.y ? this.tile : Math.floor(x) === this.nextTile.x && Math.floor(y) === this.nextTile.y ? this.nextTile : (this.prev != null) && Math.floor(x) === this.prev.tile.x && Math.floor(y) === this.prev.tile.y ? this.prev.tile : console.log('Math.floor(' + x + ') == ' + this.tile.x, 'Math.floor(' + y + ') == ' + this.tile.y, this);
+        return {
+          x: x,
+          y: y,
+          tile: tile,
+          offsetX: x - tile.x,
+          offsetY: y - tile.y
+        };
+      };
+
+      Step.prototype.getExit = function() {
+        if (this.exit == null) {
+          if (this.nextTile != null) {
+            this.exit = {
+              x: (this.tile.x + this.nextTile.x + 1) / 2,
+              y: (this.tile.y + this.nextTile.y + 1) / 2
+            };
+          } else {
+            this.exit = {
+              x: this.tile.x + 0.5,
+              y: this.tile.y + 0.5
+            };
+          }
+        }
+        return this.exit;
+      };
+
+      Step.prototype.getEntry = function() {
+        if (this.entry == null) {
+          if (this.prev != null) {
+            this.entry = {
+              x: (this.tile.x + this.prev.tile.x + 1) / 2,
+              y: (this.tile.y + this.prev.tile.y + 1) / 2
+            };
+          } else {
+            this.entry = {
+              x: this.tile.x + 0.5,
+              y: this.tile.y + 0.5
+            };
+          }
+        }
+        return this.entry;
+      };
+
+      Step.prototype.getLength = function() {
+        if (this.length == null) {
+          this.length = (this.nextTile == null) || (this.prev == null) ? 0.5 : this.prev.tile.x === this.nextTile.x || this.prev.tile.y === this.nextTile.y ? 1 : Math.sqrt(0.5);
+        }
+        return this.length;
+      };
+
+      Step.prototype.getStartLength = function() {
+        if (this.startLength == null) {
+          this.startLength = this.prev != null ? this.prev.getTotalLength() : 0;
+        }
+        return this.startLength;
+      };
+
+      Step.prototype.getTotalLength = function() {
+        if (this.totalLength == null) {
+          this.totalLength = this.getStartLength() + this.getLength();
+        }
+        return this.totalLength;
+      };
+
+      Step.prototype.getEfficiency = function() {
+        if (this.efficiency == null) {
+          this.efficiency = -this.getRemaining() * 1.1 - this.getTotalLength();
+        }
+        return this.efficiency;
+      };
+
+      Step.prototype.getRemaining = function() {
+        var from, to, x, y;
+        if (this.remaining == null) {
+          from = this.getExit();
+          to = {
+            x: this.pathFinder.to.x + 0.5,
+            y: this.pathFinder.to.y + 0.5
+          };
+          x = to.x - from.x;
+          y = to.y - from.y;
+          this.remaining = Math.sqrt(x * x + y * y);
+        }
+        return this.remaining;
+      };
+
+      return Step;
+
+    })();
+    return PathFinder;
+  });
+
+  (function(definition) {
+    Parallelio.Tiled = definition();
+    return Parallelio.Tiled.definition = definition;
+  })(function(dependencies) {
+    var Element, Tiled;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Tiled = (function(superClass) {
+      extend(Tiled, superClass);
+
+      function Tiled() {
+        return Tiled.__super__.constructor.apply(this, arguments);
+      }
+
+      Tiled.properties({
+        tile: {
+          change: function(old) {
+            if (old != null) {
+              old.removeChild(this);
+            }
+            if (this.tile) {
+              return this.tile.addChild(this);
+            }
+          }
+        }
+      });
+
+      return Tiled;
+
+    })(Element);
+    return Tiled;
   });
 
   (function(definition) {

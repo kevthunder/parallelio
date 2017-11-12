@@ -22,11 +22,10 @@ gulp.task('concatStrings', function() {
 });
 
 gulp.task('concat', ['concatStrings'], function() {
-  console.log(require.resolve('spark-starter/package.json'));
   return merge([
-    wrapper.composeModule({namespace:'Parallelio.Spark',module:'spark-starter'},'src/*.coffee'),
-    wrapper.composeModule({namespace:'Parallelio',module:'parallelio-tiles'},'src/*.coffee'),
-    wrapper.composeModule({namespace:'Parallelio',module:'parallelio-pathfinder'},'src/*.coffee'),
+    wrapper.composeModule({namespace:'Parallelio.Spark',module:'spark-starter'},'src/*.coffee')
+      .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-tiles'},'src/*.coffee'))
+      .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-pathfinder'},'src/*.coffee')),
     gulp.src([
       './tmp/_strings.coffee',
       './src/*.coffee'
