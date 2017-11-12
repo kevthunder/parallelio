@@ -1,7 +1,4 @@
-#= require <Tile>
-#--- Standalone ---
-Tile = @Parallelio?.Tile || require('parallelio-tiles').Tile
-#--- Standalone end ---
+Tile = require('parallelio-tiles').Tile
 
 class Floor extends Tile
   @properties
@@ -10,13 +7,3 @@ class Floor extends Tile
     transparent:
       composed: true
 
-if Parallelio?
-  Parallelio.Tile.Floor = Floor
-#--- Standalone ---
-if module?
-  module.exports = Floor
-else
-  unless @Parallelio?
-    @Parallelio = {}
-  @Parallelio.Tile.Floor = Floor
-#--- Standalone end ---

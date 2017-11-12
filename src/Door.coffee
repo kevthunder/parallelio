@@ -1,7 +1,4 @@
-#= require <Tiled>
-#--- Standalone ---
-Tiled = @Parallelio?.Tiled || require('parallelio-tiles').Tiled
-#--- Standalone end ---
+Tiled = require('parallelio-tiles').Tiled
 
 class Door extends Tiled
   constructor: (@direction = Door.directions.horizontal) ->
@@ -24,15 +21,3 @@ class Door extends Tiled
     horizontal: 'horizontal'
     vertical: 'vertical'
   }
-  
-
-if Parallelio?
-  Parallelio.Door = Door
-#--- Standalone ---
-if module?
-  module.exports = Door
-else
-  unless @Parallelio?
-    @Parallelio = {}
-  @Parallelio.Door = Door
-#--- Standalone end ---

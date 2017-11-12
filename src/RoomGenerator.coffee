@@ -1,10 +1,6 @@
-#= require <Tile>
-#= require <TileContainer>
-#--- Standalone ---
-Element = @Spark?.Element || require('spark-starter').Element
-TileContainer = @Parallelio?.TileContainer || require('parallelio-tiles').TileContainer
-Tile = @Parallelio?.Tile || require('parallelio-tiles').Tile
-#--- Standalone end ---
+Element = require('spark-starter').Element
+TileContainer = require('parallelio-tiles').TileContainer
+Tile = require('parallelio-tiles').Tile
 
 class RoomGenerator extends Element
   constructor: (options) ->
@@ -197,15 +193,3 @@ class RoomGenerator.Room
       if door.nextRoom == room
         res.push(door.tile)
     res
-
-
-if Parallelio?
-  Parallelio.RoomGenerator = RoomGenerator
-#--- Standalone ---
-if module?
-  module.exports = RoomGenerator
-else
-  unless @Parallelio?
-    @Parallelio = {}
-  @Parallelio.RoomGenerator = RoomGenerator
-#--- Standalone end ---

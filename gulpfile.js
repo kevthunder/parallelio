@@ -2,20 +2,18 @@ var gulp = require('gulp');
 var rename = require("gulp-rename");
 var coffee = require('gulp-coffee');
 var uglify = require('gulp-uglify');
-var concat = require('gulp-coffeescript-concat');
-var stripCode = require('gulp-strip-code');
+var concat = require('gulp-concat');
 var mocha = require('gulp-mocha');
+var merge = require('merge2');
 var concatStrings = require('parallelio-strings/gulp/concatStrings');
+var wrapper = require('spark-wrapper');
 
 gulp.task('coffee', function() {
-  return gulp.src(['./src/*.coffee', '!./src/_*.coffee'])
-    .pipe(stripCode({
-      pattern: /#--- Concatened ---[\s\S]*?#--- Concatened end ---/g,
-    }))
+  return gulp.src(['./src/*.coffee'])
     .pipe(coffee({bare: true}))
+    .pipe(wrapper({namespace:'Parallelio'}))
+    .pipe(wrapper.loader({namespace:'Parallelio'}))
     .pipe(gulp.dest('./lib/'));
-    
-  
 });
 
 gulp.task('concatStrings', function() {
@@ -24,20 +22,18 @@ gulp.task('concatStrings', function() {
 });
 
 gulp.task('concat', ['concatStrings'], function() {
-  return gulp.src([
-    './node_modules/parallelio-pathfinder/src/*.coffee',
-    './node_modules/parallelio-tiles/src/*.coffee',
-    './node_modules/spark-starter/src/*.coffee',
-    './tmp/_strings.coffee',
-    './src/*.coffee'
+  console.log(require.resolve('spark-starter/package.json'));
+  return merge([
+    wrapper.composeModule({namespace:'Parallelio.Spark',module:'spark-starter'},'src/*.coffee'),
+    wrapper.composeModule({namespace:'Parallelio',module:'parallelio-tiles'},'src/*.coffee'),
+    wrapper.composeModule({namespace:'Parallelio',module:'parallelio-pathfinder'},'src/*.coffee'),
+    gulp.src([
+      './tmp/_strings.coffee',
+      './src/*.coffee'
+    ])
   ])
+    .pipe(wrapper.compose({namespace:'Parallelio'}))
     .pipe(concat('parallelio.coffee'))
-    .pipe(stripCode({
-      pattern: /#--- Local ---[\s\S]*?#--- Local end ---/g,
-    }))
-    .pipe(stripCode({
-      pattern: /#--- Standalone ---[\s\S]*?#--- Standalone end ---/g,
-    }))
     .pipe(gulp.dest('./tmp/'));
 });
 

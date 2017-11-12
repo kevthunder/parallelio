@@ -1,9 +1,11 @@
 assert = require('chai').assert
 
-Parallelio = require('../dist/parallelio.min.js')
 
 
 describe 'concatened file check', ->
+  Parallelio = null 
+  before ->
+  	Parallelio = require('../dist/parallelio.js')
   it 'contains Element', ->
     assert.isFunction Parallelio.Element
   it 'contains Star', ->

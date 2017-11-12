@@ -1,7 +1,4 @@
-#--- Standalone ---
-Element = @Spark?.Element || require('spark-starter').Element
-#--- Standalone end ---
-
+Element = require('spark-starter').Element
 
 class Star extends Element
   constructor: (@x, @y) ->
@@ -98,14 +95,3 @@ class Star.Link extends Element
     t = ( s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y)
     
     s > 0 and s < 1 and t > 0 and t < 1
-
-if Parallelio?
-  Parallelio.Star = Star
-#--- Standalone ---
-if module?
-  module.exports = Star
-else
-  unless @Parallelio?
-    @Parallelio = {}
-  @Parallelio.Star = Star
-#--- Standalone end ---
