@@ -24,13 +24,13 @@
     "merge2": "^1.2.0",
     "mocha": "^3.2.0",
     "seedrandom": "^2.4.3",
-    "spark-wrapper": "kevthunder/spark-wrapper#dev",
+    "spark-wrapper": "kevthunder/spark-wrapper",
     "wolfy87-eventemitter": "^5.2.3"
   },
   "dependencies": {
-    "spark-starter": "kevthunder/spark-starter#spark-wraper-build",
-    "parallelio-pathfinder": "kevthunder/parallelio-pathfinder#spark-wrapper-build",
-    "parallelio-tiles": "kevthunder/parallelio-tiles#spark-wrapper-build",
+    "spark-starter": "kevthunder/spark-starter#v0.5.x",
+    "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
+    "parallelio-tiles": "kevthunder/parallelio-tiles",
     "parallelio-strings": "kevthunder/parallelio-strings"
   }
 }
