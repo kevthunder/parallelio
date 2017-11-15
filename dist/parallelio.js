@@ -5,9 +5,11 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  Parallelio = {};
+  Parallelio = typeof module !== "undefined" && module !== null ? module.exports = {} : (this.Parallelio == null ? this.Parallelio = {} : void 0, this.Parallelio);
 
-  Parallelio.Spark = {};
+  if (Parallelio.Spark == null) {
+    Parallelio.Spark = {};
+  }
 
   Parallelio.strings = {
     "greekAlphabet": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"],
@@ -2314,11 +2316,5 @@
     })();
     return Updater;
   });
-
-  if (typeof module !== "undefined" && module !== null) {
-    module.exports = Parallelio;
-  } else {
-    this.Parallelio = Parallelio;
-  }
 
 }).call(this);
