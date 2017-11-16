@@ -28,9 +28,9 @@
     "wolfy87-eventemitter": "^5.2.3"
   },
   "dependencies": {
-    "spark-starter": "kevthunder/spark-starter#v0.5.x",
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
+    "parallelio-strings": "kevthunder/parallelio-strings",
     "parallelio-tiles": "kevthunder/parallelio-tiles",
-    "parallelio-strings": "kevthunder/parallelio-strings"
+    "spark-starter": "github:kevthunder/spark-starter#v0.5.x"
   }
 }

@@ -242,8 +242,8 @@
       }
     };
     Invalidator = (function() {
-      function Invalidator(property, obj1) {
-        this.property = property;
+      function Invalidator(property1, obj1) {
+        this.property = property1;
         this.obj = obj1 != null ? obj1 : null;
         this.invalidationEvents = [];
         this.recycled = [];
@@ -399,8 +399,8 @@
     }
     Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
     PropertyInstance = (function() {
-      function PropertyInstance(property, obj1) {
-        this.property = property;
+      function PropertyInstance(property1, obj1) {
+        this.property = property1;
         this.obj = obj1;
         this.init();
       }
@@ -837,20 +837,22 @@
 
       Property.prototype.override = function(parent) {
         var key, ref1, results, value;
-        this.options.parent = parent.options;
-        ref1 = parent.options;
-        results = [];
-        for (key in ref1) {
-          value = ref1[key];
-          if (typeof this.options[key] === 'function' && typeof value === 'function') {
-            results.push(this.options[key].overrided = value);
-          } else if (typeof this.options[key] === 'undefined') {
-            results.push(this.options[key] = value);
-          } else {
-            results.push(void 0);
+        if (this.options.parent == null) {
+          this.options.parent = parent.options;
+          ref1 = parent.options;
+          results = [];
+          for (key in ref1) {
+            value = ref1[key];
+            if (typeof this.options[key] === 'function' && typeof value === 'function') {
+              results.push(this.options[key].overrided = value);
+            } else if (typeof this.options[key] === 'undefined') {
+              results.push(this.options[key] = value);
+            } else {
+              results.push(void 0);
+            }
           }
+          return results;
         }
-        return results;
       };
 
       Property.prototype.checkFunctions = function(target) {
@@ -1052,6 +1054,9 @@
             this[key] = value;
           }
         }
+        if (obj.prototype != null) {
+          this.include(obj.prototype);
+        }
         if ((ref1 = obj.extended) != null) {
           ref1.apply(this);
         }
@@ -1059,11 +1064,18 @@
       };
 
       Element.include = function(obj) {
-        var key, ref1, value;
+        var k, key, len, property, ref1, value;
         for (key in obj) {
           value = obj[key];
           if (indexOf.call(Element.elementKeywords, key) < 0) {
-            this.prototype[key] = value;
+            if (key === '_properties') {
+              for (k = 0, len = value.length; k < len; k++) {
+                property = value[k];
+                property.bind(this.prototype);
+              }
+            } else {
+              this.prototype[key] = value;
+            }
           }
         }
         if ((ref1 = obj.included) != null) {
@@ -1330,13 +1342,14 @@
     Parallelio.RoomGenerator = definition();
     return Parallelio.RoomGenerator.definition = definition;
   })(function(dependencies) {
-    var Element, RoomGenerator, Tile, TileContainer;
+    var Door, Element, RoomGenerator, Tile, TileContainer;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
     Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : Parallelio.Tile;
+    Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
     RoomGenerator = (function(superClass) {
       extend(RoomGenerator, superClass);
 
@@ -1452,10 +1465,17 @@
       RoomGenerator.prototype.makeFinalTiles = function() {
         return this.finalTiles = this.tiles.allTiles().map((function(_this) {
           return function(tile) {
-            return typeof tile.factory === "function" ? tile.factory({
-              x: tile.x,
-              y: tile.y
-            }) : void 0;
+            var opt;
+            if (tile.factory != null) {
+              opt = {
+                x: tile.x,
+                y: tile.y
+              };
+              if (tile.factoryOptions != null) {
+                opt = Object.assign(opt, tile.factoryOptions);
+              }
+              return tile.factory(opt);
+            }
           };
         })(this)).filter((function(_this) {
           return function(tile) {
@@ -1595,6 +1615,9 @@
               if ((walls.room != null) && room.doorsForRoom(walls.room) < 1) {
                 door = walls.tiles[Math.floor(this.rng() * walls.tiles.length)];
                 door.factory = this.doorFactory;
+                door.factoryOptions = {
+                  direction: this.tiles.getTile(door.x + 1, door.y).factory === this.floorFactory ? Door.directions.horizontal : Door.directions.vertical
+                };
                 room.addDoor(door, walls.room);
                 results1.push(walls.room.addDoor(door, room));
               } else {

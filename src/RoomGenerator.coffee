@@ -1,6 +1,7 @@
 Element = require('spark-starter').Element
 TileContainer = require('parallelio-tiles').TileContainer
 Tile = require('parallelio-tiles').Tile
+Door = require('./Door')
 
 class RoomGenerator extends Element
   constructor: (options) ->
@@ -63,7 +64,11 @@ class RoomGenerator extends Element
     @makeFinalTiles()
   makeFinalTiles: ->
     @finalTiles = @tiles.allTiles().map (tile) =>
-      tile.factory?({x:tile.x,y:tile.y})
+      if tile.factory?
+        opt = {x:tile.x,y:tile.y}
+        if tile.factoryOptions?
+          opt = Object.assign(opt,tile.factoryOptions)
+        tile.factory(opt)
     .filter (tile) =>
       tile?
   getTiles:->
@@ -134,6 +139,9 @@ class RoomGenerator extends Element
         if walls.room? and room.doorsForRoom(walls.room) < 1
           door = walls.tiles[Math.floor(@rng()*walls.tiles.length)]
           door.factory = @doorFactory
+          door.factoryOptions = {
+            direction: if @tiles.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.horizontal else Door.directions.vertical
+          }
           room.addDoor(door, walls.room)
           walls.room.addDoor(door, room)
   allocateTile: (tile, room = null) ->
