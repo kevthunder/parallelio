@@ -820,18 +820,20 @@
       Property.prototype.bind = function(target) {
         var parent, prop;
         prop = this;
-        if (typeof target.getProperty === 'function' && ((parent = target.getProperty(this.name)) != null)) {
-          this.override(parent);
+        if (!(typeof target.getProperty === 'function' && target.getProperty(this.name) === this)) {
+          if (typeof target.getProperty === 'function' && ((parent = target.getProperty(this.name)) != null)) {
+            this.override(parent);
+          }
+          this.getInstanceType().bind(target, prop);
+          target._properties = (target._properties || []).concat([prop]);
+          if (parent != null) {
+            target._properties = target._properties.filter(function(existing) {
+              return existing !== parent;
+            });
+          }
+          this.checkFunctions(target);
+          this.checkAfterAddListener(target);
         }
-        this.getInstanceType().bind(target, prop);
-        target._properties = (target._properties || []).concat([prop]);
-        if (parent != null) {
-          target._properties = target._properties.filter(function(existing) {
-            return existing !== parent;
-          });
-        }
-        this.checkFunctions(target);
-        this.checkAfterAddListener(target);
         return prop;
       };
 
@@ -1015,7 +1017,7 @@
     Element = (function() {
       function Element() {}
 
-      Element.elementKeywords = ['extended', 'included'];
+      Element.elementKeywords = ['extended', 'included', '__super__', 'constructor'];
 
       Element.prototype.tap = function(name) {
         var args;
@@ -1171,6 +1173,7 @@
 
       function Door(direction1) {
         this.direction = direction1 != null ? direction1 : Door.directions.horizontal;
+        Door.__super__.constructor.call(this);
       }
 
       Door.properties({

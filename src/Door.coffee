@@ -2,6 +2,7 @@ Tiled = require('parallelio-tiles').Tiled
 
 class Door extends Tiled
   constructor: (@direction = Door.directions.horizontal) ->
+    super()
   @properties
     tile:
       change: (old,overrided) ->
