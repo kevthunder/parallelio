@@ -5,11 +5,9 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  Parallelio = typeof module !== "undefined" && module !== null ? module.exports = {} : (this.Parallelio == null ? this.Parallelio = {} : void 0, this.Parallelio);
+  Parallelio = {};
 
-  if (Parallelio.Spark == null) {
-    Parallelio.Spark = {};
-  }
+  Parallelio.Spark = {};
 
   Parallelio.strings = {
     "greekAlphabet": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"],
@@ -426,15 +424,20 @@
           if (this.invalidator) {
             this.invalidator.validateUnknowns();
           }
-          if (!this.calculated) {
-            old = this.value;
-            initiated = this.initiated;
-            this.calcul();
-            if (initiated && this.value !== old) {
-              this.changed(old);
+          if (this.isActive()) {
+            if (!this.calculated) {
+              old = this.value;
+              initiated = this.initiated;
+              this.calcul();
+              if (initiated && this.value !== old) {
+                this.changed(old);
+              }
             }
+            return this.output();
+          } else {
+            this.initiated = true;
+            return void 0;
           }
-          return this.output();
         }
       };
 
@@ -457,7 +460,7 @@
       };
 
       PropertyInstance.prototype.invalidate = function() {
-        if (this.calculated) {
+        if (this.calculated || this.active === false) {
           this.calculated = false;
           if (this._invalidateNotice()) {
             if (this.invalidator != null) {
@@ -469,7 +472,7 @@
       };
 
       PropertyInstance.prototype.unknown = function() {
-        if (this.calculated) {
+        if (this.calculated || this.active === false) {
           this._invalidateNotice();
         }
         return this;
@@ -512,6 +515,32 @@
           })(this));
         }
         return funct.apply(this.obj, args);
+      };
+
+      PropertyInstance.prototype.isActive = function() {
+        var invalidator;
+        if (typeof this.property.options.active === "boolean") {
+          return this.property.options.active;
+        } else if (typeof this.property.options.active === 'function') {
+          invalidator = this.activeInvalidator || new Invalidator(this, this.obj);
+          invalidator.recycle((function(_this) {
+            return function(invalidator, done) {
+              _this.active = _this.callOptionFunct("active", invalidator);
+              done();
+              if (_this.active || invalidator.isEmpty()) {
+                invalidator.unbind();
+                return _this.activeInvalidator = null;
+              } else {
+                _this.invalidator = invalidator;
+                _this.activeInvalidator = invalidator;
+                return invalidator.bind();
+              }
+            };
+          })(this));
+          return this.active;
+        } else {
+          return true;
+        }
       };
 
       PropertyInstance.prototype.calcul = function() {
@@ -580,12 +609,14 @@
       };
 
       PropertyInstance.prototype.changed = function(old) {
-        if (typeof this.property.options.change === 'function') {
-          this.callOptionFunct("change", old);
-        }
-        if (typeof this.obj.emitEvent === 'function') {
-          this.obj.emitEvent(this.property.getUpdateEventName(), [old]);
-          return this.obj.emitEvent(this.property.getChangeEventName(), [old]);
+        if (this.isActive()) {
+          if (typeof this.property.options.change === 'function') {
+            this.callOptionFunct("change", old);
+          }
+          if (typeof this.obj.emitEvent === 'function') {
+            this.obj.emitEvent(this.property.getUpdateEventName(), [old]);
+            return this.obj.emitEvent(this.property.getChangeEventName(), [old]);
+          }
         }
       };
 
@@ -2291,7 +2322,7 @@
       }
 
       Updater.prototype.update = function() {
-        return this.callbacks.forEach(function(callback) {
+        return this.callbacks.slice().forEach(function(callback) {
           return callback();
         });
       };
@@ -2306,7 +2337,7 @@
         var index;
         index = this.callbacks.indexOf(callback);
         if (index !== -1) {
-          return this.callbacks.splice(index);
+          return this.callbacks.splice(index, 1);
         }
       };
 
@@ -2342,5 +2373,11 @@
     })();
     return Updater;
   });
+
+  if (typeof module !== "undefined" && module !== null) {
+    module.exports = Parallelio;
+  } else {
+    this.Parallelio = Parallelio;
+  }
 
 }).call(this);
