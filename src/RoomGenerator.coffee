@@ -140,7 +140,7 @@ class RoomGenerator extends Element
           door = walls.tiles[Math.floor(@rng()*walls.tiles.length)]
           door.factory = @doorFactory
           door.factoryOptions = {
-            direction: if @tiles.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.horizontal else Door.directions.vertical
+            direction: if @tiles.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.vertical else Door.directions.horizontal
           }
           room.addDoor(door, walls.room)
           walls.room.addDoor(door, room)

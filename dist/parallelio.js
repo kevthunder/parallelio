@@ -451,6 +451,9 @@
                 }
               }
             }
+            if (this.pendingChanges) {
+              this.changed(this.pendingOld);
+            }
             return this.output();
           } else {
             this.initiated = true;
@@ -627,14 +630,22 @@
 
       PropertyInstance.prototype.changed = function(old) {
         if (this.isActive()) {
+          this.pendingChanges = false;
+          this.pendingOld = void 0;
           if (typeof this.property.options.change === 'function') {
             this.callOptionFunct("change", old);
           }
           if (typeof this.obj.emitEvent === 'function') {
             this.obj.emitEvent(this.property.getUpdateEventName(), [old]);
-            return this.obj.emitEvent(this.property.getChangeEventName(), [old]);
+            this.obj.emitEvent(this.property.getChangeEventName(), [old]);
+          }
+        } else {
+          this.pendingChanges = true;
+          if (typeof this.pendingOld === 'undefined') {
+            this.pendingOld = old;
           }
         }
+        return this;
       };
 
       PropertyInstance.prototype.isImmediate = function() {
@@ -1667,7 +1678,7 @@
                 door = walls.tiles[Math.floor(this.rng() * walls.tiles.length)];
                 door.factory = this.doorFactory;
                 door.factoryOptions = {
-                  direction: this.tiles.getTile(door.x + 1, door.y).factory === this.floorFactory ? Door.directions.horizontal : Door.directions.vertical
+                  direction: this.tiles.getTile(door.x + 1, door.y).factory === this.floorFactory ? Door.directions.vertical : Door.directions.horizontal
                 };
                 room.addDoor(door, walls.room);
                 results1.push(walls.room.addDoor(door, room));
