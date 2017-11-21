@@ -5,11 +5,9 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  Parallelio = typeof module !== "undefined" && module !== null ? module.exports = {} : (this.Parallelio == null ? this.Parallelio = {} : void 0, this.Parallelio);
+  Parallelio = {};
 
-  if (Parallelio.Spark == null) {
-    Parallelio.Spark = {};
-  }
+  Parallelio.Spark = {};
 
   Parallelio.strings = {
     "greekAlphabet": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"],
@@ -1166,6 +1164,421 @@
   });
 
   (function(definition) {
+    Parallelio.Damageable = definition();
+    return Parallelio.Damageable.definition = definition;
+  })(function(dependencies) {
+    var Damageable, Element;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Damageable = (function(superClass) {
+      extend(Damageable, superClass);
+
+      function Damageable() {
+        return Damageable.__super__.constructor.apply(this, arguments);
+      }
+
+      Damageable.properties({
+        damageable: {
+          "default": true
+        },
+        maxHealth: {
+          "default": 1000
+        },
+        health: {
+          "default": 1000,
+          change: function() {
+            if (this.health === 0 && typeof this.destroy === 'function') {
+              return this.destroy();
+            }
+          }
+        }
+      });
+
+      Damageable.prototype.damage = function(val) {
+        return this.health = Math.max(0, this.health - val);
+      };
+
+      return Damageable;
+
+    })(Element);
+    return Damageable;
+  });
+
+  (function(definition) {
+    Parallelio.LineOfSight = definition();
+    return Parallelio.LineOfSight.definition = definition;
+  })(function() {
+    var LineOfSight;
+    LineOfSight = (function() {
+      function LineOfSight(tiles1, x11, y11, x21, y21) {
+        this.tiles = tiles1;
+        this.x1 = x11 != null ? x11 : 0;
+        this.y1 = y11 != null ? y11 : 0;
+        this.x2 = x21 != null ? x21 : 0;
+        this.y2 = y21 != null ? y21 : 0;
+      }
+
+      LineOfSight.prototype.setX1 = function(val) {
+        this.x1 = val;
+        return this.invalidade();
+      };
+
+      LineOfSight.prototype.setY1 = function(val) {
+        this.y1 = val;
+        return this.invalidade();
+      };
+
+      LineOfSight.prototype.setX2 = function(val) {
+        this.x2 = val;
+        return this.invalidade();
+      };
+
+      LineOfSight.prototype.setY2 = function(val) {
+        this.y2 = val;
+        return this.invalidade();
+      };
+
+      LineOfSight.prototype.invalidade = function() {
+        this.endPoint = null;
+        this.success = null;
+        return this.calculated = false;
+      };
+
+      LineOfSight.prototype.testTile = function(tile, entryX, entryY) {
+        if (this.traversableCallback != null) {
+          return this.traversableCallback(tile, entryX, entryY);
+        } else {
+          return (tile != null) && (typeof tile.getTransparent === 'function' ? tile.getTransparent() : typeof tile.transparent !== void 0 ? tile.transparent : true);
+        }
+      };
+
+      LineOfSight.prototype.testTileAt = function(x, y, entryX, entryY) {
+        return this.testTile(this.tiles.getTile(Math.floor(x), Math.floor(y)), entryX, entryY);
+      };
+
+      LineOfSight.prototype.calcul = function() {
+        var nextX, nextY, positiveX, positiveY, ratio, tileX, tileY, total, x, y;
+        ratio = (this.x2 - this.x1) / (this.y2 - this.y1);
+        total = Math.abs(this.x2 - this.x1) + Math.abs(this.y2 - this.y1);
+        positiveX = (this.x2 - this.x1) >= 0;
+        positiveY = (this.y2 - this.y1) >= 0;
+        tileX = x = this.x1;
+        tileY = y = this.y1;
+        while (total > Math.abs(x - this.x1) + Math.abs(y - this.y1) && this.testTileAt(tileX, tileY, x, y)) {
+          nextX = positiveX ? Math.floor(x) + 1 : Math.ceil(x) - 1;
+          nextY = positiveY ? Math.floor(y) + 1 : Math.ceil(y) - 1;
+          if (this.x2 - this.x1 === 0) {
+            y = nextY;
+          } else if (this.y2 - this.y1 === 0) {
+            x = nextX;
+          } else if (Math.abs((nextX - x) / (this.x2 - this.x1)) < Math.abs((nextY - y) / (this.y2 - this.y1))) {
+            x = nextX;
+            y = (nextX - this.x1) / ratio + this.y1;
+          } else {
+            x = (nextY - this.y1) * ratio + this.x1;
+            y = nextY;
+          }
+          tileX = positiveX ? x : Math.ceil(x) - 1;
+          tileY = positiveY ? y : Math.ceil(y) - 1;
+        }
+        if (total <= Math.abs(x - this.x1) + Math.abs(y - this.y1)) {
+          this.endPoint = {
+            x: this.x2,
+            y: this.y2,
+            tile: this.tiles.getTile(Math.floor(this.x2), Math.floor(this.y2))
+          };
+          return this.success = true;
+        } else {
+          this.endPoint = {
+            x: x,
+            y: y,
+            tile: this.tiles.getTile(Math.floor(tileX), Math.floor(tileY))
+          };
+          return this.success = false;
+        }
+      };
+
+      LineOfSight.prototype.getSuccess = function() {
+        if (!this.calculated) {
+          this.calcul();
+        }
+        return this.success;
+      };
+
+      LineOfSight.prototype.getEndPoint = function() {
+        if (!this.calculated) {
+          this.calcul();
+        }
+        return this.endPoint;
+      };
+
+      return LineOfSight;
+
+    })();
+    return LineOfSight;
+  });
+
+  (function(definition) {
+    Parallelio.DamagePropagation = definition();
+    return Parallelio.DamagePropagation.definition = definition;
+  })(function(dependencies) {
+    var DamagePropagation, LineOfSight;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
+    DamagePropagation = (function() {
+      function DamagePropagation(tile1, power1, range, type) {
+        this.tile = tile1;
+        this.power = power1;
+        this.range = range;
+        this.type = type;
+      }
+
+      DamagePropagation.prototype.directions = [
+        {
+          x: 0,
+          y: -1
+        }, {
+          x: 1,
+          y: 0
+        }, {
+          x: 0,
+          y: 1
+        }, {
+          x: -1,
+          y: 0
+        }
+      ];
+
+      DamagePropagation.prototype.getTileContainer = function() {
+        return tiles;
+      };
+
+      DamagePropagation.prototype.apply = function() {
+        var damage, k, len, ref1, results;
+        ref1 = this.getDamaged();
+        results = [];
+        for (k = 0, len = ref1.length; k < len; k++) {
+          damage = ref1[k];
+          results.push(damage.target.damage(damage.damage));
+        }
+        return results;
+      };
+
+      DamagePropagation.prototype.getDamaged = function() {
+        var added, ctn, dmg, k, len, tile, tiles;
+        if (this._damaged == null) {
+          ctn = this.getTileContainer();
+          this._damaged = [];
+          tiles = ctn.inRange(this.tile, this.range);
+          for (k = 0, len = tiles.length; k < len; k++) {
+            tile = tiles[k];
+            if (tile.damageable && (dmg = this.initialDamage(tile, tiles.length))) {
+              this._damaged.push(dmg);
+            }
+          }
+          if (this.extendedDamage != null) {
+            added = this._damaged;
+            while ((added = this.extend(added)).length) {
+              this._damaged = added.concat(this._damaged);
+            }
+          }
+        }
+        return this._damaged;
+      };
+
+      DamagePropagation.prototype.inDamaged = function(target, damaged) {
+        var damage, k, len;
+        for (k = 0, len = damaged.length; k < len; k++) {
+          damage = damaged[k];
+          if (damage.target === target) {
+            return damage;
+          }
+        }
+        return false;
+      };
+
+      DamagePropagation.prototype.extend = function(damaged) {
+        var added, ctn, damage, dir, dmg, k, l, len, len1, len2, local, m, ref1, target, tile;
+        ctn = this.getTileContainer();
+        added = [];
+        for (k = 0, len = damaged.length; k < len; k++) {
+          damage = damaged[k];
+          local = [];
+          if (damage.target.x != null) {
+            ref1 = this.directions;
+            for (l = 0, len1 = ref1.length; l < len1; l++) {
+              dir = ref1[l];
+              tile = ctn.getTile(damage.target.x + dir.x, damage.target.y + dir.y);
+              if ((tile != null) && tile.damageable && !this.inDamaged(tile, added.concat(this._damaged))) {
+                local.push(tile);
+              }
+            }
+          }
+          for (m = 0, len2 = local.length; m < len2; m++) {
+            target = local[m];
+            if (dmg = this.extendedDamage(target, damage, local.length)) {
+              added.push(dmg);
+            }
+          }
+        }
+        return added;
+      };
+
+      DamagePropagation.prototype.modifyDamage = function(target, power) {
+        if (typeof target.modifyDamage === 'function') {
+          return Math.floor(target.modifyDamage(power, this.type));
+        } else {
+          return power;
+        }
+      };
+
+      return DamagePropagation;
+
+    })();
+    DamagePropagation.Normal = (function(superClass) {
+      extend(Normal, superClass);
+
+      function Normal() {
+        return Normal.__super__.constructor.apply(this, arguments);
+      }
+
+      Normal.prototype.initialDamage = function(target, nb) {
+        var dmg;
+        dmg = this.modifyDamage(target, this.power);
+        if (dmg > 0) {
+          return {
+            target: target,
+            power: this.power,
+            damage: dmg
+          };
+        }
+      };
+
+      return Normal;
+
+    })(DamagePropagation);
+    DamagePropagation.Thermic = (function(superClass) {
+      extend(Thermic, superClass);
+
+      function Thermic() {
+        return Thermic.__super__.constructor.apply(this, arguments);
+      }
+
+      Thermic.prototype.extendedDamage = function(target, last, nb) {
+        var dmg, power;
+        power = (last.damage - 1) / 2 / nb * Math.min(1, last.target.health / last.target.maxHealth * 5);
+        dmg = this.modifyDamage(target, power);
+        if (dmg > 0) {
+          return {
+            target: target,
+            power: power,
+            damage: dmg
+          };
+        }
+      };
+
+      Thermic.prototype.initialDamage = function(target, nb) {
+        var dmg, power;
+        power = this.power / nb;
+        dmg = this.modifyDamage(target, power);
+        if (dmg > 0) {
+          return {
+            target: target,
+            power: power,
+            damage: dmg
+          };
+        }
+      };
+
+      return Thermic;
+
+    })(DamagePropagation);
+    DamagePropagation.Kinetic = (function(superClass) {
+      extend(Kinetic, superClass);
+
+      function Kinetic() {
+        return Kinetic.__super__.constructor.apply(this, arguments);
+      }
+
+      Kinetic.prototype.extendedDamage = function(target, last, nb) {
+        var dmg, power;
+        power = (last.power - last.damage) * Math.min(1, last.target.health / last.target.maxHealth * 2) - 1;
+        dmg = this.modifyDamage(target, power);
+        if (dmg > 0) {
+          return {
+            target: target,
+            power: power,
+            damage: dmg
+          };
+        }
+      };
+
+      Kinetic.prototype.initialDamage = function(target, nb) {
+        var dmg;
+        dmg = this.modifyDamage(target, this.power);
+        if (dmg > 0) {
+          return {
+            target: target,
+            power: this.power,
+            damage: dmg
+          };
+        }
+      };
+
+      return Kinetic;
+
+    })(DamagePropagation);
+    DamagePropagation.Explosive = (function(superClass) {
+      extend(Explosive, superClass);
+
+      function Explosive() {
+        return Explosive.__super__.constructor.apply(this, arguments);
+      }
+
+      Explosive.prototype.getDamaged = function() {
+        var angle, ctn, dist, inside, k, ref1, shard, shardPower, shards, target, vertex;
+        this._damaged = [];
+        ctn = this.getTileContainer();
+        shards = Math.pow(this.range + 1, 2);
+        shardPower = this.power / shards;
+        inside = this.tile.health <= this.modifyDamage(this.tile, shardPower);
+        if (inside) {
+          shardPower *= 4;
+        }
+        for (shard = k = 0, ref1 = shards; 0 <= ref1 ? k <= ref1 : k >= ref1; shard = 0 <= ref1 ? ++k : --k) {
+          angle = Math.random() * Math.PI * 2;
+          dist = this.range * Math.random();
+          target = {
+            x: this.tile.x + dist * Math.cos(angle),
+            y: this.tile.y + dist * Math.sin(angle)
+          };
+          vertex = new LineOfSight(ctn, this.tile.x + 0.5, this.tile.y + 0.5, target.x + 0.5, target.y + 0.5);
+          vertex.traversableCallback = function(tile) {
+            return !inside || !tile.getSolid();
+          };
+          if (vertex.getEndPoint().tile != null) {
+            target = vertex.getEndPoint().tile;
+            this._damaged.push({
+              target: target,
+              power: shardPower,
+              damage: this.modifyDamage(target, shardPower)
+            });
+          }
+        }
+        return this._damaged;
+      };
+
+      return Explosive;
+
+    })(DamagePropagation);
+    return DamagePropagation;
+  });
+
+  (function(definition) {
     Parallelio.Tile = definition();
     return Parallelio.Tile.definition = definition;
   })(function(dependencies) {
@@ -1314,6 +1727,65 @@
 
     })(Tile);
     return Floor;
+  });
+
+  (function(definition) {
+    Parallelio.Projectile = definition();
+    return Parallelio.Projectile.definition = definition;
+  })(function(dependencies) {
+    var Element, Projectile;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Projectile = (function(superClass) {
+      extend(Projectile, superClass);
+
+      function Projectile(options) {
+        this.setProperties(options);
+      }
+
+      Projectile.properties({
+        origin: {
+          "default": null
+        },
+        target: {
+          "default": null
+        },
+        power: {
+          "default": 10
+        },
+        blastRange: {
+          "default": 1
+        },
+        propagationType: {
+          "default": null
+        },
+        speed: {
+          "default": 10
+        },
+        pathLength: {
+          "default": 100
+        }
+      });
+
+      Projectile.prototype.deliverPayload = function() {
+        var payload;
+        payload = new this.propagationType({
+          target: this.target,
+          power: this.power,
+          blastRange: this.blastRange
+        });
+        this.destroy();
+        return payload;
+      };
+
+      Projectile.prototype.destroy = function() {};
+
+      return Projectile;
+
+    })(Element);
+    return Projectile;
   });
 
   (function(definition) {
@@ -2401,5 +2873,73 @@
     })();
     return Updater;
   });
+
+  (function(definition) {
+    Parallelio.Weapon = definition();
+    return Parallelio.Weapon.definition = definition;
+  })(function(dependencies) {
+    var Tiled, Weapon;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tile;
+    Weapon = (function(superClass) {
+      extend(Weapon, superClass);
+
+      function Weapon(options) {
+        this.setProperties(options);
+      }
+
+      Weapon.properties({
+        rechargeTime: {
+          "default": 1000
+        },
+        power: {
+          "default": 10
+        },
+        blastRange: {
+          "default": 1
+        },
+        propagationType: {
+          "default": null
+        },
+        projectileSpeed: {
+          "default": 10
+        },
+        target: {
+          "default": null
+        },
+        enabled: {
+          "default": true
+        }
+      });
+
+      Weapon.prototype.fire = function() {
+        var projectile;
+        projectile = new Projectile({
+          origin: this,
+          target: this.target,
+          power: this.power,
+          blastRange: this.blastRange,
+          propagationType: this.propagationType,
+          speed: this.projectileSpeed
+        });
+        this.recharge();
+        return projectile;
+      };
+
+      Weapon.prototype.recharge = function() {};
+
+      return Weapon;
+
+    })(Tiled);
+    return Weapon;
+  });
+
+  if (typeof module !== "undefined" && module !== null) {
+    module.exports = Parallelio;
+  } else {
+    this.Parallelio = Parallelio;
+  }
 
 }).call(this);
