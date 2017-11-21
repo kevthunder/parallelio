@@ -16,6 +16,11 @@ class Weapon extends Tiled
       default: 10
     target:
       default: null
+      change: ->
+        if @target and @enabled and @charged
+          @fire()
+    charged:
+      default: true
     enabled:
       default: true
   fire: ->
@@ -27,7 +32,16 @@ class Weapon extends Tiled
       propagationType: @propagationType
       speed: @projectileSpeed
     })
+    @charged = false
     @recharge()
     projectile
   recharge: ->
+    @chargeTimeout = setTimeout =>
+      recharged()
+    , rechargeTime
+  recharged: ->
+    @charged = true
+    if @target and @enabled
+      @fire()
+
 

@@ -20,10 +20,11 @@ class Projectile extends Element
       default: 100
   deliverPayload: ->
     payload = new @propagationType({
-      target: @target
+      tile: @target.tile || @target
       power: @power
-      blastRange: @blastRange
+      range: @blastRange
     })
+    payload.apply()
     @destroy()
     payload
   destroy: ->

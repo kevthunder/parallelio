@@ -8,10 +8,10 @@ class Door extends Tiled
       change: (old,overrided) ->
         overrided()
         if old?
-          old.walkableMembers?.removePropertyRef('open',this)
-          old.transparentMembers?.removePropertyRef('open',this)
+          old.walkableMembers?.removeRef('open',this)
+          old.transparentMembers?.removeRef('open',this)
         if @tile
-          @tile.walkableMembers?.addPropertyRef('open',this,)
+          @tile.walkableMembers?.addPropertyRef('open',this)
           @tile.transparentMembers?.addPropertyRef('open',this)
     open:
       default: false

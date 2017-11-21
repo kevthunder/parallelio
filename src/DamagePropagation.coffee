@@ -1,23 +1,31 @@
+Element = require('spark-starter').Element
 LineOfSight = require('./LineOfSight')
+Direction = require('parallelio-tiles').Direction
 
-class DamagePropagation
-  constructor: (@tile, @power, @range, @type)->
-  directions: [
-    {x:0, y:-1}
-    {x:1, y:0}
-    {x:0, y:1}
-    {x:-1, y:0}
-  ]
+class DamagePropagation extends Element
+  constructor: (options)->
+    @setProperties(options)
+  @properties
+    tile:
+      default: null
+    power:
+      default: 10
+    range:
+      default: 1
+    type:
+      default: null
   getTileContainer: ->
-    tiles
+    @tile.container
   apply: ->
     for damage in @getDamaged()
       damage.target.damage(damage.damage)
+  getInitialTiles: ->
+    ctn = @getTileContainer()
+    ctn.inRange(@tile, @range)
   getDamaged: ->
     unless @_damaged?
-      ctn = @getTileContainer()
       @_damaged = []
-      tiles = ctn.inRange(@tile, @range)
+      tiles = @getInitialTiles()
       for tile in tiles
         if tile.damageable and dmg = @initialDamage(tile, tiles.length)
           @_damaged.push(dmg)
@@ -36,7 +44,7 @@ class DamagePropagation
     for damage in damaged
       local = []
       if damage.target.x?
-        for dir in @directions
+        for dir in Direction.adjacents
           tile = ctn.getTile(damage.target.x + dir.x, damage.target.y + dir.y)
           if tile? and tile.damageable and !@inDamaged(tile, added.concat(@_damaged))
             local.push tile
@@ -48,7 +56,7 @@ class DamagePropagation
     if typeof target.modifyDamage == 'function'
       Math.floor(target.modifyDamage(power, @type))
     else
-      power
+      Math.floor(power)
     
 class DamagePropagation.Normal extends DamagePropagation
   initialDamage: (target, nb) ->

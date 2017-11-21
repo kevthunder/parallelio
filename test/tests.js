@@ -11,6 +11,8 @@
 
   require('./line_of_sight');
 
+  require('./damage_propagation');
+
   require('./room_generator');
 
   require('./concat');

@@ -31,6 +31,6 @@
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
     "parallelio-strings": "kevthunder/parallelio-strings",
     "parallelio-tiles": "kevthunder/parallelio-tiles",
-    "spark-starter": "github:kevthunder/spark-starter#v0.5.x"
+    "spark-starter": "github:kevthunder/spark-starter#v0.6.x"
   }
 }
