@@ -1434,40 +1434,55 @@
         return ctn.inRange(this.tile, this.range);
       };
 
-      DamagePropagation.prototype.getDamaged = function() {
-        var added, dmg, k, len, tile, tiles;
-        if (this._damaged == null) {
-          this._damaged = [];
-          tiles = this.getInitialTiles();
-          for (k = 0, len = tiles.length; k < len; k++) {
-            tile = tiles[k];
-            if (tile.damageable && (dmg = this.initialDamage(tile, tiles.length))) {
-              this._damaged.push(dmg);
-            }
+      DamagePropagation.prototype.getInitialDamages = function() {
+        var damages, dmg, k, len, tile, tiles;
+        damages = [];
+        tiles = this.getInitialTiles();
+        for (k = 0, len = tiles.length; k < len; k++) {
+          tile = tiles[k];
+          if (tile.damageable && (dmg = this.initialDamage(tile, tiles.length))) {
+            damages.push(dmg);
           }
-          if (this.extendedDamage != null) {
-            added = this._damaged;
-            while ((added = this.extend(added)).length) {
-              this._damaged = added.concat(this._damaged);
-            }
+        }
+        return damages;
+      };
+
+      DamagePropagation.prototype.getDamaged = function() {
+        var added;
+        if (this._damaged == null) {
+          added = null;
+          while (added = this.step(added)) {
+            true;
           }
         }
         return this._damaged;
       };
 
+      DamagePropagation.prototype.step = function(added) {
+        if (added != null) {
+          if (this.extendedDamage != null) {
+            added = this.extend(added);
+            this._damaged = added.concat(this._damaged);
+            return added.length > 0 && added;
+          }
+        } else {
+          return this._damaged = this.getInitialDamages();
+        }
+      };
+
       DamagePropagation.prototype.inDamaged = function(target, damaged) {
-        var damage, k, len;
-        for (k = 0, len = damaged.length; k < len; k++) {
-          damage = damaged[k];
+        var damage, index, k, len;
+        for (index = k = 0, len = damaged.length; k < len; index = ++k) {
+          damage = damaged[index];
           if (damage.target === target) {
-            return damage;
+            return index;
           }
         }
         return false;
       };
 
       DamagePropagation.prototype.extend = function(damaged) {
-        var added, ctn, damage, dir, dmg, k, l, len, len1, len2, local, m, ref1, target, tile;
+        var added, ctn, damage, dir, dmg, existing, k, l, len, len1, len2, local, m, ref1, target, tile;
         ctn = this.getTileContainer();
         added = [];
         for (k = 0, len = damaged.length; k < len; k++) {
@@ -1478,7 +1493,7 @@
             for (l = 0, len1 = ref1.length; l < len1; l++) {
               dir = ref1[l];
               tile = ctn.getTile(damage.target.x + dir.x, damage.target.y + dir.y);
-              if ((tile != null) && tile.damageable && !this.inDamaged(tile, added.concat(this._damaged))) {
+              if ((tile != null) && tile.damageable && this.inDamaged(tile, this._damaged) === false) {
                 local.push(tile);
               }
             }
@@ -1486,11 +1501,23 @@
           for (m = 0, len2 = local.length; m < len2; m++) {
             target = local[m];
             if (dmg = this.extendedDamage(target, damage, local.length)) {
-              added.push(dmg);
+              if ((existing = this.inDamaged(target, added)) === false) {
+                added.push(dmg);
+              } else {
+                added[existing] = this.mergeDamage(added[existing], dmg);
+              }
             }
           }
         }
         return added;
+      };
+
+      DamagePropagation.prototype.mergeDamage = function(d1, d2) {
+        return {
+          target: d1.target,
+          power: d1.power + d2.power,
+          damage: d1.damage + d2.damage
+        };
       };
 
       DamagePropagation.prototype.modifyDamage = function(target, power) {
@@ -1594,6 +1621,22 @@
         }
       };
 
+      Kinetic.prototype.modifyDamage = function(target, power) {
+        if (typeof target.modifyDamage === 'function') {
+          return Math.floor(target.modifyDamage(power, this.type));
+        } else {
+          return Math.floor(power * 0.25);
+        }
+      };
+
+      Kinetic.prototype.mergeDamage = function(d1, d2) {
+        return {
+          target: d1.target,
+          power: Math.floor((d1.power + d2.power) / 2),
+          damage: Math.floor((d1.damage + d2.damage) / 2)
+        };
+      };
+
       return Kinetic;
 
     })(DamagePropagation);
@@ -1604,10 +1647,20 @@
         return Explosive.__super__.constructor.apply(this, arguments);
       }
 
+      Explosive.properties({
+        rng: {
+          "default": Math.random
+        },
+        traversableCallback: {
+          "default": function(tile) {
+            return !(typeof tile.getSolid === 'function' && tile.getSolid());
+          }
+        }
+      });
+
       Explosive.prototype.getDamaged = function() {
-        var angle, ctn, dist, inside, k, ref1, shard, shardPower, shards, target, vertex;
+        var angle, inside, k, ref1, shard, shardPower, shards, target;
         this._damaged = [];
-        ctn = this.getTileContainer();
         shards = Math.pow(this.range + 1, 2);
         shardPower = this.power / shards;
         inside = this.tile.health <= this.modifyDamage(this.tile, shardPower);
@@ -1615,18 +1668,9 @@
           shardPower *= 4;
         }
         for (shard = k = 0, ref1 = shards; 0 <= ref1 ? k <= ref1 : k >= ref1; shard = 0 <= ref1 ? ++k : --k) {
-          angle = Math.random() * Math.PI * 2;
-          dist = this.range * Math.random();
-          target = {
-            x: this.tile.x + dist * Math.cos(angle),
-            y: this.tile.y + dist * Math.sin(angle)
-          };
-          vertex = new LineOfSight(ctn, this.tile.x + 0.5, this.tile.y + 0.5, target.x + 0.5, target.y + 0.5);
-          vertex.traversableCallback = function(tile) {
-            return !inside || !tile.getSolid();
-          };
-          if (vertex.getEndPoint().tile != null) {
-            target = vertex.getEndPoint().tile;
+          angle = this.rng() * Math.PI * 2;
+          target = this.getTileHitByShard(inside, angle);
+          if (target != null) {
             this._damaged.push({
               target: target,
               power: shardPower,
@@ -1635,6 +1679,27 @@
           }
         }
         return this._damaged;
+      };
+
+      Explosive.prototype.getTileHitByShard = function(inside, angle) {
+        var ctn, dist, target, vertex;
+        ctn = this.getTileContainer();
+        dist = this.range * this.rng();
+        target = {
+          x: this.tile.x + 0.5 + dist * Math.cos(angle),
+          y: this.tile.y + 0.5 + dist * Math.sin(angle)
+        };
+        if (inside) {
+          vertex = new LineOfSight(ctn, this.tile.x + 0.5, this.tile.y + 0.5, target.x, target.y);
+          vertex.traversableCallback = (function(_this) {
+            return function(tile) {
+              return !inside || ((tile != null) && _this.traversableCallback(tile));
+            };
+          })(this);
+          return vertex.getEndPoint().tile;
+        } else {
+          return ctn.getTile(Math.floor(target.x), Math.floor(target.y));
+        }
       };
 
       return Explosive;
@@ -2368,6 +2433,180 @@
   });
 
   (function(definition) {
+    Parallelio.Star = definition();
+    return Parallelio.Star.definition = definition;
+  })(function(dependencies) {
+    var Element, Star;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Star = (function(superClass) {
+      extend(Star, superClass);
+
+      function Star(x5, y5) {
+        this.x = x5;
+        this.y = y5;
+        this.init();
+      }
+
+      Star.properties({
+        x: {},
+        y: {},
+        links: {
+          collection: {
+            findStar: function(star) {
+              return this.find(function(link) {
+                return link.star2 === star || link.star1 === star;
+              });
+            }
+          }
+        }
+      });
+
+      Star.prototype.init = function() {};
+
+      Star.prototype.linkTo = function(star) {
+        if (!this.links.findStar(star)) {
+          return this.addLink(new this.constructor.Link(this, star));
+        }
+      };
+
+      Star.prototype.addLink = function(link) {
+        this.links.add(link);
+        link.otherStar(this).links.add(link);
+        return link;
+      };
+
+      Star.prototype.dist = function(x, y) {
+        var xDist, yDist;
+        xDist = this.x - x;
+        yDist = this.y - y;
+        return Math.sqrt((xDist * xDist) + (yDist * yDist));
+      };
+
+      Star.collenctionFn = {
+        closest: function(x, y) {
+          var min, minDist;
+          min = null;
+          minDist = null;
+          this.forEach(function(star) {
+            var dist;
+            dist = star.dist(x, y);
+            if ((min == null) || minDist > dist) {
+              min = star;
+              return minDist = dist;
+            }
+          });
+          return min;
+        },
+        closests: function(x, y) {
+          var dists;
+          dists = this.map(function(star) {
+            return {
+              dist: star.dist(x, y),
+              star: star
+            };
+          });
+          dists.sort(function(a, b) {
+            return a.dist - b.dist;
+          });
+          return this.copy(dists.map(function(dist) {
+            return dist.star;
+          }));
+        }
+      };
+
+      return Star;
+
+    })(Element);
+    Star.Link = (function(superClass) {
+      extend(Link, superClass);
+
+      function Link(star1, star2) {
+        this.star1 = star1;
+        this.star2 = star2;
+      }
+
+      Link.prototype.remove = function() {
+        this.star1.links.remove(this);
+        return this.star2.links.remove(this);
+      };
+
+      Link.prototype.otherStar = function(star) {
+        if (star === this.star1) {
+          return this.star2;
+        } else {
+          return this.star1;
+        }
+      };
+
+      Link.prototype.getLength = function() {
+        return this.star1.dist(this.star2.x, this.star2.y);
+      };
+
+      Link.prototype.inBoundaryBox = function(x, y, padding) {
+        var x1, x2, y1, y2;
+        if (padding == null) {
+          padding = 0;
+        }
+        x1 = Math.min(this.star1.x, this.star2.x) - padding;
+        y1 = Math.min(this.star1.y, this.star2.y) - padding;
+        x2 = Math.max(this.star1.x, this.star2.x) + padding;
+        y2 = Math.max(this.star1.y, this.star2.y) + padding;
+        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+      };
+
+      Link.prototype.closeToPoint = function(x, y, minDist) {
+        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
+        if (!this.inBoundaryBox(x, y, minDist)) {
+          return false;
+        }
+        a = this.star1;
+        b = this.star2;
+        c = {
+          "x": x,
+          "y": y
+        };
+        xAbDist = b.x - a.x;
+        yAbDist = b.y - a.y;
+        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
+        abxAngle = Math.atan(yAbDist / xAbDist);
+        xAcDist = c.x - a.x;
+        yAcDist = c.y - a.y;
+        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
+        acxAngle = Math.atan(yAcDist / xAcDist);
+        abcAngle = abxAngle - acxAngle;
+        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
+        return cdDist <= minDist;
+      };
+
+      Link.prototype.intersectLink = function(link) {
+        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
+        x1 = this.star1.x;
+        y1 = this.star1.y;
+        x2 = this.star2.x;
+        y2 = this.star2.y;
+        x3 = link.star1.x;
+        y3 = link.star1.y;
+        x4 = link.star2.x;
+        y4 = link.star2.y;
+        s1_x = x2 - x1;
+        s1_y = y2 - y1;
+        s2_x = x4 - x3;
+        s2_y = y4 - y3;
+        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
+        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
+        return s > 0 && s < 1 && t > 0 && t < 1;
+      };
+
+      return Link;
+
+    })(Element);
+    return Star;
+  });
+
+  (function(definition) {
     Parallelio.PathFinder = definition();
     return Parallelio.PathFinder.definition = definition;
   })(function(dependencies) {
@@ -2778,180 +3017,6 @@
 
     })();
     return Updater;
-  });
-
-  (function(definition) {
-    Parallelio.Star = definition();
-    return Parallelio.Star.definition = definition;
-  })(function(dependencies) {
-    var Element, Star;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Star = (function(superClass) {
-      extend(Star, superClass);
-
-      function Star(x5, y5) {
-        this.x = x5;
-        this.y = y5;
-        this.init();
-      }
-
-      Star.properties({
-        x: {},
-        y: {},
-        links: {
-          collection: {
-            findStar: function(star) {
-              return this.find(function(link) {
-                return link.star2 === star || link.star1 === star;
-              });
-            }
-          }
-        }
-      });
-
-      Star.prototype.init = function() {};
-
-      Star.prototype.linkTo = function(star) {
-        if (!this.links.findStar(star)) {
-          return this.addLink(new this.constructor.Link(this, star));
-        }
-      };
-
-      Star.prototype.addLink = function(link) {
-        this.links.add(link);
-        link.otherStar(this).links.add(link);
-        return link;
-      };
-
-      Star.prototype.dist = function(x, y) {
-        var xDist, yDist;
-        xDist = this.x - x;
-        yDist = this.y - y;
-        return Math.sqrt((xDist * xDist) + (yDist * yDist));
-      };
-
-      Star.collenctionFn = {
-        closest: function(x, y) {
-          var min, minDist;
-          min = null;
-          minDist = null;
-          this.forEach(function(star) {
-            var dist;
-            dist = star.dist(x, y);
-            if ((min == null) || minDist > dist) {
-              min = star;
-              return minDist = dist;
-            }
-          });
-          return min;
-        },
-        closests: function(x, y) {
-          var dists;
-          dists = this.map(function(star) {
-            return {
-              dist: star.dist(x, y),
-              star: star
-            };
-          });
-          dists.sort(function(a, b) {
-            return a.dist - b.dist;
-          });
-          return this.copy(dists.map(function(dist) {
-            return dist.star;
-          }));
-        }
-      };
-
-      return Star;
-
-    })(Element);
-    Star.Link = (function(superClass) {
-      extend(Link, superClass);
-
-      function Link(star1, star2) {
-        this.star1 = star1;
-        this.star2 = star2;
-      }
-
-      Link.prototype.remove = function() {
-        this.star1.links.remove(this);
-        return this.star2.links.remove(this);
-      };
-
-      Link.prototype.otherStar = function(star) {
-        if (star === this.star1) {
-          return this.star2;
-        } else {
-          return this.star1;
-        }
-      };
-
-      Link.prototype.getLength = function() {
-        return this.star1.dist(this.star2.x, this.star2.y);
-      };
-
-      Link.prototype.inBoundaryBox = function(x, y, padding) {
-        var x1, x2, y1, y2;
-        if (padding == null) {
-          padding = 0;
-        }
-        x1 = Math.min(this.star1.x, this.star2.x) - padding;
-        y1 = Math.min(this.star1.y, this.star2.y) - padding;
-        x2 = Math.max(this.star1.x, this.star2.x) + padding;
-        y2 = Math.max(this.star1.y, this.star2.y) + padding;
-        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
-      };
-
-      Link.prototype.closeToPoint = function(x, y, minDist) {
-        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
-        if (!this.inBoundaryBox(x, y, minDist)) {
-          return false;
-        }
-        a = this.star1;
-        b = this.star2;
-        c = {
-          "x": x,
-          "y": y
-        };
-        xAbDist = b.x - a.x;
-        yAbDist = b.y - a.y;
-        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
-        abxAngle = Math.atan(yAbDist / xAbDist);
-        xAcDist = c.x - a.x;
-        yAcDist = c.y - a.y;
-        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
-        acxAngle = Math.atan(yAcDist / xAcDist);
-        abcAngle = abxAngle - acxAngle;
-        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
-        return cdDist <= minDist;
-      };
-
-      Link.prototype.intersectLink = function(link) {
-        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
-        x1 = this.star1.x;
-        y1 = this.star1.y;
-        x2 = this.star2.x;
-        y2 = this.star2.y;
-        x3 = link.star1.x;
-        y3 = link.star1.y;
-        x4 = link.star2.x;
-        y4 = link.star2.y;
-        s1_x = x2 - x1;
-        s1_y = y2 - y1;
-        s2_x = x4 - x3;
-        s2_y = y4 - y3;
-        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
-        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
-        return s > 0 && s < 1 && t > 0 && t < 1;
-      };
-
-      return Link;
-
-    })(Element);
-    return Star;
   });
 
   (function(definition) {

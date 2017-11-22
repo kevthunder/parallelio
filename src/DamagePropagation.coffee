@@ -22,21 +22,30 @@ class DamagePropagation extends Element
   getInitialTiles: ->
     ctn = @getTileContainer()
     ctn.inRange(@tile, @range)
+  getInitialDamages: ->
+    damages = []
+    tiles = @getInitialTiles()
+    for tile in tiles
+      if tile.damageable and dmg = @initialDamage(tile, tiles.length)
+        damages.push(dmg)
+    damages
   getDamaged: ->
     unless @_damaged?
-      @_damaged = []
-      tiles = @getInitialTiles()
-      for tile in tiles
-        if tile.damageable and dmg = @initialDamage(tile, tiles.length)
-          @_damaged.push(dmg)
-      if @extendedDamage?
-        added = @_damaged
-        while (added = @extend(added)).length
-          @_damaged = added.concat(@_damaged)
+      added = null
+      while added = @step(added)
+        true
     @_damaged
+  step: (added)->
+    if added?
+      if @extendedDamage?
+        added = @extend(added)
+        @_damaged = added.concat(@_damaged)
+        added.length > 0 && added
+    else
+      @_damaged = @getInitialDamages()
   inDamaged: (target, damaged)->
-    for damage in damaged
-      return damage if damage.target == target
+    for damage, index in damaged
+      return index if damage.target == target
     false
   extend: (damaged) ->
     ctn = @getTileContainer()
@@ -46,12 +55,21 @@ class DamagePropagation extends Element
       if damage.target.x?
         for dir in Direction.adjacents
           tile = ctn.getTile(damage.target.x + dir.x, damage.target.y + dir.y)
-          if tile? and tile.damageable and !@inDamaged(tile, added.concat(@_damaged))
+          if tile? and tile.damageable and @inDamaged(tile, @_damaged) == false
             local.push tile
       for target in local
         if dmg = @extendedDamage(target, damage, local.length)
-          added.push(dmg)
+          if (existing = @inDamaged(target, added)) == false
+            added.push(dmg)
+          else
+            added[existing] = @mergeDamage(added[existing], dmg)
     added
+  mergeDamage:(d1, d2)->
+    {
+      target: d1.target
+      power:  d1.power  + d2.power
+      damage: d1.damage + d2.damage
+    }
   modifyDamage:(target,power)->
     if typeof target.modifyDamage == 'function'
       Math.floor(target.modifyDamage(power, @type))
@@ -105,27 +123,51 @@ class DamagePropagation.Kinetic extends DamagePropagation
         power: @power
         damage: dmg
       }
+  modifyDamage:(target,power)->
+    if typeof target.modifyDamage == 'function'
+      Math.floor(target.modifyDamage(power, @type))
+    else
+      Math.floor(power*0.25)
+  mergeDamage:(d1, d2)->
+    {
+      target: d1.target
+      power:  Math.floor((d1.power  + d2.power)  /2)
+      damage: Math.floor((d1.damage + d2.damage) /2)
+    }
 
 class DamagePropagation.Explosive extends DamagePropagation
+  @properties
+    rng:
+      default: Math.random
+    traversableCallback:
+      default: (tile)->
+        !(typeof tile.getSolid == 'function' && tile.getSolid())
+
   getDamaged: ->
     @_damaged = []
-    ctn = @getTileContainer()
     shards = Math.pow(@range+1, 2)
     shardPower = @power / shards
     inside = @tile.health <= @modifyDamage(@tile,shardPower)
     shardPower *= 4 if inside
     for shard in [0..shards]
-      angle = Math.random()*Math.PI*2
-      dist = @range * Math.random()
-      target = {x: @tile.x + dist * Math.cos(angle), y: @tile.y + dist * Math.sin(angle)}
-      vertex = new LineOfSight(ctn, @tile.x+0.5, @tile.y+0.5, target.x+0.5, target.y+0.5)
-      vertex.traversableCallback = (tile)->
-        !inside or !tile.getSolid()
-      if vertex.getEndPoint().tile?
-        target = vertex.getEndPoint().tile
+      angle = @rng()*Math.PI*2
+      target = @getTileHitByShard(inside,angle)
+      if target?
         @_damaged.push({
           target: target
           power: shardPower
           damage: @modifyDamage(target,shardPower)
         })
     @_damaged
+
+  getTileHitByShard: (inside,angle)->
+    ctn = @getTileContainer()
+    dist = @range * @rng()
+    target = {x: @tile.x + 0.5 + dist * Math.cos(angle), y: @tile.y + 0.5 + dist * Math.sin(angle)}
+    if inside
+      vertex = new LineOfSight(ctn, @tile.x+0.5, @tile.y+0.5, target.x, target.y)
+      vertex.traversableCallback = (tile)=>
+        !inside or (tile? and @traversableCallback(tile))
+      vertex.getEndPoint().tile
+    else
+      ctn.getTile Math.floor(target.x), Math.floor(target.y)
