@@ -1,7 +1,9 @@
 Tiled = require('parallelio-tiles').Tiled
 Timing = require('./Timing')
+Damageable = require('./Damageable')
 
 class Weapon extends Tiled
+  @extend Damageable
   constructor: (options) ->
     @setProperties(options)
   @properties
@@ -26,9 +28,11 @@ class Weapon extends Tiled
       default: true
     autoFire:
       default: true
+    criticalHealth:
+      default: 0.3
     canFire:
       get: ->
-        @target and @enabled and @charged
+        @target and @enabled and @charged and @health / @maxHealth >= @criticalHealth
     timing:
       calcul: ->
         new Timing()

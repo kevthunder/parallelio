@@ -12,7 +12,7 @@
   Timing = require('../lib/Timing');
 
   describe('Weapon', function() {
-    return it('fire projectile', function() {
+    it('fire projectile', function() {
       var projectile, timing, weapon;
       timing = new Timing(false);
       weapon = new Weapon({
@@ -25,6 +25,21 @@
       projectile = weapon.fire();
       assert.instanceOf(projectile, Projectile);
       return assert.isFalse(weapon.charged);
+    });
+    return it('cannot fire when damaged', function() {
+      var projectile, timing, weapon;
+      timing = new Timing(false);
+      weapon = new Weapon({
+        autoFire: false,
+        autoFire: false,
+        tile: new Tile(),
+        target: new Tile(),
+        health: 20
+      });
+      assert.isTrue(weapon.charged);
+      assert.isFalse(weapon.canFire);
+      projectile = weapon.fire();
+      return assert.isUndefined(projectile);
     });
   });
 
