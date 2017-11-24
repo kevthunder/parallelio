@@ -204,7 +204,7 @@
         damages = tileDamageMatrix(ctn);
         return assert.deepEqual(damages, expect);
       });
-      return it('propagete less to heavy dammaged tiles', function() {
+      return it('propagete less in heavy dammaged tiles', function() {
         var ctn, damages, dm, expect, startAt, target;
         ctn = createTiles();
         startAt = 200;
@@ -227,12 +227,11 @@
         assert.isAbove(ctn.getTile(0, 0).health, startAt - 29, 'corner');
         expect = [[0, 0, 3, 10, 3, 0, 0], [0, 3, 10, 37, 10, 3, 0], [3, 10, 37, 125, 37, 10, 3], [10, 37, 125, 125, 125, 37, 10], [3, 10, 37, 125, 37, 10, 3], [0, 3, 10, 37, 10, 3, 0], [0, 0, 3, 10, 3, 0, 0]];
         damages = tileDamageMatrix(ctn, startAt);
-        console.log(damages);
         return assert.deepEqual(damages, expect);
       });
     });
     return describe('Explosive', function() {
-      it('low dammage outside hull', function() {
+      it('causes low dammage outside hull', function() {
         var ctn, damages, dm, expect, target;
         ctn = createTiles();
         target = ctn.getTile(3, 3);
@@ -249,7 +248,7 @@
         damages = tileDamageMatrix(ctn);
         return assert.deepEqual(damages, expect);
       });
-      return it('high dammage inside hull', function() {
+      return it('causes high dammage inside hull', function() {
         var ctn, damages, dm, expect, target;
         ctn = createTiles();
         target = ctn.getTile(3, 3);

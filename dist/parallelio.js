@@ -1215,8 +1215,8 @@
         health: {
           "default": 1000,
           change: function() {
-            if (this.health === 0 && typeof this.destroy === 'function') {
-              return this.destroy();
+            if (this.health === 0) {
+              return this.whenNoHealth();
             }
           }
         }
@@ -1225,6 +1225,8 @@
       Damageable.prototype.damage = function(val) {
         return this.health = Math.max(0, this.health - val);
       };
+
+      Damageable.prototype.whenNoHealth = function() {};
 
       return Damageable;
 
@@ -1755,6 +1757,25 @@
         }
       };
 
+      Tile.prototype.dist = function(tile) {
+        var ctnDist, ref1, x, y;
+        if (((tile != null ? tile.x : void 0) != null) && (tile.y != null) && (this.x != null) && (this.y != null) && (this.container === tile.container || (ctnDist = (ref1 = this.container) != null ? typeof ref1.dist === "function" ? ref1.dist(tile.container) : void 0 : void 0))) {
+          x = tile.x - this.x;
+          y = tile.y - this.y;
+          if (ctnDist) {
+            x += ctnDist.x;
+            y += ctnDist.y;
+          }
+          return {
+            x: x,
+            y: y,
+            length: Math.sqrt(x * x + y * y)
+          };
+        } else {
+          return null;
+        }
+      };
+
       return Tile;
 
     })(Element);
@@ -1860,14 +1881,178 @@
   });
 
   (function(definition) {
+    Parallelio.Timing = definition();
+    return Parallelio.Timing.definition = definition;
+  })(function() {
+    var Timing;
+    Timing = (function() {
+      function Timing(running) {
+        this.running = running != null ? running : true;
+        this.children = [];
+      }
+
+      Timing.prototype.addChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index === -1) {
+          this.children.push(child);
+        }
+        child.parent = this;
+        return this;
+      };
+
+      Timing.prototype.removeChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index > -1) {
+          this.children.splice(index, 1);
+        }
+        if (child.parent === this) {
+          child.parent = null;
+        }
+        return this;
+      };
+
+      Timing.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        this.running = val;
+        return this.children.forEach(function(child) {
+          return child.toggle(val);
+        });
+      };
+
+      Timing.prototype.setTimeout = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.setInterval = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running, true);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timing.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      return Timing;
+
+    })();
+    Timing.Timer = (function() {
+      function Timer(time1, callback1, running, repeat) {
+        this.time = time1;
+        this.callback = callback1;
+        this.running = running != null ? running : true;
+        this.repeat = repeat != null ? repeat : false;
+        this.remainingTime = this.time;
+        if (this.running) {
+          this._start();
+        }
+      }
+
+      Timer.now = function() {
+        var ref1;
+        if ((typeof window !== "undefined" && window !== null ? (ref1 = window.performance) != null ? ref1.now : void 0 : void 0) != null) {
+          return window.performance.now();
+        } else if ((typeof process !== "undefined" && process !== null ? process.uptime : void 0) != null) {
+          return process.uptime();
+        } else {
+          return Date.now();
+        }
+      };
+
+      Timer.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        if (val) {
+          return this._start();
+        } else {
+          return this._stop();
+        }
+      };
+
+      Timer.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timer.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      Timer.prototype._start = function() {
+        this.running = true;
+        this.startTime = this.constructor.now();
+        if (this.repeat && !this.interupted) {
+          return this.id = setInterval(this.tick.bind(this), this.remainingTime);
+        } else {
+          return this.id = setTimeout(this.tick.bind(this), this.remainingTime);
+        }
+      };
+
+      Timer.prototype._stop = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.running = false;
+        this.remainingTime = this.time - (this.constructor.now() - this.startTime);
+        this.interupted = this.remainingTime !== this.time;
+        if (this.repeat && !wasInterupted) {
+          return clearInterval(this.id);
+        } else {
+          return clearTimeout(this.id);
+        }
+      };
+
+      Timer.prototype.tick = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.interupted = false;
+        this.remainingTime = this.time;
+        if (this.callback != null) {
+          this.callback();
+        }
+        if (this.repeat) {
+          if (wasInterupted) {
+            return this._start();
+          }
+        } else {
+          return this.destroy();
+        }
+      };
+
+      Timer.prototype.destroy = function() {
+        this.running = false;
+        if (this.parent) {
+          return this.parent.removeChild(this);
+        }
+      };
+
+      return Timer;
+
+    })();
+    return Timing;
+  });
+
+  (function(definition) {
     Parallelio.Projectile = definition();
     return Parallelio.Projectile.definition = definition;
   })(function(dependencies) {
-    var Element, Projectile;
+    var Element, Projectile, Timing;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     Projectile = (function(superClass) {
       extend(Projectile, superClass);
 
@@ -1895,9 +2080,33 @@
           "default": 10
         },
         pathLength: {
-          "default": 100
+          calcul: function() {
+            var dist, originTile, targetTile;
+            if ((this.origin != null) && (this.target != null)) {
+              originTile = this.origin.tile || this.origin;
+              targetTile = this.target.tile || this.target;
+              dist = originTile.dist(targetTile);
+              if (dist) {
+                return dist.length;
+              }
+            }
+            return 100;
+          }
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
         }
       });
+
+      Projectile.prototype.launch = function() {
+        return this.pathTimeout = this.timing.setTimeout((function(_this) {
+          return function() {
+            return _this.deliverPayload();
+          };
+        })(this), this.pathLength / this.speed * 1000);
+      };
 
       Projectile.prototype.deliverPayload = function() {
         var payload;
@@ -1907,8 +2116,12 @@
           range: this.blastRange
         });
         payload.apply();
-        this.destroy();
+        this.payloadDelivered();
         return payload;
+      };
+
+      Projectile.prototype.payloadDelivered = function() {
+        return this.destroy();
       };
 
       Projectile.prototype.destroy = function() {};
@@ -1935,12 +2148,51 @@
         this.init();
       }
 
+      TileContainer.properties({
+        boundaries: {
+          calcul: function() {
+            var boundaries;
+            boundaries = {
+              top: null,
+              left: null,
+              bottom: null,
+              right: null
+            };
+            this.tiles.forEach((function(_this) {
+              return function(tile) {
+                return _this._addToBondaries(tile, boundaries);
+              };
+            })(this));
+            return boundaries;
+          },
+          output: function(val) {
+            return Object.assign(val);
+          }
+        }
+      });
+
+      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
+        if ((boundaries.top == null) || tile.y < boundaries.top) {
+          boundaries.top = tile.y;
+        }
+        if ((boundaries.left == null) || tile.x < boundaries.left) {
+          boundaries.left = tile.x;
+        }
+        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
+          boundaries.bottom = tile.y;
+        }
+        if ((boundaries.right == null) || tile.x > boundaries.right) {
+          return boundaries.right = tile.x;
+        }
+      };
+
       TileContainer.prototype.init = function() {
         this.coords = {};
         return this.tiles = [];
       };
 
       TileContainer.prototype.addTile = function(tile) {
+        var ref1;
         if (!this.tiles.includes(tile)) {
           this.tiles.push(tile);
           if (this.coords[tile.x] == null) {
@@ -1948,8 +2200,33 @@
           }
           this.coords[tile.x][tile.y] = tile;
           tile.container = this;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            this._addToBondaries(tile, this._boundaries.value);
+          }
         }
         return this;
+      };
+
+      TileContainer.prototype.removeTile = function(tile) {
+        var index, ref1;
+        index = this.tiles.indexOf(tile);
+        if (index > -1) {
+          this.tiles.splice(index, 1);
+          delete this.coords[tile.x][tile.y];
+          tile.container = null;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
+              return this.invalidateBoundaries();
+            }
+          }
+        }
+      };
+
+      TileContainer.prototype.removeTileAt = function(x, y) {
+        var tile;
+        if (tile = this.getTile(x, y)) {
+          return this.removeTile(tile);
+        }
       };
 
       TileContainer.prototype.getTile = function(x, y) {
@@ -2433,180 +2710,6 @@
   });
 
   (function(definition) {
-    Parallelio.Star = definition();
-    return Parallelio.Star.definition = definition;
-  })(function(dependencies) {
-    var Element, Star;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Star = (function(superClass) {
-      extend(Star, superClass);
-
-      function Star(x5, y5) {
-        this.x = x5;
-        this.y = y5;
-        this.init();
-      }
-
-      Star.properties({
-        x: {},
-        y: {},
-        links: {
-          collection: {
-            findStar: function(star) {
-              return this.find(function(link) {
-                return link.star2 === star || link.star1 === star;
-              });
-            }
-          }
-        }
-      });
-
-      Star.prototype.init = function() {};
-
-      Star.prototype.linkTo = function(star) {
-        if (!this.links.findStar(star)) {
-          return this.addLink(new this.constructor.Link(this, star));
-        }
-      };
-
-      Star.prototype.addLink = function(link) {
-        this.links.add(link);
-        link.otherStar(this).links.add(link);
-        return link;
-      };
-
-      Star.prototype.dist = function(x, y) {
-        var xDist, yDist;
-        xDist = this.x - x;
-        yDist = this.y - y;
-        return Math.sqrt((xDist * xDist) + (yDist * yDist));
-      };
-
-      Star.collenctionFn = {
-        closest: function(x, y) {
-          var min, minDist;
-          min = null;
-          minDist = null;
-          this.forEach(function(star) {
-            var dist;
-            dist = star.dist(x, y);
-            if ((min == null) || minDist > dist) {
-              min = star;
-              return minDist = dist;
-            }
-          });
-          return min;
-        },
-        closests: function(x, y) {
-          var dists;
-          dists = this.map(function(star) {
-            return {
-              dist: star.dist(x, y),
-              star: star
-            };
-          });
-          dists.sort(function(a, b) {
-            return a.dist - b.dist;
-          });
-          return this.copy(dists.map(function(dist) {
-            return dist.star;
-          }));
-        }
-      };
-
-      return Star;
-
-    })(Element);
-    Star.Link = (function(superClass) {
-      extend(Link, superClass);
-
-      function Link(star1, star2) {
-        this.star1 = star1;
-        this.star2 = star2;
-      }
-
-      Link.prototype.remove = function() {
-        this.star1.links.remove(this);
-        return this.star2.links.remove(this);
-      };
-
-      Link.prototype.otherStar = function(star) {
-        if (star === this.star1) {
-          return this.star2;
-        } else {
-          return this.star1;
-        }
-      };
-
-      Link.prototype.getLength = function() {
-        return this.star1.dist(this.star2.x, this.star2.y);
-      };
-
-      Link.prototype.inBoundaryBox = function(x, y, padding) {
-        var x1, x2, y1, y2;
-        if (padding == null) {
-          padding = 0;
-        }
-        x1 = Math.min(this.star1.x, this.star2.x) - padding;
-        y1 = Math.min(this.star1.y, this.star2.y) - padding;
-        x2 = Math.max(this.star1.x, this.star2.x) + padding;
-        y2 = Math.max(this.star1.y, this.star2.y) + padding;
-        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
-      };
-
-      Link.prototype.closeToPoint = function(x, y, minDist) {
-        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
-        if (!this.inBoundaryBox(x, y, minDist)) {
-          return false;
-        }
-        a = this.star1;
-        b = this.star2;
-        c = {
-          "x": x,
-          "y": y
-        };
-        xAbDist = b.x - a.x;
-        yAbDist = b.y - a.y;
-        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
-        abxAngle = Math.atan(yAbDist / xAbDist);
-        xAcDist = c.x - a.x;
-        yAcDist = c.y - a.y;
-        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
-        acxAngle = Math.atan(yAcDist / xAcDist);
-        abcAngle = abxAngle - acxAngle;
-        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
-        return cdDist <= minDist;
-      };
-
-      Link.prototype.intersectLink = function(link) {
-        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
-        x1 = this.star1.x;
-        y1 = this.star1.y;
-        x2 = this.star2.x;
-        y2 = this.star2.y;
-        x3 = link.star1.x;
-        y3 = link.star1.y;
-        x4 = link.star2.x;
-        y4 = link.star2.y;
-        s1_x = x2 - x1;
-        s1_y = y2 - y1;
-        s2_x = x4 - x3;
-        s2_y = y4 - y3;
-        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
-        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
-        return s > 0 && s < 1 && t > 0 && t < 1;
-      };
-
-      return Link;
-
-    })(Element);
-    return Star;
-  });
-
-  (function(definition) {
     Parallelio.PathFinder = definition();
     return Parallelio.PathFinder.definition = definition;
   })(function(dependencies) {
@@ -3020,14 +3123,189 @@
   });
 
   (function(definition) {
+    Parallelio.Star = definition();
+    return Parallelio.Star.definition = definition;
+  })(function(dependencies) {
+    var Element, Star;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Star = (function(superClass) {
+      extend(Star, superClass);
+
+      function Star(x5, y5) {
+        this.x = x5;
+        this.y = y5;
+        this.init();
+      }
+
+      Star.properties({
+        x: {},
+        y: {},
+        links: {
+          collection: {
+            findStar: function(star) {
+              return this.find(function(link) {
+                return link.star2 === star || link.star1 === star;
+              });
+            }
+          }
+        }
+      });
+
+      Star.prototype.init = function() {};
+
+      Star.prototype.linkTo = function(star) {
+        if (!this.links.findStar(star)) {
+          return this.addLink(new this.constructor.Link(this, star));
+        }
+      };
+
+      Star.prototype.addLink = function(link) {
+        this.links.add(link);
+        link.otherStar(this).links.add(link);
+        return link;
+      };
+
+      Star.prototype.dist = function(x, y) {
+        var xDist, yDist;
+        xDist = this.x - x;
+        yDist = this.y - y;
+        return Math.sqrt((xDist * xDist) + (yDist * yDist));
+      };
+
+      Star.collenctionFn = {
+        closest: function(x, y) {
+          var min, minDist;
+          min = null;
+          minDist = null;
+          this.forEach(function(star) {
+            var dist;
+            dist = star.dist(x, y);
+            if ((min == null) || minDist > dist) {
+              min = star;
+              return minDist = dist;
+            }
+          });
+          return min;
+        },
+        closests: function(x, y) {
+          var dists;
+          dists = this.map(function(star) {
+            return {
+              dist: star.dist(x, y),
+              star: star
+            };
+          });
+          dists.sort(function(a, b) {
+            return a.dist - b.dist;
+          });
+          return this.copy(dists.map(function(dist) {
+            return dist.star;
+          }));
+        }
+      };
+
+      return Star;
+
+    })(Element);
+    Star.Link = (function(superClass) {
+      extend(Link, superClass);
+
+      function Link(star1, star2) {
+        this.star1 = star1;
+        this.star2 = star2;
+      }
+
+      Link.prototype.remove = function() {
+        this.star1.links.remove(this);
+        return this.star2.links.remove(this);
+      };
+
+      Link.prototype.otherStar = function(star) {
+        if (star === this.star1) {
+          return this.star2;
+        } else {
+          return this.star1;
+        }
+      };
+
+      Link.prototype.getLength = function() {
+        return this.star1.dist(this.star2.x, this.star2.y);
+      };
+
+      Link.prototype.inBoundaryBox = function(x, y, padding) {
+        var x1, x2, y1, y2;
+        if (padding == null) {
+          padding = 0;
+        }
+        x1 = Math.min(this.star1.x, this.star2.x) - padding;
+        y1 = Math.min(this.star1.y, this.star2.y) - padding;
+        x2 = Math.max(this.star1.x, this.star2.x) + padding;
+        y2 = Math.max(this.star1.y, this.star2.y) + padding;
+        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+      };
+
+      Link.prototype.closeToPoint = function(x, y, minDist) {
+        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
+        if (!this.inBoundaryBox(x, y, minDist)) {
+          return false;
+        }
+        a = this.star1;
+        b = this.star2;
+        c = {
+          "x": x,
+          "y": y
+        };
+        xAbDist = b.x - a.x;
+        yAbDist = b.y - a.y;
+        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
+        abxAngle = Math.atan(yAbDist / xAbDist);
+        xAcDist = c.x - a.x;
+        yAcDist = c.y - a.y;
+        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
+        acxAngle = Math.atan(yAcDist / xAcDist);
+        abcAngle = abxAngle - acxAngle;
+        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
+        return cdDist <= minDist;
+      };
+
+      Link.prototype.intersectLink = function(link) {
+        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
+        x1 = this.star1.x;
+        y1 = this.star1.y;
+        x2 = this.star2.x;
+        y2 = this.star2.y;
+        x3 = link.star1.x;
+        y3 = link.star1.y;
+        x4 = link.star2.x;
+        y4 = link.star2.y;
+        s1_x = x2 - x1;
+        s1_y = y2 - y1;
+        s2_x = x4 - x3;
+        s2_y = y4 - y3;
+        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
+        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
+        return s > 0 && s < 1 && t > 0 && t < 1;
+      };
+
+      return Link;
+
+    })(Element);
+    return Star;
+  });
+
+  (function(definition) {
     Parallelio.Weapon = definition();
     return Parallelio.Weapon.definition = definition;
   })(function(dependencies) {
-    var Tiled, Weapon;
+    var Tiled, Timing, Weapon;
     if (dependencies == null) {
       dependencies = {};
     }
     Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tile;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     Weapon = (function(superClass) {
       extend(Weapon, superClass);
 
@@ -3054,7 +3332,7 @@
         target: {
           "default": null,
           change: function() {
-            if (this.target && this.enabled && this.charged) {
+            if (this.autoFire) {
               return this.fire();
             }
           }
@@ -3064,35 +3342,52 @@
         },
         enabled: {
           "default": true
+        },
+        autoFire: {
+          "default": true
+        },
+        canFire: {
+          get: function() {
+            return this.target && this.enabled && this.charged;
+          }
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
         }
       });
 
       Weapon.prototype.fire = function() {
         var projectile;
-        projectile = new Projectile({
-          origin: this,
-          target: this.target,
-          power: this.power,
-          blastRange: this.blastRange,
-          propagationType: this.propagationType,
-          speed: this.projectileSpeed
-        });
-        this.charged = false;
-        this.recharge();
-        return projectile;
+        if (this.canFire) {
+          projectile = new Projectile({
+            origin: this,
+            target: this.target,
+            power: this.power,
+            blastRange: this.blastRange,
+            propagationType: this.propagationType,
+            speed: this.projectileSpeed,
+            timing: this.timing
+          });
+          projectile.launch();
+          this.charged = false;
+          this.recharge();
+          return projectile;
+        }
       };
 
       Weapon.prototype.recharge = function() {
-        return this.chargeTimeout = setTimeout((function(_this) {
+        return this.chargeTimeout = this.timing.setTimeout((function(_this) {
           return function() {
-            return recharged();
+            return _this.recharged();
           };
-        })(this), rechargeTime);
+        })(this), this.rechargeTime);
       };
 
       Weapon.prototype.recharged = function() {
         this.charged = true;
-        if (this.target && this.enabled) {
+        if (this.autoFire) {
           return this.fire();
         }
       };

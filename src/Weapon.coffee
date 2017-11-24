@@ -1,4 +1,5 @@
 Tiled = require('parallelio-tiles').Tiled
+Timing = require('./Timing')
 
 class Weapon extends Tiled
   constructor: (options) ->
@@ -17,31 +18,42 @@ class Weapon extends Tiled
     target:
       default: null
       change: ->
-        if @target and @enabled and @charged
+        if @autoFire
           @fire()
     charged:
       default: true
     enabled:
       default: true
+    autoFire:
+      default: true
+    canFire:
+      get: ->
+        @target and @enabled and @charged
+    timing:
+      calcul: ->
+        new Timing()
   fire: ->
-    projectile = new Projectile({
-      origin: this
-      target: @target
-      power: @power
-      blastRange: @blastRange
-      propagationType: @propagationType
-      speed: @projectileSpeed
-    })
-    @charged = false
-    @recharge()
-    projectile
+    if @canFire
+      projectile = new Projectile({
+        origin: this
+        target: @target
+        power: @power
+        blastRange: @blastRange
+        propagationType: @propagationType
+        speed: @projectileSpeed
+        timing: @timing
+      })
+      projectile.launch()
+      @charged = false
+      @recharge()
+      projectile
   recharge: ->
-    @chargeTimeout = setTimeout =>
-      recharged()
-    , rechargeTime
+    @chargeTimeout = @timing.setTimeout =>
+      @recharged()
+    , @rechargeTime
   recharged: ->
     @charged = true
-    if @target and @enabled
+    if @autoFire
       @fire()
 
 

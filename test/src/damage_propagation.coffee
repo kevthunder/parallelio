@@ -253,7 +253,7 @@ describe 'DamagePropagation', ->
       assert.deepEqual damages, expect
 
   describe 'Explosive', ->
-    it 'low dammage outside hull', ->
+    it 'causes low dammage outside hull', ->
       ctn = createTiles()
       target = ctn.getTile(3,3)
       dm = new DamagePropagation.Explosive({rng:new alea('seed'),tile:target,power:500,range:6})
@@ -274,7 +274,7 @@ describe 'DamagePropagation', ->
       damages = tileDamageMatrix(ctn)
       assert.deepEqual damages, expect
 
-    it 'high dammage inside hull', ->
+    it 'causes high dammage inside hull', ->
       ctn = createTiles()
       target = ctn.getTile(3,3)
       target.health = 0

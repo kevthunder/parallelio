@@ -14,11 +14,11 @@
       damageable.damage(10);
       return assert.equal(damageable.health, init - 10);
     });
-    return it('call detroy when no health', function() {
+    return it('call whenNoHealth when no health', function() {
       var calls, damageable;
       calls = 0;
       damageable = new Damageable();
-      damageable.destroy = function() {
+      damageable.whenNoHealth = function() {
         return calls++;
       };
       assert.equal(calls, 0);

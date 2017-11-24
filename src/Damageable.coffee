@@ -9,8 +9,11 @@ class Damageable extends Element
     health:
       default: 1000
       change: ->
-        if @health == 0 && typeof @destroy == 'function'
-          @destroy()
+        if @health == 0
+          @whenNoHealth()
   damage: (val) ->
     @health = Math.max(0, @health - val)
+
+  whenNoHealth: ->
+
 

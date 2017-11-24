@@ -1,10 +1,13 @@
 assert = require('chai').assert
 EventEmitter = require("wolfy87-eventemitter")
 Door = require('../lib/Door')
-Door.include EventEmitter.prototype
 Floor = require('../lib/Floor')
 
 describe 'Door', ->
+  before ->
+    Door = Door.definition()
+    Door.include EventEmitter.prototype
+    
   it 'make the tile un-walkable when closed', ->
     floor = new Floor()
     door = new Door()

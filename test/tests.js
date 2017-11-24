@@ -1,4 +1,6 @@
 (function() {
+  require('./timing');
+
   require('./star');
 
   require('./damageable');
@@ -12,6 +14,8 @@
   require('./line_of_sight');
 
   require('./damage_propagation');
+
+  require('./weapon');
 
   require('./room_generator');
 

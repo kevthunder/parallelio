@@ -8,10 +8,10 @@ describe 'Damageable', ->
     init = damageable.health
     damageable.damage(10)
     assert.equal damageable.health, init-10
-  it 'call detroy when no health', ->
+  it 'call whenNoHealth when no health', ->
     calls = 0
     damageable = new Damageable()
-    damageable.destroy = ->
+    damageable.whenNoHealth = ->
       calls++
     assert.equal calls, 0
     damageable.damage(damageable.maxHealth*2)
