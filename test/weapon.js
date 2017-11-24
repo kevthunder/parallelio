@@ -26,7 +26,7 @@
       assert.instanceOf(projectile, Projectile);
       return assert.isFalse(weapon.charged);
     });
-    return it('cannot fire when damaged', function() {
+    return it('cannot fire when heavily damaged', function() {
       var projectile, timing, weapon;
       timing = new Timing(false);
       weapon = new Weapon({

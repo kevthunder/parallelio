@@ -4,6 +4,8 @@ Timing = require('./Timing')
 class Projectile extends Element
   constructor: (options) ->
     @setProperties(options)
+    @init()
+  init:->
   @properties
     origin:
       default: null
@@ -29,9 +31,13 @@ class Projectile extends Element
     timing:
       calcul: ->
         new Timing()
+    moving:
+      default:false
   launch: ->
+    @moving = true
     @pathTimeout = @timing.setTimeout =>
       @deliverPayload()
+      @moving = false
     , @pathLength / @speed * 1000
   deliverPayload: ->
     payload = new @propagationType({

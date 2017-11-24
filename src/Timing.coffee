@@ -55,7 +55,7 @@ class Timing.Timer
     if window?.performance?.now?
        window.performance.now()
     else if process?.uptime?
-      process.uptime()
+      process.uptime() * 1000
     else
       Date.now()
   toggle: (val)->
@@ -69,6 +69,13 @@ class Timing.Timer
     @toggle(false)
   unpause: ->
     @toggle(true)
+  getElapsedTime: ->
+    if @running
+      @constructor.now() - @startTime
+    else
+      @time - @remainingTime
+  getPrc: ->
+    @getElapsedTime()/@time
   _start: ->
     @running = true
     @startTime = @constructor.now()
@@ -94,6 +101,8 @@ class Timing.Timer
     if @repeat
       if wasInterupted
         @_start()
+      else
+        @startTime = @constructor.now()
     else
       @destroy()
   destroy:->

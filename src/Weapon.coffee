@@ -24,6 +24,8 @@ class Weapon extends Tiled
           @fire()
     charged:
       default: true
+    charging:
+      default: true
     enabled:
       default: true
     autoFire:
@@ -52,7 +54,9 @@ class Weapon extends Tiled
       @recharge()
       projectile
   recharge: ->
+    @charging = true
     @chargeTimeout = @timing.setTimeout =>
+      @charging = false
       @recharged()
     , @rechargeTime
   recharged: ->
