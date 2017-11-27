@@ -1,5 +1,5 @@
 (function() {
-  var Projectile, Tile, Timing, Weapon, assert;
+  var Invalidator, Projectile, Tile, Timing, Weapon, assert;
 
   assert = require('chai').assert;
 
@@ -11,7 +11,15 @@
 
   Timing = require('../lib/Timing');
 
+  Invalidator = require('spark-starter').Invalidator;
+
   describe('Weapon', function() {
+    beforeEach(function() {
+      return Invalidator.strict = false;
+    });
+    afterEach(function() {
+      return Invalidator.strict = true;
+    });
     it('fire projectile', function() {
       var projectile, timing, weapon;
       timing = new Timing(false);
@@ -19,7 +27,8 @@
         autoFire: false,
         autoFire: false,
         tile: new Tile(),
-        target: new Tile()
+        target: new Tile(),
+        timing: timing
       });
       assert.isTrue(weapon.charged);
       projectile = weapon.fire();
@@ -34,7 +43,8 @@
         autoFire: false,
         tile: new Tile(),
         target: new Tile(),
-        health: 20
+        health: 20,
+        timing: timing
       });
       assert.isTrue(weapon.charged);
       assert.isFalse(weapon.canFire);

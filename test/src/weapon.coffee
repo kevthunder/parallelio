@@ -3,15 +3,21 @@ Weapon = require('../lib/Weapon')
 Projectile = require('../lib/Projectile')
 Tile = require('parallelio-tiles').Tile
 Timing = require('../lib/Timing')
+Invalidator = require('spark-starter').Invalidator
 
 describe 'Weapon', ->
+  beforeEach ->
+    Invalidator.strict = false
+  afterEach ->
+    Invalidator.strict = true
   it 'fire projectile', ->
     timing = new Timing(false)
     weapon = new Weapon({
       autoFire:false,
       autoFire:false,
       tile:new Tile(),
-      target:new Tile()
+      target:new Tile(),
+      timing:timing
     })
     assert.isTrue weapon.charged
     projectile = weapon.fire()
@@ -24,7 +30,8 @@ describe 'Weapon', ->
       autoFire:false,
       tile:new Tile(),
       target:new Tile()
-      health: 20
+      health: 20,
+      timing:timing
     })
     assert.isTrue weapon.charged
     assert.isFalse weapon.canFire

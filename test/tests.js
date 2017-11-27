@@ -17,6 +17,8 @@
 
   require('./weapon');
 
+  require('./projectile');
+
   require('./room_generator');
 
   require('./concat');

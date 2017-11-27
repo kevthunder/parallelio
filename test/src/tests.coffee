@@ -9,6 +9,7 @@ require './door'
 require './line_of_sight'
 require './damage_propagation'
 require './weapon'
+require './projectile'
 require './room_generator'
 
 require './concat'

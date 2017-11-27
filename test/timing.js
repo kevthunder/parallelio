@@ -70,7 +70,6 @@
       timer = new Timing.Timer(200, callback);
       setTimeout(function() {
         assert.isAbove(timer.getElapsedTime(), 50);
-        console.log(timer.getElapsedTime());
         return assert.isBelow(timer.getElapsedTime(), 150);
       }, 100);
       return setTimeout(function() {
@@ -88,7 +87,6 @@
       timer = new Timing.Timer(200, callback);
       setTimeout(function() {
         assert.isAbove(timer.getPrc(), 0.3);
-        console.log(timer.getPrc());
         return assert.isBelow(timer.getPrc(), 0.7);
       }, 100);
       return setTimeout(function() {

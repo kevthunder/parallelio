@@ -21,13 +21,29 @@ class Projectile extends Element
       default: 10
     pathLength: 
       calcul: ->
-        if @origin? && @target?
-          originTile = @origin.tile || @origin
-          targetTile = @target.tile || @target
-          dist = originTile.dist(targetTile)
+        if @originTile? && @targetTile?
+          dist = @originTile.dist(@targetTile)
           if dist
             return dist.length
         100
+    originTile: 
+      calcul: (invalidator)->
+        origin = invalidator.prop('origin')
+        if origin?
+          origin.tile || origin
+    targetTile: 
+      calcul: (invalidator)->
+        target = invalidator.prop('target')
+        if target?
+          target.tile || target
+    startOffset: 
+      default: {x:0.5,0.5}
+      output:(val)->
+        Object.assign({},val)
+    targetOffset: 
+      default: {x:0.5,0.5}
+      output:(val)->
+        Object.assign({},val)
     timing:
       calcul: ->
         new Timing()
