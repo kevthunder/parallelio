@@ -60,7 +60,7 @@
       assert.instanceOf(payload, DamagePropagation);
       return assert.isBelow(ctn.getTile(3, 3).health, ctn.getTile(3, 3).maxHealth);
     });
-    return it('damage tiles after some time', function() {
+    it('damage tiles after some time', function() {
       var ctn, projectile, timing;
       timing = new Timing(false);
       ctn = createTiles();
@@ -78,6 +78,25 @@
       });
       assert.equal(timing.children.length, 0);
       return assert.isBelow(ctn.getTile(3, 3).health, ctn.getTile(3, 3).maxHealth);
+    });
+    return it('get position at half time', function() {
+      var ctn, projectile, timing;
+      timing = new Timing(false);
+      ctn = createTiles();
+      projectile = new Projectile({
+        origin: ctn.getTile(1, 1),
+        target: ctn.getTile(5, 2),
+        propagationType: DamagePropagation.Normal,
+        timing: timing
+      });
+      projectile.launch();
+      assert.equal(projectile.startPos.x, 1.5);
+      assert.equal(projectile.startPos.y, 1.5);
+      timing.children.slice().forEach(function(timer) {
+        return timer.remainingTime = timer.time / 2;
+      });
+      assert.equal(projectile.x, 3.5);
+      return assert.equal(projectile.y, 2);
     });
   });
 

@@ -5,11 +5,9 @@
     hasProp = {}.hasOwnProperty,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-  Parallelio = typeof module !== "undefined" && module !== null ? module.exports = {} : (this.Parallelio == null ? this.Parallelio = {} : void 0, this.Parallelio);
+  Parallelio = {};
 
-  if (Parallelio.Spark == null) {
-    Parallelio.Spark = {};
-  }
+  Parallelio.Spark = {};
 
   Parallelio.strings = {
     "greekAlphabet": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"],
@@ -2152,10 +2150,78 @@
             }
           }
         },
+        container: {
+          calcul: function(invalidate) {
+            var originTile, targetTile;
+            originTile = invalidate.prop('originTile');
+            targetTile = invalidate.prop('targetTile');
+            if (originTile.container === targetTile.container) {
+              return originTile.container;
+            } else if (invalidate.prop('prcPath') > 0.5) {
+              return targetTile.container;
+            } else {
+              return originTile.container;
+            }
+          }
+        },
+        x: {
+          calcul: function(invalidate) {
+            var startPos;
+            startPos = invalidate.prop('startPos');
+            return (invalidate.prop('targetPos').x - startPos.x) * invalidate.prop('prcPath') + startPos.x;
+          }
+        },
+        y: {
+          calcul: function(invalidate) {
+            var startPos;
+            startPos = invalidate.prop('startPos');
+            return (invalidate.prop('targetPos').y - startPos.y) * invalidate.prop('prcPath') + startPos.y;
+          }
+        },
+        startPos: {
+          calcul: function(invalidate) {
+            var container, dist, offset, originTile;
+            originTile = invalidate.prop('originTile');
+            container = invalidate.prop('container');
+            offset = this.startOffset;
+            if (originTile.container !== container) {
+              dist = container.dist(originTile.container);
+              offset.x += dist.x;
+              offset.y += dist.y;
+            }
+            return {
+              x: originTile.x + offset.x,
+              y: originTile.y + offset.y
+            };
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        },
+        targetPos: {
+          calcul: function(invalidate) {
+            var container, dist, offset, targetTile;
+            targetTile = invalidate.prop('targetTile');
+            container = invalidate.prop('container');
+            offset = this.targetOffset;
+            if (targetTile.container !== container) {
+              dist = container.dist(targetTile.container);
+              offset.x += dist.x;
+              offset.y += dist.y;
+            }
+            return {
+              x: targetTile.x + offset.x,
+              y: targetTile.y + offset.y
+            };
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        },
         startOffset: {
           "default": {
             x: 0.5,
-            0.5: 0.5
+            y: 0.5
           },
           output: function(val) {
             return Object.assign({}, val);
@@ -2164,10 +2230,15 @@
         targetOffset: {
           "default": {
             x: 0.5,
-            0.5: 0.5
+            y: 0.5
           },
           output: function(val) {
             return Object.assign({}, val);
+          }
+        },
+        prcPath: {
+          get: function() {
+            return this.pathTimeout.getPrc();
           }
         },
         timing: {
@@ -2248,7 +2319,7 @@
             return boundaries;
           },
           output: function(val) {
-            return Object.assign({}, val);
+            return Object.assign(val);
           }
         }
       });
@@ -3516,5 +3587,11 @@
     })(Tiled);
     return Weapon;
   });
+
+  if (typeof module !== "undefined" && module !== null) {
+    module.exports = Parallelio;
+  } else {
+    this.Parallelio = Parallelio;
+  }
 
 }).call(this);

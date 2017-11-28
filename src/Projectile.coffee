@@ -36,14 +36,65 @@ class Projectile extends Element
         target = invalidator.prop('target')
         if target?
           target.tile || target
+    container:
+      calcul: (invalidate)->
+        originTile = invalidate.prop('originTile')
+        targetTile = invalidate.prop('targetTile')
+        if originTile.container == targetTile.container
+          originTile.container
+        else if invalidate.prop('prcPath') > 0.5
+          targetTile.container
+        else
+          originTile.container
+    x:
+      calcul: (invalidate)->
+        startPos = invalidate.prop('startPos')
+        (invalidate.prop('targetPos').x - startPos.x)*invalidate.prop('prcPath') + startPos.x
+    y:
+      calcul: (invalidate)->
+        startPos = invalidate.prop('startPos')
+        (invalidate.prop('targetPos').y - startPos.y)*invalidate.prop('prcPath') + startPos.y
+    startPos:
+      calcul: (invalidate)->
+        originTile = invalidate.prop('originTile')
+        container = invalidate.prop('container')
+        offset = @startOffset;
+        unless originTile.container == container
+          dist = container.dist(originTile.container)
+          offset.x += dist.x
+          offset.y += dist.y
+        {
+          x: originTile.x+offset.x
+          y: originTile.y+offset.y
+        }
+      output:(val)->
+        Object.assign({},val)
+    targetPos:
+      calcul: (invalidate)->
+        targetTile = invalidate.prop('targetTile')
+        container = invalidate.prop('container')
+        offset = @targetOffset;
+        unless targetTile.container == container
+          dist = container.dist(targetTile.container)
+          offset.x += dist.x
+          offset.y += dist.y
+        {
+          x: targetTile.x+offset.x
+          y: targetTile.y+offset.y
+        }
+      output:(val)->
+        Object.assign({},val)
     startOffset: 
-      default: {x:0.5,0.5}
+      default: {x:0.5,y:0.5}
       output:(val)->
         Object.assign({},val)
     targetOffset: 
-      default: {x:0.5,0.5}
+      default: {x:0.5,y:0.5}
       output:(val)->
         Object.assign({},val)
+    prcPath:
+      get: ->
+        @pathTimeout.getPrc()
     timing:
       calcul: ->
         new Timing()
