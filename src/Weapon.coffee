@@ -6,6 +6,7 @@ class Weapon extends Tiled
   @extend Damageable
   constructor: (options) ->
     @setProperties(options)
+    super()
   @properties
     rechargeTime:
       default: 1000
