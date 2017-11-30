@@ -2240,7 +2240,8 @@
         },
         prcPath: {
           get: function() {
-            return this.pathTimeout.getPrc();
+            var ref1;
+            return ((ref1 = this.pathTimeout) != null ? ref1.getPrc() : void 0) || 0;
           }
         },
         timing: {
