@@ -32,6 +32,7 @@
       });
       assert.isTrue(weapon.charged);
       projectile = weapon.fire();
+      assert.isDefined(projectile);
       assert.instanceOf(projectile, Projectile);
       return assert.isFalse(weapon.charged);
     });

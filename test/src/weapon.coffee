@@ -21,6 +21,7 @@ describe 'Weapon', ->
     })
     assert.isTrue weapon.charged
     projectile = weapon.fire()
+    assert.isDefined projectile
     assert.instanceOf projectile, Projectile
     assert.isFalse weapon.charged
   it 'cannot fire when heavily damaged', ->

@@ -1,5 +1,5 @@
 (function() {
-  var DamagePropagation, Invalidator, Projectile, Tile, TileContainer, Timing, assert;
+  var DamagePropagation, Damageable, Invalidator, Projectile, Tile, TileContainer, Timing, assert;
 
   assert = require('chai').assert;
 
@@ -8,6 +8,8 @@
   Tile = require('parallelio-tiles').Tile;
 
   Timing = require('../lib/Timing');
+
+  Damageable = require('../lib/Damageable');
 
   TileContainer = require('parallelio-tiles').TileContainer;
 

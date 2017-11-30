@@ -1,6 +1,7 @@
 Tiled = require('parallelio-tiles').Tiled
 Timing = require('./Timing')
 Damageable = require('./Damageable')
+Projectile = require('./Projectile')
 
 class Weapon extends Tiled
   @extend Damageable

@@ -2,6 +2,7 @@ assert = require('chai').assert
 Projectile = require('../lib/Projectile')
 Tile = require('parallelio-tiles').Tile
 Timing = require('../lib/Timing')
+Damageable = require('../lib/Damageable')
 TileContainer = require('parallelio-tiles').TileContainer
 DamagePropagation = require('../lib/DamagePropagation')
 Invalidator = require('spark-starter').Invalidator
