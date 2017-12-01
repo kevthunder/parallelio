@@ -455,11 +455,13 @@
       };
 
       PropertyInstance.prototype.get = function() {
-        var initiated, old;
+        var initiated, old, res;
         if (this.property.options.get === false) {
           return void 0;
         } else if (typeof this.property.options.get === 'function') {
-          return this.callOptionFunct("get");
+          res = this.callOptionFunct("get");
+          this.revalidated();
+          return res;
         } else {
           if (this.invalidator) {
             this.invalidator.validateUnknowns();
@@ -2055,7 +2057,11 @@
         var wasInterupted;
         wasInterupted = this.interupted;
         this.interupted = false;
-        this.remainingTime = this.time;
+        if (this.repeat) {
+          this.remainingTime = this.time;
+        } else {
+          this.remainingTime = 0;
+        }
         if (this.callback != null) {
           this.callback();
         }

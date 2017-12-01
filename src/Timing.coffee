@@ -95,7 +95,10 @@ class Timing.Timer
   tick:->
     wasInterupted = @interupted
     @interupted = false
-    @remainingTime = @time
+    if @repeat
+      @remainingTime = @time
+    else
+      @remainingTime = 0
     if @callback?
       @callback()
     if @repeat
