@@ -93,7 +93,7 @@ class Projectile extends Element
       output:(val)->
         Object.assign({},val)
     prcPath:
-      get: ->
+      calcul: ->
         @pathTimeout?.getPrc() || 0
     timing:
       calcul: ->
