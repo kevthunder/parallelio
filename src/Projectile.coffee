@@ -118,3 +118,4 @@ class Projectile extends Element
   payloadDelivered: ->
     @destroy()
   destroy: ->
+    @destroyProperties()
