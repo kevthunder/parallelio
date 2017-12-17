@@ -12,6 +12,8 @@ describe 'concatened file check', ->
     assert.isFunction Parallelio.Star
   it 'contains PathFinder', ->
     assert.isFunction Parallelio.PathFinder
+  it 'contains Timing', ->
+    assert.isFunction Parallelio.Timing
   it 'contains strings', ->
     assert.isObject Parallelio.strings
     assert.isArray Parallelio.strings.greekAlphabet

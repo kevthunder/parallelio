@@ -7,7 +7,7 @@
 
   Tile = require('parallelio-tiles').Tile;
 
-  Timing = require('../lib/Timing');
+  Timing = require('parallelio-timing');
 
   Damageable = require('../lib/Damageable');
 

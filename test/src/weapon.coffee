@@ -2,7 +2,7 @@ assert = require('chai').assert
 Weapon = require('../lib/Weapon')
 Projectile = require('../lib/Projectile')
 Tile = require('parallelio-tiles').Tile
-Timing = require('../lib/Timing')
+Timing = require('parallelio-timing')
 Invalidator = require('spark-starter').Invalidator
 
 describe 'Weapon', ->

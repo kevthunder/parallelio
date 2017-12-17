@@ -28,6 +28,7 @@
     "wolfy87-eventemitter": "^5.2.3"
   },
   "dependencies": {
+    "parallelio-timing": "kevthunder/parallelio-timing",
     "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
     "parallelio-strings": "kevthunder/parallelio-strings",
     "parallelio-tiles": "kevthunder/parallelio-tiles",

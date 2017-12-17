@@ -1,7 +1,7 @@
 assert = require('chai').assert
 Projectile = require('../lib/Projectile')
 Tile = require('parallelio-tiles').Tile
-Timing = require('../lib/Timing')
+Timing = require('parallelio-timing')
 Damageable = require('../lib/Damageable')
 TileContainer = require('parallelio-tiles').TileContainer
 DamagePropagation = require('../lib/DamagePropagation')

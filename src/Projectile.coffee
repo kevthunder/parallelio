@@ -1,5 +1,5 @@
 Element = require('spark-starter').Element
-Timing = require('./Timing')
+Timing = require('parallelio-timing')
 
 class Projectile extends Element
   constructor: (options) ->

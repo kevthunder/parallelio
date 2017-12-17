@@ -1,5 +1,5 @@
 Tiled = require('parallelio-tiles').Tiled
-Timing = require('./Timing')
+Timing = require('parallelio-timing')
 Damageable = require('./Damageable')
 Projectile = require('./Projectile')
 

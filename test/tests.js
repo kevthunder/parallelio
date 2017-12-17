@@ -1,6 +1,4 @@
 (function() {
-  require('./timing');
-
   require('./star');
 
   require('./damageable');

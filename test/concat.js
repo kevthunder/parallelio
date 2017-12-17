@@ -18,6 +18,9 @@
     it('contains PathFinder', function() {
       return assert.isFunction(Parallelio.PathFinder);
     });
+    it('contains Timing', function() {
+      return assert.isFunction(Parallelio.Timing);
+    });
     return it('contains strings', function() {
       assert.isObject(Parallelio.strings);
       return assert.isArray(Parallelio.strings.greekAlphabet);
