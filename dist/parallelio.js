@@ -502,6 +502,7 @@
           if (this.value !== val) {
             old = this.value;
             this.value = val;
+            this.manual = true;
             this.changed(old);
           }
         }
@@ -600,6 +601,7 @@
           this.invalidator.recycle((function(_this) {
             return function(invalidator, done) {
               _this.value = _this.callOptionFunct("calcul", invalidator);
+              _this.manual = false;
               done();
               if (invalidator.isEmpty()) {
                 return _this.invalidator = null;
@@ -1070,6 +1072,20 @@
               return prop.getInstance(_this);
             };
           })(this));
+        },
+        getManualDataProperties: function() {
+          return this._properties.reduce((function(_this) {
+            return function(res, prop) {
+              var instance;
+              if (prop.isInstantiated(_this)) {
+                instance = prop.getInstance(_this);
+                if (instance.calculated && instance.manual) {
+                  res[prop.name] = instance.value;
+                }
+              }
+              return res;
+            };
+          })(this), {});
         },
         setProperties: function(data, options) {
           var key, prop, val;
