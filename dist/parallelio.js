@@ -1560,10 +1560,9 @@
     PathWalk = (function(superClass) {
       extend(PathWalk, superClass);
 
-      function PathWalk(walker, path1, options1) {
+      function PathWalk(walker, path1, options) {
         this.walker = walker;
         this.path = path1;
-        this.options = options1;
         this.setProperties(options);
         PathWalk.__super__.constructor.call(this);
       }
@@ -1739,7 +1738,7 @@
         if (this.walk != null) {
           this.walk.end();
         }
-        path = new Parallelio.PathFinder(this.tile.container, this.tile, tile, {
+        path = new PathFinder(this.tile.container, this.tile, tile, {
           validTile: function(tile) {
             return tile.walkable;
           }

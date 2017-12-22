@@ -2,7 +2,7 @@ Element = require('spark-starter').Element
 
 
 class PathWalk extends Element
-  constructor: (@walker, @path, @options) ->
+  constructor: (@walker, @path, options) ->
     @setProperties(options)
     super()
   @properties

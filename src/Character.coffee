@@ -10,7 +10,7 @@ class Character extends Tiled
   walkTo: (tile) ->
     if @walk?
       @walk.end()
-    path = new Parallelio.PathFinder(@tile.container, @tile, tile, {
+    path = new PathFinder(@tile.container, @tile, tile, {
       validTile: (tile) ->
         tile.walkable
     })
