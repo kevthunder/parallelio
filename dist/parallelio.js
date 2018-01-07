@@ -17,6 +17,361 @@
   };
 
   (function(definition) {
+    Parallelio.Spark.Updater = definition();
+    return Parallelio.Spark.Updater.definition = definition;
+  })(function() {
+    var Updater;
+    Updater = (function() {
+      function Updater() {
+        this.callbacks = [];
+        this.next = [];
+        this.updating = false;
+      }
+
+      Updater.prototype.update = function() {
+        var callback;
+        this.updating = true;
+        this.next = this.callbacks.slice();
+        while (this.callbacks.length > 0) {
+          callback = this.callbacks.shift();
+          callback();
+        }
+        this.callbacks = this.next;
+        this.updating = false;
+        return this;
+      };
+
+      Updater.prototype.addCallback = function(callback) {
+        if (!this.callbacks.includes(callback)) {
+          this.callbacks.push(callback);
+        }
+        if (this.updating && !this.next.includes(callback)) {
+          return this.next.push(callback);
+        }
+      };
+
+      Updater.prototype.nextTick = function(callback) {
+        if (this.updating) {
+          if (!this.next.includes(callback)) {
+            return this.next.push(callback);
+          }
+        } else {
+          return this.addCallback(callback);
+        }
+      };
+
+      Updater.prototype.removeCallback = function(callback) {
+        var index;
+        index = this.callbacks.indexOf(callback);
+        if (index !== -1) {
+          this.callbacks.splice(index, 1);
+        }
+        index = this.next.indexOf(callback);
+        if (index !== -1) {
+          return this.next.splice(index, 1);
+        }
+      };
+
+      Updater.prototype.getBinder = function() {
+        return new Updater.Binder(this);
+      };
+
+      Updater.prototype.destroy = function() {
+        this.callbacks = [];
+        return this.next = [];
+      };
+
+      return Updater;
+
+    })();
+    Updater.Binder = (function() {
+      function Binder(target1) {
+        this.target = target1;
+        this.binded = false;
+      }
+
+      Binder.prototype.bind = function() {
+        if (!this.binded && (this.callback != null)) {
+          this.target.addCallback(this.callback);
+        }
+        return this.binded = true;
+      };
+
+      Binder.prototype.unbind = function() {
+        if (this.binded && (this.callback != null)) {
+          this.target.removeCallback(this.callback);
+        }
+        return this.binded = false;
+      };
+
+      return Binder;
+
+    })();
+    return Updater;
+  });
+
+  (function(definition) {
+    Parallelio.Timing = definition();
+    return Parallelio.Timing.definition = definition;
+  })(function(dependencies) {
+    var BaseUpdater, Timing;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    BaseUpdater = dependencies.hasOwnProperty("BaseUpdater") ? dependencies.BaseUpdater : Parallelio.Spark.Updater;
+    Timing = (function() {
+      function Timing(running) {
+        this.running = running != null ? running : true;
+        this.children = [];
+      }
+
+      Timing.prototype.addChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (this.updater) {
+          child.updater.dispatcher = this.updater;
+        }
+        if (index === -1) {
+          this.children.push(child);
+        }
+        child.parent = this;
+        return this;
+      };
+
+      Timing.prototype.removeChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index > -1) {
+          this.children.splice(index, 1);
+        }
+        if (child.parent === this) {
+          child.parent = null;
+        }
+        return this;
+      };
+
+      Timing.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        this.running = val;
+        return this.children.forEach(function(child) {
+          return child.toggle(val);
+        });
+      };
+
+      Timing.prototype.setTimeout = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.setInterval = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running, true);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timing.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      return Timing;
+
+    })();
+    Timing.Timer = (function() {
+      function Timer(time1, callback, running, repeat) {
+        this.time = time1;
+        this.running = running != null ? running : true;
+        this.repeat = repeat != null ? repeat : false;
+        this.remainingTime = this.time;
+        this.updater = new Timing.Updater(this);
+        this.dispatcher = new BaseUpdater();
+        if (callback) {
+          this.dispatcher.addCallback(callback);
+        }
+        if (this.running) {
+          this._start();
+        }
+      }
+
+      Timer.now = function() {
+        var ref1;
+        if ((typeof window !== "undefined" && window !== null ? (ref1 = window.performance) != null ? ref1.now : void 0 : void 0) != null) {
+          return window.performance.now();
+        } else if ((typeof process !== "undefined" && process !== null ? process.uptime : void 0) != null) {
+          return process.uptime() * 1000;
+        } else {
+          return Date.now();
+        }
+      };
+
+      Timer.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        if (val) {
+          return this._start();
+        } else {
+          return this._stop();
+        }
+      };
+
+      Timer.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timer.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      Timer.prototype.getElapsedTime = function() {
+        if (this.running) {
+          return this.constructor.now() - this.startTime;
+        } else {
+          return this.time - this.remainingTime;
+        }
+      };
+
+      Timer.prototype.getPrc = function() {
+        return this.getElapsedTime() / this.time;
+      };
+
+      Timer.prototype._start = function() {
+        this.running = true;
+        this.updater.forwardCallbacks();
+        this.startTime = this.constructor.now();
+        if (this.repeat && !this.interupted) {
+          return this.id = setInterval(this.tick.bind(this), this.remainingTime);
+        } else {
+          return this.id = setTimeout(this.tick.bind(this), this.remainingTime);
+        }
+      };
+
+      Timer.prototype._stop = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.running = false;
+        this.updater.unforwardCallbacks();
+        this.remainingTime = this.time - (this.constructor.now() - this.startTime);
+        this.interupted = this.remainingTime !== this.time;
+        if (this.repeat && !wasInterupted) {
+          return clearInterval(this.id);
+        } else {
+          return clearTimeout(this.id);
+        }
+      };
+
+      Timer.prototype.tick = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.interupted = false;
+        if (this.repeat) {
+          this.remainingTime = this.time;
+        } else {
+          this.remainingTime = 0;
+        }
+        this.dispatcher.update();
+        if (this.repeat) {
+          if (wasInterupted) {
+            return this._start();
+          } else {
+            return this.startTime = this.constructor.now();
+          }
+        } else {
+          return this.destroy();
+        }
+      };
+
+      Timer.prototype.destroy = function() {
+        if (this.repeat) {
+          clearInterval(this.id);
+        } else {
+          clearTimeout(this.id);
+        }
+        this.updater.destroy();
+        this.dispatcher.destroy();
+        this.running = false;
+        if (this.parent) {
+          return this.parent.removeChild(this);
+        }
+      };
+
+      return Timer;
+
+    })();
+    Timing.Updater = (function() {
+      function Updater(parent1) {
+        this.parent = parent1;
+        this.dispatcher = new BaseUpdater();
+        this.callbacks = [];
+      }
+
+      Updater.prototype.addCallback = function(callback) {
+        if (!this.callbacks.includes(callback)) {
+          this.callbacks.push(callback);
+        }
+        if (this.parent.running && this.dispatcher) {
+          return this.dispatcher.addCallback(callback);
+        }
+      };
+
+      Updater.prototype.removeCallback = function(callback) {
+        var index;
+        index = this.callbacks.indexOf(callback);
+        if (index !== -1) {
+          this.callbacks.splice(index, 1);
+        }
+        if (this.dispatcher) {
+          return this.dispatcher.removeCallback(callback);
+        }
+      };
+
+      Updater.prototype.getBinder = function() {
+        if (this.dispatcher) {
+          return new BaseUpdater.Binder(this);
+        }
+      };
+
+      Updater.prototype.forwardCallbacks = function() {
+        if (this.dispatcher) {
+          return this.callbacks.forEach((function(_this) {
+            return function(callback) {
+              return _this.dispatcher.addCallback(callback);
+            };
+          })(this));
+        }
+      };
+
+      Updater.prototype.unforwardCallbacks = function() {
+        if (this.dispatcher) {
+          return this.callbacks.forEach((function(_this) {
+            return function(callback) {
+              return _this.dispatcher.removeCallback(callback);
+            };
+          })(this));
+        }
+      };
+
+      Updater.prototype.destroy = function() {
+        this.unforwardCallbacks();
+        this.callbacks = [];
+        return this.parent = null;
+      };
+
+      return Updater;
+
+    })();
+    return Timing;
+  });
+
+  (function(definition) {
     Parallelio.Spark.Collection = definition();
     return Parallelio.Spark.Collection.definition = definition;
   })(function() {
@@ -1552,11 +1907,12 @@
     Parallelio.PathWalk = definition();
     return Parallelio.PathWalk.definition = definition;
   })(function(dependencies) {
-    var Element, PathWalk;
+    var Element, PathWalk, Timing;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     PathWalk = (function(superClass) {
       extend(PathWalk, superClass);
 
@@ -1585,7 +1941,7 @@
 
       PathWalk.prototype.start = function() {
         if (!this.path.solution) {
-          path.calcul();
+          this.path.calcul();
         }
         if (this.path.solution) {
           this.pathTimeout = this.timing.setTimeout((function(_this) {
@@ -2397,361 +2753,6 @@
 
     })(Tile);
     return Floor;
-  });
-
-  (function(definition) {
-    Parallelio.Spark.Updater = definition();
-    return Parallelio.Spark.Updater.definition = definition;
-  })(function() {
-    var Updater;
-    Updater = (function() {
-      function Updater() {
-        this.callbacks = [];
-        this.next = [];
-        this.updating = false;
-      }
-
-      Updater.prototype.update = function() {
-        var callback;
-        this.updating = true;
-        this.next = this.callbacks.slice();
-        while (this.callbacks.length > 0) {
-          callback = this.callbacks.shift();
-          callback();
-        }
-        this.callbacks = this.next;
-        this.updating = false;
-        return this;
-      };
-
-      Updater.prototype.addCallback = function(callback) {
-        if (!this.callbacks.includes(callback)) {
-          this.callbacks.push(callback);
-        }
-        if (this.updating && !this.next.includes(callback)) {
-          return this.next.push(callback);
-        }
-      };
-
-      Updater.prototype.nextTick = function(callback) {
-        if (this.updating) {
-          if (!this.next.includes(callback)) {
-            return this.next.push(callback);
-          }
-        } else {
-          return this.addCallback(callback);
-        }
-      };
-
-      Updater.prototype.removeCallback = function(callback) {
-        var index;
-        index = this.callbacks.indexOf(callback);
-        if (index !== -1) {
-          this.callbacks.splice(index, 1);
-        }
-        index = this.next.indexOf(callback);
-        if (index !== -1) {
-          return this.next.splice(index, 1);
-        }
-      };
-
-      Updater.prototype.getBinder = function() {
-        return new Updater.Binder(this);
-      };
-
-      Updater.prototype.destroy = function() {
-        this.callbacks = [];
-        return this.next = [];
-      };
-
-      return Updater;
-
-    })();
-    Updater.Binder = (function() {
-      function Binder(target1) {
-        this.target = target1;
-        this.binded = false;
-      }
-
-      Binder.prototype.bind = function() {
-        if (!this.binded && (this.callback != null)) {
-          this.target.addCallback(this.callback);
-        }
-        return this.binded = true;
-      };
-
-      Binder.prototype.unbind = function() {
-        if (this.binded && (this.callback != null)) {
-          this.target.removeCallback(this.callback);
-        }
-        return this.binded = false;
-      };
-
-      return Binder;
-
-    })();
-    return Updater;
-  });
-
-  (function(definition) {
-    Parallelio.Timing = definition();
-    return Parallelio.Timing.definition = definition;
-  })(function(dependencies) {
-    var BaseUpdater, Timing;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    BaseUpdater = dependencies.hasOwnProperty("BaseUpdater") ? dependencies.BaseUpdater : Parallelio.Spark.Updater;
-    Timing = (function() {
-      function Timing(running) {
-        this.running = running != null ? running : true;
-        this.children = [];
-      }
-
-      Timing.prototype.addChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (this.updater) {
-          child.updater.dispatcher = this.updater;
-        }
-        if (index === -1) {
-          this.children.push(child);
-        }
-        child.parent = this;
-        return this;
-      };
-
-      Timing.prototype.removeChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (index > -1) {
-          this.children.splice(index, 1);
-        }
-        if (child.parent === this) {
-          child.parent = null;
-        }
-        return this;
-      };
-
-      Timing.prototype.toggle = function(val) {
-        if (typeof val === "undefined") {
-          val = !this.running;
-        }
-        this.running = val;
-        return this.children.forEach(function(child) {
-          return child.toggle(val);
-        });
-      };
-
-      Timing.prototype.setTimeout = function(callback, time) {
-        var timer;
-        timer = new this.constructor.Timer(time, callback, this.running);
-        this.addChild(timer);
-        return timer;
-      };
-
-      Timing.prototype.setInterval = function(callback, time) {
-        var timer;
-        timer = new this.constructor.Timer(time, callback, this.running, true);
-        this.addChild(timer);
-        return timer;
-      };
-
-      Timing.prototype.pause = function() {
-        return this.toggle(false);
-      };
-
-      Timing.prototype.unpause = function() {
-        return this.toggle(true);
-      };
-
-      return Timing;
-
-    })();
-    Timing.Timer = (function() {
-      function Timer(time1, callback, running, repeat) {
-        this.time = time1;
-        this.running = running != null ? running : true;
-        this.repeat = repeat != null ? repeat : false;
-        this.remainingTime = this.time;
-        this.updater = new Timing.Updater(this);
-        this.dispatcher = new BaseUpdater();
-        if (callback) {
-          this.dispatcher.addCallback(callback);
-        }
-        if (this.running) {
-          this._start();
-        }
-      }
-
-      Timer.now = function() {
-        var ref1;
-        if ((typeof window !== "undefined" && window !== null ? (ref1 = window.performance) != null ? ref1.now : void 0 : void 0) != null) {
-          return window.performance.now();
-        } else if ((typeof process !== "undefined" && process !== null ? process.uptime : void 0) != null) {
-          return process.uptime() * 1000;
-        } else {
-          return Date.now();
-        }
-      };
-
-      Timer.prototype.toggle = function(val) {
-        if (typeof val === "undefined") {
-          val = !this.running;
-        }
-        if (val) {
-          return this._start();
-        } else {
-          return this._stop();
-        }
-      };
-
-      Timer.prototype.pause = function() {
-        return this.toggle(false);
-      };
-
-      Timer.prototype.unpause = function() {
-        return this.toggle(true);
-      };
-
-      Timer.prototype.getElapsedTime = function() {
-        if (this.running) {
-          return this.constructor.now() - this.startTime;
-        } else {
-          return this.time - this.remainingTime;
-        }
-      };
-
-      Timer.prototype.getPrc = function() {
-        return this.getElapsedTime() / this.time;
-      };
-
-      Timer.prototype._start = function() {
-        this.running = true;
-        this.updater.forwardCallbacks();
-        this.startTime = this.constructor.now();
-        if (this.repeat && !this.interupted) {
-          return this.id = setInterval(this.tick.bind(this), this.remainingTime);
-        } else {
-          return this.id = setTimeout(this.tick.bind(this), this.remainingTime);
-        }
-      };
-
-      Timer.prototype._stop = function() {
-        var wasInterupted;
-        wasInterupted = this.interupted;
-        this.running = false;
-        this.updater.unforwardCallbacks();
-        this.remainingTime = this.time - (this.constructor.now() - this.startTime);
-        this.interupted = this.remainingTime !== this.time;
-        if (this.repeat && !wasInterupted) {
-          return clearInterval(this.id);
-        } else {
-          return clearTimeout(this.id);
-        }
-      };
-
-      Timer.prototype.tick = function() {
-        var wasInterupted;
-        wasInterupted = this.interupted;
-        this.interupted = false;
-        if (this.repeat) {
-          this.remainingTime = this.time;
-        } else {
-          this.remainingTime = 0;
-        }
-        this.dispatcher.update();
-        if (this.repeat) {
-          if (wasInterupted) {
-            return this._start();
-          } else {
-            return this.startTime = this.constructor.now();
-          }
-        } else {
-          return this.destroy();
-        }
-      };
-
-      Timer.prototype.destroy = function() {
-        if (this.repeat) {
-          clearInterval(this.id);
-        } else {
-          clearTimeout(this.id);
-        }
-        this.updater.destroy();
-        this.dispatcher.destroy();
-        this.running = false;
-        if (this.parent) {
-          return this.parent.removeChild(this);
-        }
-      };
-
-      return Timer;
-
-    })();
-    Timing.Updater = (function() {
-      function Updater(parent1) {
-        this.parent = parent1;
-        this.dispatcher = new BaseUpdater();
-        this.callbacks = [];
-      }
-
-      Updater.prototype.addCallback = function(callback) {
-        if (!this.callbacks.includes(callback)) {
-          this.callbacks.push(callback);
-        }
-        if (this.parent.running && this.dispatcher) {
-          return this.dispatcher.addCallback(callback);
-        }
-      };
-
-      Updater.prototype.removeCallback = function(callback) {
-        var index;
-        index = this.callbacks.indexOf(callback);
-        if (index !== -1) {
-          this.callbacks.splice(index, 1);
-        }
-        if (this.dispatcher) {
-          return this.dispatcher.removeCallback(callback);
-        }
-      };
-
-      Updater.prototype.getBinder = function() {
-        if (this.dispatcher) {
-          return new BaseUpdater.Binder(this);
-        }
-      };
-
-      Updater.prototype.forwardCallbacks = function() {
-        if (this.dispatcher) {
-          return this.callbacks.forEach((function(_this) {
-            return function(callback) {
-              return _this.dispatcher.addCallback(callback);
-            };
-          })(this));
-        }
-      };
-
-      Updater.prototype.unforwardCallbacks = function() {
-        if (this.dispatcher) {
-          return this.callbacks.forEach((function(_this) {
-            return function(callback) {
-              return _this.dispatcher.removeCallback(callback);
-            };
-          })(this));
-        }
-      };
-
-      Updater.prototype.destroy = function() {
-        this.unforwardCallbacks();
-        this.callbacks = [];
-        return this.parent = null;
-      };
-
-      return Updater;
-
-    })();
-    return Timing;
   });
 
   (function(definition) {

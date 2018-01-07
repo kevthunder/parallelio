@@ -1,4 +1,5 @@
 Element = require('spark-starter').Element
+Timing = require('parallelio-timing')
 
 
 class PathWalk extends Element
@@ -16,7 +17,7 @@ class PathWalk extends Element
         @path.solution.getTotalLength()
   start: ->
     if !@path.solution
-      path.calcul()
+      @path.calcul()
     if @path.solution
       @pathTimeout = @timing.setTimeout =>
         @end()

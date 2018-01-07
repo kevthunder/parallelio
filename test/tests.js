@@ -19,6 +19,8 @@
 
   require('./room_generator');
 
+  require('./path_walk');
+
   require('./concat');
 
 }).call(this);
