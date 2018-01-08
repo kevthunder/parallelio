@@ -15,18 +15,21 @@ class PathWalk extends Element
     pathLength:
       calcul: ->
         @path.solution.getTotalLength()
+    totalTime:
+      calcul: ->
+        @pathLength / @speed * 1000
   start: ->
     if !@path.solution
       @path.calcul()
     if @path.solution
       @pathTimeout = @timing.setTimeout =>
         @end()
-      , @pathLength / @speed * 1000
+      , @totalTime
       @pathTimeout.updater.addCallback(@callback('update'))
   stop: ->
     @pathTimeout.pause()
   update: ->
-    pos = @path.getPosAtPrc(@pathTimeout.getPrc)
+    pos = @path.getPosAtPrc(@pathTimeout.getPrc())
     @walker.tile = pos.tile
     @walker.offsetX = pos.offsetX
     @walker.offsetY = pos.offsetY

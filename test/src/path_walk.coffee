@@ -34,5 +34,21 @@ describe 'PathWalk', ->
         tile.walkable
     })
 
-    walk = new PathWalk(this, path)
+    walk = new PathWalk(character, path)
     walk.start()
+
+    assert.isAbove walk.pathLength, 0
+    assert.isAbove walk.totalTime, 0
+
+    walk.pathTimeout.updater.dispatcher.update()
+    assert.equal character.tile, ctn.getTile(1,1)
+
+    walk.pathTimeout.setPrc(0.5)
+    walk.pathTimeout.updater.dispatcher.update()
+    assert.equal character.tile, ctn.getTile(3,4)
+
+    walk.pathTimeout.setPrc(1)
+    walk.pathTimeout.updater.dispatcher.update()
+    assert.equal character.tile, ctn.getTile(5,1)
+
+    walk.end()

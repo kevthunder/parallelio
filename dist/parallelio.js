@@ -233,14 +233,24 @@
 
       Timer.prototype.getElapsedTime = function() {
         if (this.running) {
-          return this.constructor.now() - this.startTime;
+          return this.constructor.now() - this.startTime + this.time - this.remainingTime;
         } else {
           return this.time - this.remainingTime;
         }
       };
 
+      Timer.prototype.setElapsedTime = function(val) {
+        this._stop();
+        this.remainingTime = this.time - val;
+        return this._start();
+      };
+
       Timer.prototype.getPrc = function() {
         return this.getElapsedTime() / this.time;
+      };
+
+      Timer.prototype.setPrc = function(val) {
+        return this.setElapsedTime(this.time * val);
       };
 
       Timer.prototype._start = function() {
@@ -1657,6 +1667,15 @@
         }
       };
 
+      PathFinder.prototype.getPosAtPrc = function(prc) {
+        if (isNaN(prc)) {
+          throw new Error('Invalid number');
+        }
+        if (this.solution) {
+          return this.getPosAtTime(this.solution.getTotalLength() * prc);
+        }
+      };
+
       PathFinder.prototype.getPosAtTime = function(time) {
         var prc, step;
         if (this.solution) {
@@ -1810,7 +1829,7 @@
 
       Step.prototype.posToTileOffset = function(x, y) {
         var tile;
-        tile = Math.floor(x) === this.tile.x && Math.floor(y) === this.tile.y ? this.tile : Math.floor(x) === this.nextTile.x && Math.floor(y) === this.nextTile.y ? this.nextTile : (this.prev != null) && Math.floor(x) === this.prev.tile.x && Math.floor(y) === this.prev.tile.y ? this.prev.tile : console.log('Math.floor(' + x + ') == ' + this.tile.x, 'Math.floor(' + y + ') == ' + this.tile.y, this);
+        tile = Math.floor(x) === this.tile.x && Math.floor(y) === this.tile.y ? this.tile : (this.nextTile != null) && Math.floor(x) === this.nextTile.x && Math.floor(y) === this.nextTile.y ? this.nextTile : (this.prev != null) && Math.floor(x) === this.prev.tile.x && Math.floor(y) === this.prev.tile.y ? this.prev.tile : console.log('Math.floor(' + x + ') == ' + this.tile.x, 'Math.floor(' + y + ') == ' + this.tile.y, this);
         return {
           x: x,
           y: y,
@@ -1936,6 +1955,11 @@
           calcul: function() {
             return this.path.solution.getTotalLength();
           }
+        },
+        totalTime: {
+          calcul: function() {
+            return this.pathLength / this.speed * 1000;
+          }
         }
       });
 
@@ -1948,7 +1972,7 @@
             return function() {
               return _this.end();
             };
-          })(this), this.pathLength / this.speed * 1000);
+          })(this), this.totalTime);
           return this.pathTimeout.updater.addCallback(this.callback('update'));
         }
       };
@@ -1959,7 +1983,7 @@
 
       PathWalk.prototype.update = function() {
         var pos;
-        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc);
+        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc());
         this.walker.tile = pos.tile;
         this.walker.offsetX = pos.offsetX;
         return this.walker.offsetY = pos.offsetY;
