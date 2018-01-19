@@ -20,7 +20,6 @@
       door = new Door();
       door.open = false;
       door.tile = floor;
-      debugger;
       return assert.isFalse(floor.walkable);
     });
     return it('make the tile walkable when open', function() {

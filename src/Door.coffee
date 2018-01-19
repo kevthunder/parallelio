@@ -7,16 +7,18 @@ class Door extends Tiled
     tile:
       change: (old,overrided) ->
         overrided()
-        if old?
-          old.walkableMembers?.removeRef('open',this)
-          old.transparentMembers?.removeRef('open',this)
-        if @tile
-          @tile.walkableMembers?.addPropertyRef('open',this)
-          @tile.transparentMembers?.addPropertyRef('open',this)
+        @updateTileMembers(old)
     open:
       default: false
     direction: {}
 
+  updateTileMembers:(old)->
+    if old?
+      old.walkableMembers?.removeRef('open',this)
+      old.transparentMembers?.removeRef('open',this)
+    if @tile
+      @tile.walkableMembers?.addPropertyRef('open',this)
+      @tile.transparentMembers?.addPropertyRef('open',this)
 
   @directions = {
     horizontal: 'horizontal'

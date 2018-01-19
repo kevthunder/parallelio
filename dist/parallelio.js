@@ -526,6 +526,16 @@
       return Collection;
 
     })();
+    Object.defineProperty(Collection.prototype, 'length', {
+      get: function() {
+        return this.count();
+      }
+    });
+    if (typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) {
+      Collection.prototype[Symbol.iterator] = function() {
+        return this._array[Symbol.iterator]();
+      };
+    }
     return Collection;
   });
 
@@ -2092,6 +2102,65 @@
   });
 
   (function(definition) {
+    Parallelio.Door = definition();
+    return Parallelio.Door.definition = definition;
+  })(function(dependencies) {
+    var Door, Tiled;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Door = (function(superClass) {
+      extend(Door, superClass);
+
+      function Door(direction1) {
+        this.direction = direction1 != null ? direction1 : Door.directions.horizontal;
+        Door.__super__.constructor.call(this);
+      }
+
+      Door.properties({
+        tile: {
+          change: function(old, overrided) {
+            overrided();
+            return this.updateTileMembers(old);
+          }
+        },
+        open: {
+          "default": false
+        },
+        direction: {}
+      });
+
+      Door.prototype.updateTileMembers = function(old) {
+        var ref1, ref2, ref3, ref4;
+        if (old != null) {
+          if ((ref1 = old.walkableMembers) != null) {
+            ref1.removeRef('open', this);
+          }
+          if ((ref2 = old.transparentMembers) != null) {
+            ref2.removeRef('open', this);
+          }
+        }
+        if (this.tile) {
+          if ((ref3 = this.tile.walkableMembers) != null) {
+            ref3.addPropertyRef('open', this);
+          }
+          return (ref4 = this.tile.transparentMembers) != null ? ref4.addPropertyRef('open', this) : void 0;
+        }
+      };
+
+      Door.directions = {
+        horizontal: 'horizontal',
+        vertical: 'vertical'
+      };
+
+      return Door;
+
+    })(Tiled);
+    return Door;
+  });
+
+  (function(definition) {
     Parallelio.Character = definition();
     return Parallelio.Character.definition = definition;
   })(function(dependencies) {
@@ -2131,6 +2200,96 @@
 
     })(Tiled);
     return Character;
+  });
+
+  (function(definition) {
+    Parallelio.AutomaticDoor = definition();
+    return Parallelio.AutomaticDoor.definition = definition;
+  })(function(dependencies) {
+    var AutomaticDoor, Character, Door;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
+    Character = dependencies.hasOwnProperty("Character") ? dependencies.Character : Parallelio.Character;
+    AutomaticDoor = (function(superClass) {
+      extend(AutomaticDoor, superClass);
+
+      function AutomaticDoor() {
+        return AutomaticDoor.__super__.constructor.apply(this, arguments);
+      }
+
+      AutomaticDoor.properties({
+        open: {
+          calcul: function(invalidate) {
+            return !invalidate.prop('locked') && this.isActivatorPresent(invalidate);
+          }
+        },
+        locked: {
+          "default": false
+        },
+        unlocked: {
+          calcul: function(invalidate) {
+            return !invalidate.prop('locked');
+          }
+        }
+      });
+
+      AutomaticDoor.prototype.updateTileMembers = function(old) {
+        var ref1, ref2, ref3, ref4;
+        if (old != null) {
+          if ((ref1 = old.walkableMembers) != null) {
+            ref1.removeRef('unlocked', this);
+          }
+          if ((ref2 = old.transparentMembers) != null) {
+            ref2.removeRef('open', this);
+          }
+        }
+        if (this.tile) {
+          if ((ref3 = this.tile.walkableMembers) != null) {
+            ref3.addPropertyRef('unlocked', this);
+          }
+          return (ref4 = this.tile.transparentMembers) != null ? ref4.addPropertyRef('open', this) : void 0;
+        }
+      };
+
+      AutomaticDoor.prototype.init = function() {
+        AutomaticDoor.__super__.init.call(this);
+        return this.open;
+      };
+
+      AutomaticDoor.prototype.isActivatorPresent = function(invalidate) {
+        return this.getReactiveTiles().some((function(_this) {
+          return function(tile) {
+            var children;
+            children = invalidate ? invalidate.prop('children', tile) : tile.children;
+            return children.some(function(child) {
+              return _this.canBeActivatedBy(child);
+            });
+          };
+        })(this));
+      };
+
+      AutomaticDoor.prototype.canBeActivatedBy = function(elem) {
+        return elem instanceof Character;
+      };
+
+      AutomaticDoor.prototype.getReactiveTiles = function() {
+        if (this.direction === Door.directions.horizontal) {
+          return [this.tile, this.tile.getRelativeTile(0, 1), this.tile.getRelativeTile(0, -1)].filter(function(t) {
+            return t != null;
+          });
+        } else {
+          return [this.tile, this.tile.getRelativeTile(1, 0), this.tile.getRelativeTile(-1, 0)].filter(function(t) {
+            return t != null;
+          });
+        }
+      };
+
+      return AutomaticDoor;
+
+    })(Door);
+    return AutomaticDoor;
   });
 
   (function(definition) {
@@ -2610,61 +2769,6 @@
   });
 
   (function(definition) {
-    Parallelio.Door = definition();
-    return Parallelio.Door.definition = definition;
-  })(function(dependencies) {
-    var Door, Tiled;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Door = (function(superClass) {
-      extend(Door, superClass);
-
-      function Door(direction1) {
-        this.direction = direction1 != null ? direction1 : Door.directions.horizontal;
-        Door.__super__.constructor.call(this);
-      }
-
-      Door.properties({
-        tile: {
-          change: function(old, overrided) {
-            var ref1, ref2, ref3, ref4;
-            overrided();
-            if (old != null) {
-              if ((ref1 = old.walkableMembers) != null) {
-                ref1.removeRef('open', this);
-              }
-              if ((ref2 = old.transparentMembers) != null) {
-                ref2.removeRef('open', this);
-              }
-            }
-            if (this.tile) {
-              if ((ref3 = this.tile.walkableMembers) != null) {
-                ref3.addPropertyRef('open', this);
-              }
-              return (ref4 = this.tile.transparentMembers) != null ? ref4.addPropertyRef('open', this) : void 0;
-            }
-          }
-        },
-        open: {
-          "default": false
-        },
-        direction: {}
-      });
-
-      Door.directions = {
-        horizontal: 'horizontal',
-        vertical: 'vertical'
-      };
-
-      return Door;
-
-    })(Tiled);
-    return Door;
-  });
-
-  (function(definition) {
     Parallelio.Element = definition();
     return Parallelio.Element.definition = definition;
   })(function(dependencies) {
@@ -2694,9 +2798,13 @@
         this.init();
       }
 
-      Tile.prototype.init = function() {
-        return this.children = [];
-      };
+      Tile.prototype.init = function() {};
+
+      Tile.properties({
+        children: {
+          collection: true
+        }
+      });
 
       Tile.prototype.getRelativeTile = function(x, y) {
         return this.container.getTile(this.x + x, this.y + y);
@@ -2777,6 +2885,168 @@
 
     })(Tile);
     return Floor;
+  });
+
+  (function(definition) {
+    Parallelio.TileContainer = definition();
+    return Parallelio.TileContainer.definition = definition;
+  })(function(dependencies) {
+    var Element, TileContainer;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileContainer = (function(superClass) {
+      extend(TileContainer, superClass);
+
+      function TileContainer() {
+        this.init();
+      }
+
+      TileContainer.properties({
+        boundaries: {
+          calcul: function() {
+            var boundaries;
+            boundaries = {
+              top: null,
+              left: null,
+              bottom: null,
+              right: null
+            };
+            this.tiles.forEach((function(_this) {
+              return function(tile) {
+                return _this._addToBondaries(tile, boundaries);
+              };
+            })(this));
+            return boundaries;
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        }
+      });
+
+      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
+        if ((boundaries.top == null) || tile.y < boundaries.top) {
+          boundaries.top = tile.y;
+        }
+        if ((boundaries.left == null) || tile.x < boundaries.left) {
+          boundaries.left = tile.x;
+        }
+        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
+          boundaries.bottom = tile.y;
+        }
+        if ((boundaries.right == null) || tile.x > boundaries.right) {
+          return boundaries.right = tile.x;
+        }
+      };
+
+      TileContainer.prototype.init = function() {
+        this.coords = {};
+        return this.tiles = [];
+      };
+
+      TileContainer.prototype.addTile = function(tile) {
+        var ref1;
+        if (!this.tiles.includes(tile)) {
+          this.tiles.push(tile);
+          if (this.coords[tile.x] == null) {
+            this.coords[tile.x] = {};
+          }
+          this.coords[tile.x][tile.y] = tile;
+          tile.container = this;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            this._addToBondaries(tile, this._boundaries.value);
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.removeTile = function(tile) {
+        var index, ref1;
+        index = this.tiles.indexOf(tile);
+        if (index > -1) {
+          this.tiles.splice(index, 1);
+          delete this.coords[tile.x][tile.y];
+          tile.container = null;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
+              return this.invalidateBoundaries();
+            }
+          }
+        }
+      };
+
+      TileContainer.prototype.removeTileAt = function(x, y) {
+        var tile;
+        if (tile = this.getTile(x, y)) {
+          return this.removeTile(tile);
+        }
+      };
+
+      TileContainer.prototype.getTile = function(x, y) {
+        var ref1;
+        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+          return this.coords[x][y];
+        }
+      };
+
+      TileContainer.prototype.loadMatrix = function(matrix) {
+        var options, row, tile, x, y;
+        for (y in matrix) {
+          row = matrix[y];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              this.addTile(tile(options));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              this.addTile(tile);
+            }
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.inRange = function(tile, range) {
+        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
+        tiles = [];
+        range--;
+        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
+          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
+            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
+              tiles.push(found);
+            }
+          }
+        }
+        return tiles;
+      };
+
+      TileContainer.prototype.allTiles = function() {
+        return this.tiles.slice();
+      };
+
+      TileContainer.prototype.clearAll = function() {
+        var k, len, ref1, tile;
+        ref1 = this.tiles;
+        for (k = 0, len = ref1.length; k < len; k++) {
+          tile = ref1[k];
+          tile.container = null;
+        }
+        this.coords = {};
+        this.tiles = [];
+        return this;
+      };
+
+      return TileContainer;
+
+    })(Element);
+    return TileContainer;
   });
 
   (function(definition) {
@@ -2984,168 +3254,6 @@
 
     })(Element);
     return Projectile;
-  });
-
-  (function(definition) {
-    Parallelio.TileContainer = definition();
-    return Parallelio.TileContainer.definition = definition;
-  })(function(dependencies) {
-    var Element, TileContainer;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    TileContainer = (function(superClass) {
-      extend(TileContainer, superClass);
-
-      function TileContainer() {
-        this.init();
-      }
-
-      TileContainer.properties({
-        boundaries: {
-          calcul: function() {
-            var boundaries;
-            boundaries = {
-              top: null,
-              left: null,
-              bottom: null,
-              right: null
-            };
-            this.tiles.forEach((function(_this) {
-              return function(tile) {
-                return _this._addToBondaries(tile, boundaries);
-              };
-            })(this));
-            return boundaries;
-          },
-          output: function(val) {
-            return Object.assign(val);
-          }
-        }
-      });
-
-      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
-        if ((boundaries.top == null) || tile.y < boundaries.top) {
-          boundaries.top = tile.y;
-        }
-        if ((boundaries.left == null) || tile.x < boundaries.left) {
-          boundaries.left = tile.x;
-        }
-        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
-          boundaries.bottom = tile.y;
-        }
-        if ((boundaries.right == null) || tile.x > boundaries.right) {
-          return boundaries.right = tile.x;
-        }
-      };
-
-      TileContainer.prototype.init = function() {
-        this.coords = {};
-        return this.tiles = [];
-      };
-
-      TileContainer.prototype.addTile = function(tile) {
-        var ref1;
-        if (!this.tiles.includes(tile)) {
-          this.tiles.push(tile);
-          if (this.coords[tile.x] == null) {
-            this.coords[tile.x] = {};
-          }
-          this.coords[tile.x][tile.y] = tile;
-          tile.container = this;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            this._addToBondaries(tile, this._boundaries.value);
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.removeTile = function(tile) {
-        var index, ref1;
-        index = this.tiles.indexOf(tile);
-        if (index > -1) {
-          this.tiles.splice(index, 1);
-          delete this.coords[tile.x][tile.y];
-          tile.container = null;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
-              return this.invalidateBoundaries();
-            }
-          }
-        }
-      };
-
-      TileContainer.prototype.removeTileAt = function(x, y) {
-        var tile;
-        if (tile = this.getTile(x, y)) {
-          return this.removeTile(tile);
-        }
-      };
-
-      TileContainer.prototype.getTile = function(x, y) {
-        var ref1;
-        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
-          return this.coords[x][y];
-        }
-      };
-
-      TileContainer.prototype.loadMatrix = function(matrix) {
-        var options, row, tile, x, y;
-        for (y in matrix) {
-          row = matrix[y];
-          for (x in row) {
-            tile = row[x];
-            options = {
-              x: parseInt(x),
-              y: parseInt(y)
-            };
-            if (typeof tile === "function") {
-              this.addTile(tile(options));
-            } else {
-              tile.x = options.x;
-              tile.y = options.y;
-              this.addTile(tile);
-            }
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.inRange = function(tile, range) {
-        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
-        tiles = [];
-        range--;
-        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
-          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
-            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
-              tiles.push(found);
-            }
-          }
-        }
-        return tiles;
-      };
-
-      TileContainer.prototype.allTiles = function() {
-        return this.tiles.slice();
-      };
-
-      TileContainer.prototype.clearAll = function() {
-        var k, len, ref1, tile;
-        ref1 = this.tiles;
-        for (k = 0, len = ref1.length; k < len; k++) {
-          tile = ref1[k];
-          tile.container = null;
-        }
-        this.coords = {};
-        this.tiles = [];
-        return this;
-      };
-
-      return TileContainer;
-
-    })(Element);
-    return TileContainer;
   });
 
   (function(definition) {

@@ -9,6 +9,8 @@
 
   require('./door');
 
+  require('./automatic_door');
+
   require('./line_of_sight');
 
   require('./damage_propagation');

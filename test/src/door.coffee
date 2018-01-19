@@ -14,7 +14,6 @@ describe 'Door', ->
     door.open = false
     door.tile = floor
 
-    debugger
     assert.isFalse floor.walkable
     
   it 'make the tile walkable when open', ->
