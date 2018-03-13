@@ -1575,7 +1575,7 @@
             if (key === '_properties') {
               for (k = 0, len = value.length; k < len; k++) {
                 property = value[k];
-                property.bind(this.prototype);
+                this.property(property.name, Object.assign({}, property.options));
               }
             } else {
               this.prototype[key] = value;
@@ -2888,168 +2888,6 @@
   });
 
   (function(definition) {
-    Parallelio.TileContainer = definition();
-    return Parallelio.TileContainer.definition = definition;
-  })(function(dependencies) {
-    var Element, TileContainer;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    TileContainer = (function(superClass) {
-      extend(TileContainer, superClass);
-
-      function TileContainer() {
-        this.init();
-      }
-
-      TileContainer.properties({
-        boundaries: {
-          calcul: function() {
-            var boundaries;
-            boundaries = {
-              top: null,
-              left: null,
-              bottom: null,
-              right: null
-            };
-            this.tiles.forEach((function(_this) {
-              return function(tile) {
-                return _this._addToBondaries(tile, boundaries);
-              };
-            })(this));
-            return boundaries;
-          },
-          output: function(val) {
-            return Object.assign({}, val);
-          }
-        }
-      });
-
-      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
-        if ((boundaries.top == null) || tile.y < boundaries.top) {
-          boundaries.top = tile.y;
-        }
-        if ((boundaries.left == null) || tile.x < boundaries.left) {
-          boundaries.left = tile.x;
-        }
-        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
-          boundaries.bottom = tile.y;
-        }
-        if ((boundaries.right == null) || tile.x > boundaries.right) {
-          return boundaries.right = tile.x;
-        }
-      };
-
-      TileContainer.prototype.init = function() {
-        this.coords = {};
-        return this.tiles = [];
-      };
-
-      TileContainer.prototype.addTile = function(tile) {
-        var ref1;
-        if (!this.tiles.includes(tile)) {
-          this.tiles.push(tile);
-          if (this.coords[tile.x] == null) {
-            this.coords[tile.x] = {};
-          }
-          this.coords[tile.x][tile.y] = tile;
-          tile.container = this;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            this._addToBondaries(tile, this._boundaries.value);
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.removeTile = function(tile) {
-        var index, ref1;
-        index = this.tiles.indexOf(tile);
-        if (index > -1) {
-          this.tiles.splice(index, 1);
-          delete this.coords[tile.x][tile.y];
-          tile.container = null;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
-              return this.invalidateBoundaries();
-            }
-          }
-        }
-      };
-
-      TileContainer.prototype.removeTileAt = function(x, y) {
-        var tile;
-        if (tile = this.getTile(x, y)) {
-          return this.removeTile(tile);
-        }
-      };
-
-      TileContainer.prototype.getTile = function(x, y) {
-        var ref1;
-        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
-          return this.coords[x][y];
-        }
-      };
-
-      TileContainer.prototype.loadMatrix = function(matrix) {
-        var options, row, tile, x, y;
-        for (y in matrix) {
-          row = matrix[y];
-          for (x in row) {
-            tile = row[x];
-            options = {
-              x: parseInt(x),
-              y: parseInt(y)
-            };
-            if (typeof tile === "function") {
-              this.addTile(tile(options));
-            } else {
-              tile.x = options.x;
-              tile.y = options.y;
-              this.addTile(tile);
-            }
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.inRange = function(tile, range) {
-        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
-        tiles = [];
-        range--;
-        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
-          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
-            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
-              tiles.push(found);
-            }
-          }
-        }
-        return tiles;
-      };
-
-      TileContainer.prototype.allTiles = function() {
-        return this.tiles.slice();
-      };
-
-      TileContainer.prototype.clearAll = function() {
-        var k, len, ref1, tile;
-        ref1 = this.tiles;
-        for (k = 0, len = ref1.length; k < len; k++) {
-          tile = ref1[k];
-          tile.container = null;
-        }
-        this.coords = {};
-        this.tiles = [];
-        return this;
-      };
-
-      return TileContainer;
-
-    })(Element);
-    return TileContainer;
-  });
-
-  (function(definition) {
     Parallelio.Projectile = definition();
     return Parallelio.Projectile.definition = definition;
   })(function(dependencies) {
@@ -3254,6 +3092,168 @@
 
     })(Element);
     return Projectile;
+  });
+
+  (function(definition) {
+    Parallelio.TileContainer = definition();
+    return Parallelio.TileContainer.definition = definition;
+  })(function(dependencies) {
+    var Element, TileContainer;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileContainer = (function(superClass) {
+      extend(TileContainer, superClass);
+
+      function TileContainer() {
+        this.init();
+      }
+
+      TileContainer.properties({
+        boundaries: {
+          calcul: function() {
+            var boundaries;
+            boundaries = {
+              top: null,
+              left: null,
+              bottom: null,
+              right: null
+            };
+            this.tiles.forEach((function(_this) {
+              return function(tile) {
+                return _this._addToBondaries(tile, boundaries);
+              };
+            })(this));
+            return boundaries;
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        }
+      });
+
+      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
+        if ((boundaries.top == null) || tile.y < boundaries.top) {
+          boundaries.top = tile.y;
+        }
+        if ((boundaries.left == null) || tile.x < boundaries.left) {
+          boundaries.left = tile.x;
+        }
+        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
+          boundaries.bottom = tile.y;
+        }
+        if ((boundaries.right == null) || tile.x > boundaries.right) {
+          return boundaries.right = tile.x;
+        }
+      };
+
+      TileContainer.prototype.init = function() {
+        this.coords = {};
+        return this.tiles = [];
+      };
+
+      TileContainer.prototype.addTile = function(tile) {
+        var ref1;
+        if (!this.tiles.includes(tile)) {
+          this.tiles.push(tile);
+          if (this.coords[tile.x] == null) {
+            this.coords[tile.x] = {};
+          }
+          this.coords[tile.x][tile.y] = tile;
+          tile.container = this;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            this._addToBondaries(tile, this._boundaries.value);
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.removeTile = function(tile) {
+        var index, ref1;
+        index = this.tiles.indexOf(tile);
+        if (index > -1) {
+          this.tiles.splice(index, 1);
+          delete this.coords[tile.x][tile.y];
+          tile.container = null;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
+              return this.invalidateBoundaries();
+            }
+          }
+        }
+      };
+
+      TileContainer.prototype.removeTileAt = function(x, y) {
+        var tile;
+        if (tile = this.getTile(x, y)) {
+          return this.removeTile(tile);
+        }
+      };
+
+      TileContainer.prototype.getTile = function(x, y) {
+        var ref1;
+        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+          return this.coords[x][y];
+        }
+      };
+
+      TileContainer.prototype.loadMatrix = function(matrix) {
+        var options, row, tile, x, y;
+        for (y in matrix) {
+          row = matrix[y];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              this.addTile(tile(options));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              this.addTile(tile);
+            }
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.inRange = function(tile, range) {
+        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
+        tiles = [];
+        range--;
+        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
+          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
+            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
+              tiles.push(found);
+            }
+          }
+        }
+        return tiles;
+      };
+
+      TileContainer.prototype.allTiles = function() {
+        return this.tiles.slice();
+      };
+
+      TileContainer.prototype.clearAll = function() {
+        var k, len, ref1, tile;
+        ref1 = this.tiles;
+        for (k = 0, len = ref1.length; k < len; k++) {
+          tile = ref1[k];
+          tile.container = null;
+        }
+        this.coords = {};
+        this.tiles = [];
+        return this;
+      };
+
+      return TileContainer;
+
+    })(Element);
+    return TileContainer;
   });
 
   (function(definition) {
