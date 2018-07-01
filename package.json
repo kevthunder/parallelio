@@ -1,6 +1,6 @@
 {
   "name": "parallelio",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Game engine behind Parallelium",
   "main": "lib/parallelio.js",
   "repository": {
