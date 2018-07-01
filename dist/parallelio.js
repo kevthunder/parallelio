@@ -17,10 +17,222 @@
   };
 
   (function(definition) {
+    Parallelio.Spark.Collection = definition();
+    return Parallelio.Spark.Collection.definition = definition;
+  })(function() {
+    var Collection;
+    Collection = (function() {
+      function Collection(arr) {
+        if (arr != null) {
+          if (typeof arr.toArray === 'function') {
+            this._array = arr.toArray();
+          } else if (Array.isArray(arr)) {
+            this._array = arr;
+          } else {
+            this._array = [arr];
+          }
+        } else {
+          this._array = [];
+        }
+      }
+
+      Collection.prototype.changed = function() {};
+
+      Collection.prototype.get = function(i) {
+        return this._array[i];
+      };
+
+      Collection.prototype.set = function(i, val) {
+        var old;
+        if (this._array[i] !== val) {
+          old = this.toArray();
+          this._array[i] = val;
+          this.changed(old);
+        }
+        return val;
+      };
+
+      Collection.prototype.add = function(val) {
+        if (!this._array.includes(val)) {
+          return this.push(val);
+        }
+      };
+
+      Collection.prototype.remove = function(val) {
+        var index, old;
+        index = this._array.indexOf(val);
+        if (index !== -1) {
+          old = this.toArray();
+          this._array.splice(index, 1);
+          return this.changed(old);
+        }
+      };
+
+      Collection.prototype.toArray = function() {
+        return this._array.slice();
+      };
+
+      Collection.prototype.count = function() {
+        return this._array.length;
+      };
+
+      Collection.readFunctions = ['every', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'join', 'lastIndexOf', 'map', 'reduce', 'reduceRight', 'some', 'toString'];
+
+      Collection.readListFunctions = ['concat', 'filter', 'slice'];
+
+      Collection.writefunctions = ['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'];
+
+      Collection.readFunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function() {
+          var arg, ref1;
+          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          return (ref1 = this._array)[funct].apply(ref1, arg);
+        };
+      });
+
+      Collection.readListFunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function() {
+          var arg, ref1;
+          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          return this.copy((ref1 = this._array)[funct].apply(ref1, arg));
+        };
+      });
+
+      Collection.writefunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function() {
+          var arg, old, ref1, res;
+          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+          old = this.toArray();
+          res = (ref1 = this._array)[funct].apply(ref1, arg);
+          this.changed(old);
+          return res;
+        };
+      });
+
+      Collection.newSubClass = function(fn, arr) {
+        var SubClass;
+        if (typeof fn === 'object') {
+          SubClass = (function(superClass) {
+            extend(_Class, superClass);
+
+            function _Class() {
+              return _Class.__super__.constructor.apply(this, arguments);
+            }
+
+            return _Class;
+
+          })(this);
+          Object.assign(SubClass.prototype, fn);
+          return new SubClass(arr);
+        } else {
+          return new this(arr);
+        }
+      };
+
+      Collection.prototype.copy = function(arr) {
+        var coll;
+        if (arr == null) {
+          arr = this.toArray();
+        }
+        coll = new this.constructor(arr);
+        return coll;
+      };
+
+      Collection.prototype.equals = function(arr) {
+        return (this.count() === (tyepeof(arr.count === 'function') ? arr.count() : arr.length)) && this.every(function(val, i) {
+          return arr[i] === val;
+        });
+      };
+
+      Collection.prototype.getAddedFrom = function(arr) {
+        return this._array.filter(function(item) {
+          return !arr.includes(item);
+        });
+      };
+
+      Collection.prototype.getRemovedFrom = function(arr) {
+        return arr.filter((function(_this) {
+          return function(item) {
+            return !_this.includes(item);
+          };
+        })(this));
+      };
+
+      return Collection;
+
+    })();
+    Object.defineProperty(Collection.prototype, 'length', {
+      get: function() {
+        return this.count();
+      }
+    });
+    if (typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) {
+      Collection.prototype[Symbol.iterator] = function() {
+        return this._array[Symbol.iterator]();
+      };
+    }
+    return Collection;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Binder = definition();
+    return Parallelio.Spark.Binder.definition = definition;
+  })(function() {
+    var Binder;
+    Binder = (function() {
+      function Binder(target1, callback1) {
+        this.target = target1;
+        this.callback = callback1;
+        this.binded = false;
+      }
+
+      Binder.prototype.bind = function() {
+        if (!this.binded && (this.callback != null) && (this.target != null)) {
+          this.doBind();
+        }
+        return this.binded = true;
+      };
+
+      Binder.prototype.doBind = function() {
+        throw new Error('Not implemented');
+      };
+
+      Binder.prototype.unbind = function() {
+        if (this.binded && (this.callback != null) && (this.target != null)) {
+          this.doUnbind();
+        }
+        return this.binded = false;
+      };
+
+      Binder.prototype.doUnbind = function() {
+        throw new Error('Not implemented');
+      };
+
+      Binder.prototype.equals = function(binder) {
+        return binder.constructor === this.constructor && binder.target === this.target && this.compareCallback(binder.callback);
+      };
+
+      Binder.prototype.compareCallback = function(callback) {
+        return callback === this.callback || ((callback.maker != null) && callback.maker === this.callback.maker && callback.uses.length === this.callback.uses.length && this.callback.uses.every(function(arg, i) {
+          return arg === callback.uses[i];
+        }));
+      };
+
+      return Binder;
+
+    })();
+    return Binder;
+  });
+
+  (function(definition) {
     Parallelio.Spark.Updater = definition();
     return Parallelio.Spark.Updater.definition = definition;
-  })(function() {
-    var Updater;
+  })(function(dependencies) {
+    var Binder, Updater;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
     Updater = (function() {
       function Updater() {
         this.callbacks = [];
@@ -84,29 +296,24 @@
       return Updater;
 
     })();
-    Updater.Binder = (function() {
-      function Binder(target1) {
-        this.target = target1;
-        this.binded = false;
+    Updater.Binder = (function(superClass) {
+      extend(Binder, superClass);
+
+      function Binder() {
+        return Binder.__super__.constructor.apply(this, arguments);
       }
 
-      Binder.prototype.bind = function() {
-        if (!this.binded && (this.callback != null)) {
-          this.target.addCallback(this.callback);
-        }
-        return this.binded = true;
+      Binder.prototype.doBind = function() {
+        return this.target.addCallback(this.callback);
       };
 
-      Binder.prototype.unbind = function() {
-        if (this.binded && (this.callback != null)) {
-          this.target.removeCallback(this.callback);
-        }
-        return this.binded = false;
+      Binder.prototype.doUnbind = function() {
+        return this.target.removeCallback(this.callback);
       };
 
       return Binder;
 
-    })();
+    })(Binder);
     return Updater;
   });
 
@@ -382,208 +589,48 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.Collection = definition();
-    return Parallelio.Spark.Collection.definition = definition;
-  })(function() {
-    var Collection;
-    Collection = (function() {
-      function Collection(arr) {
-        if (arr != null) {
-          if (typeof arr.toArray === 'function') {
-            this._array = arr.toArray();
-          } else if (Array.isArray(arr)) {
-            this._array = arr;
-          } else {
-            this._array = [arr];
-          }
-        } else {
-          this._array = [];
-        }
-      }
-
-      Collection.prototype.changed = function() {};
-
-      Collection.prototype.get = function(i) {
-        return this._array[i];
-      };
-
-      Collection.prototype.set = function(i, val) {
-        var old;
-        if (this._array[i] !== val) {
-          old = this.toArray();
-          this._array[i] = val;
-          this.changed(old);
-        }
-        return val;
-      };
-
-      Collection.prototype.add = function(val) {
-        if (!this._array.includes(val)) {
-          return this.push(val);
-        }
-      };
-
-      Collection.prototype.remove = function(val) {
-        var index, old;
-        index = this._array.indexOf(val);
-        if (index !== -1) {
-          old = this.toArray();
-          this._array.splice(index, 1);
-          return this.changed(old);
-        }
-      };
-
-      Collection.prototype.toArray = function() {
-        return this._array.slice();
-      };
-
-      Collection.prototype.count = function() {
-        return this._array.length;
-      };
-
-      Collection.readFunctions = ['every', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'join', 'lastIndexOf', 'map', 'reduce', 'reduceRight', 'some', 'toString'];
-
-      Collection.readListFunctions = ['concat', 'filter', 'slice'];
-
-      Collection.writefunctions = ['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'];
-
-      Collection.readFunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function() {
-          var arg, ref1;
-          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          return (ref1 = this._array)[funct].apply(ref1, arg);
-        };
-      });
-
-      Collection.readListFunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function() {
-          var arg, ref1;
-          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          return this.copy((ref1 = this._array)[funct].apply(ref1, arg));
-        };
-      });
-
-      Collection.writefunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function() {
-          var arg, old, ref1, res;
-          arg = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-          old = this.toArray();
-          res = (ref1 = this._array)[funct].apply(ref1, arg);
-          this.changed(old);
-          return res;
-        };
-      });
-
-      Collection.newSubClass = function(fn, arr) {
-        var SubClass;
-        if (typeof fn === 'object') {
-          SubClass = (function(superClass) {
-            extend(_Class, superClass);
-
-            function _Class() {
-              return _Class.__super__.constructor.apply(this, arguments);
-            }
-
-            return _Class;
-
-          })(this);
-          Object.assign(SubClass.prototype, fn);
-          return new SubClass(arr);
-        } else {
-          return new this(arr);
-        }
-      };
-
-      Collection.prototype.copy = function(arr) {
-        var coll;
-        if (arr == null) {
-          arr = this.toArray();
-        }
-        coll = new this.constructor(arr);
-        return coll;
-      };
-
-      Collection.prototype.equals = function(arr) {
-        return (this.count() === (tyepeof(arr.count === 'function') ? arr.count() : arr.length)) && this.every(function(val, i) {
-          return arr[i] === val;
-        });
-      };
-
-      Collection.prototype.getAddedFrom = function(arr) {
-        return this._array.filter(function(item) {
-          return !arr.includes(item);
-        });
-      };
-
-      Collection.prototype.getRemovedFrom = function(arr) {
-        return arr.filter((function(_this) {
-          return function(item) {
-            return !_this.includes(item);
-          };
-        })(this));
-      };
-
-      return Collection;
-
-    })();
-    Object.defineProperty(Collection.prototype, 'length', {
-      get: function() {
-        return this.count();
-      }
-    });
-    if (typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) {
-      Collection.prototype[Symbol.iterator] = function() {
-        return this._array[Symbol.iterator]();
-      };
-    }
-    return Collection;
-  });
-
-  (function(definition) {
     Parallelio.Spark.EventBind = definition();
     return Parallelio.Spark.EventBind.definition = definition;
-  })(function() {
-    var EventBind;
-    EventBind = (function() {
-      function EventBind(event1, target1, callback1) {
+  })(function(dependencies) {
+    var Binder, EventBind;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
+    EventBind = (function(superClass) {
+      extend(EventBind, superClass);
+
+      function EventBind(event1, target, callback) {
         this.event = event1;
-        this.target = target1;
-        this.callback = callback1;
-        this.binded = false;
+        EventBind.__super__.constructor.call(this, target, callback);
       }
 
-      EventBind.prototype.bind = function() {
-        if (!this.binded) {
-          if (typeof this.target.addEventListener === 'function') {
-            this.target.addEventListener(this.event, this.callback);
-          } else if (typeof this.target.addListener === 'function') {
-            this.target.addListener(this.event, this.callback);
-          } else if (typeof this.target.on === 'function') {
-            this.target.on(this.event, this.callback);
-          } else {
-            throw new Error('No function to add event listeners was found');
-          }
+      EventBind.prototype.doBind = function() {
+        if (typeof this.target.addEventListener === 'function') {
+          return this.target.addEventListener(this.event, this.callback);
+        } else if (typeof this.target.addListener === 'function') {
+          return this.target.addListener(this.event, this.callback);
+        } else if (typeof this.target.on === 'function') {
+          return this.target.on(this.event, this.callback);
+        } else {
+          throw new Error('No function to add event listeners was found');
         }
-        return this.binded = true;
       };
 
-      EventBind.prototype.unbind = function() {
-        if (this.binded) {
-          if (typeof this.target.removeEventListener === 'function') {
-            this.target.removeEventListener(this.event, this.callback);
-          } else if (typeof this.target.removeListener === 'function') {
-            this.target.removeListener(this.event, this.callback);
-          } else if (typeof this.target.off === 'function') {
-            this.target.off(this.event, this.callback);
-          } else {
-            throw new Error('No function to remove event listeners was found');
-          }
+      EventBind.prototype.doUnbind = function() {
+        if (typeof this.target.removeEventListener === 'function') {
+          return this.target.removeEventListener(this.event, this.callback);
+        } else if (typeof this.target.removeListener === 'function') {
+          return this.target.removeListener(this.event, this.callback);
+        } else if (typeof this.target.off === 'function') {
+          return this.target.off(this.event, this.callback);
+        } else {
+          throw new Error('No function to remove event listeners was found');
         }
-        return this.binded = false;
       };
 
       EventBind.prototype.equals = function(eventBind) {
-        return eventBind.event === this.event && eventBind.target === this.target && eventBind.callback === this.callback;
+        return EventBind.__super__.equals.call(this, eventBind) && eventBind.event === this.event;
       };
 
       EventBind.prototype.match = function(event, target) {
@@ -605,7 +652,7 @@
 
       return EventBind;
 
-    })();
+    })(Binder);
     return EventBind;
   });
 
@@ -670,17 +717,25 @@
       };
 
       Invalidator.prototype.addEventBind = function(event, target, callback) {
+        return this.addBinder(new EventBind(event, target, callback));
+      };
+
+      Invalidator.prototype.addBinder = function(binder) {
+        if (binder.callback == null) {
+          binder.callback = this.invalidateCallback;
+        }
         if (!this.invalidationEvents.some(function(eventBind) {
-          return eventBind.match(event, target);
+          return eventBind.equals(binder);
         })) {
           return this.invalidationEvents.push(pluck(this.recycled, function(eventBind) {
-            return eventBind.match(event, target);
-          }) || new EventBind(event, target, callback));
+            return eventBind.equals(binder);
+          }) || binder);
         }
       };
 
       Invalidator.prototype.getUnknownCallback = function(prop, target) {
-        return (function(_this) {
+        var callback;
+        callback = (function(_this) {
           return function() {
             if (!_this.unknowns.some(function(unknown) {
               return unknown.prop === prop && unknown.target === target;
@@ -693,6 +748,9 @@
             }
           };
         })(this);
+        callback.maker = arguments.callee;
+        callback.uses = Array.from(arguments);
+        return callback;
       };
 
       Invalidator.prototype.event = function(event, target) {
@@ -700,7 +758,7 @@
           target = this.obj;
         }
         if (this.checkEmitter(target)) {
-          return this.addEventBind(event, target, this.invalidateCallback);
+          return this.addEventBind(event, target);
         }
       };
 
@@ -1609,6 +1667,134 @@
   });
 
   (function(definition) {
+    Parallelio.PathWalk = definition();
+    return Parallelio.PathWalk.definition = definition;
+  })(function(dependencies) {
+    var Element, PathWalk, Timing;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    PathWalk = (function(superClass) {
+      extend(PathWalk, superClass);
+
+      function PathWalk(walker, path1, options) {
+        this.walker = walker;
+        this.path = path1;
+        this.setProperties(options);
+        PathWalk.__super__.constructor.call(this);
+      }
+
+      PathWalk.properties({
+        speed: {
+          "default": 5
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
+        },
+        pathLength: {
+          calcul: function() {
+            return this.path.solution.getTotalLength();
+          }
+        },
+        totalTime: {
+          calcul: function() {
+            return this.pathLength / this.speed * 1000;
+          }
+        }
+      });
+
+      PathWalk.prototype.start = function() {
+        if (!this.path.solution) {
+          this.path.calcul();
+        }
+        if (this.path.solution) {
+          this.pathTimeout = this.timing.setTimeout((function(_this) {
+            return function() {
+              return _this.end();
+            };
+          })(this), this.totalTime);
+          return this.pathTimeout.updater.addCallback(this.callback('update'));
+        }
+      };
+
+      PathWalk.prototype.stop = function() {
+        return this.pathTimeout.pause();
+      };
+
+      PathWalk.prototype.update = function() {
+        var pos;
+        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc());
+        this.walker.tile = pos.tile;
+        this.walker.offsetX = pos.offsetX;
+        return this.walker.offsetY = pos.offsetY;
+      };
+
+      PathWalk.prototype.end = function() {
+        this.update();
+        return this.destroy();
+      };
+
+      PathWalk.prototype.destroy = function() {
+        this.pathTimeout.destroy();
+        return this.destroyProperties();
+      };
+
+      return PathWalk;
+
+    })(Element);
+    return PathWalk;
+  });
+
+  (function(definition) {
+    Parallelio.Damageable = definition();
+    return Parallelio.Damageable.definition = definition;
+  })(function(dependencies) {
+    var Damageable, Element;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Damageable = (function(superClass) {
+      extend(Damageable, superClass);
+
+      function Damageable() {
+        return Damageable.__super__.constructor.apply(this, arguments);
+      }
+
+      Damageable.properties({
+        damageable: {
+          "default": true
+        },
+        maxHealth: {
+          "default": 1000
+        },
+        health: {
+          "default": 1000,
+          change: function() {
+            if (this.health === 0) {
+              return this.whenNoHealth();
+            }
+          }
+        }
+      });
+
+      Damageable.prototype.damage = function(val) {
+        return this.health = Math.max(0, this.health - val);
+      };
+
+      Damageable.prototype.whenNoHealth = function() {};
+
+      return Damageable;
+
+    })(Element);
+    return Damageable;
+  });
+
+  (function(definition) {
     Parallelio.PathFinder = definition();
     return Parallelio.PathFinder.definition = definition;
   })(function(dependencies) {
@@ -1930,134 +2116,6 @@
 
     })();
     return PathFinder;
-  });
-
-  (function(definition) {
-    Parallelio.PathWalk = definition();
-    return Parallelio.PathWalk.definition = definition;
-  })(function(dependencies) {
-    var Element, PathWalk, Timing;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
-    PathWalk = (function(superClass) {
-      extend(PathWalk, superClass);
-
-      function PathWalk(walker, path1, options) {
-        this.walker = walker;
-        this.path = path1;
-        this.setProperties(options);
-        PathWalk.__super__.constructor.call(this);
-      }
-
-      PathWalk.properties({
-        speed: {
-          "default": 5
-        },
-        timing: {
-          calcul: function() {
-            return new Timing();
-          }
-        },
-        pathLength: {
-          calcul: function() {
-            return this.path.solution.getTotalLength();
-          }
-        },
-        totalTime: {
-          calcul: function() {
-            return this.pathLength / this.speed * 1000;
-          }
-        }
-      });
-
-      PathWalk.prototype.start = function() {
-        if (!this.path.solution) {
-          this.path.calcul();
-        }
-        if (this.path.solution) {
-          this.pathTimeout = this.timing.setTimeout((function(_this) {
-            return function() {
-              return _this.end();
-            };
-          })(this), this.totalTime);
-          return this.pathTimeout.updater.addCallback(this.callback('update'));
-        }
-      };
-
-      PathWalk.prototype.stop = function() {
-        return this.pathTimeout.pause();
-      };
-
-      PathWalk.prototype.update = function() {
-        var pos;
-        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc());
-        this.walker.tile = pos.tile;
-        this.walker.offsetX = pos.offsetX;
-        return this.walker.offsetY = pos.offsetY;
-      };
-
-      PathWalk.prototype.end = function() {
-        this.update();
-        return this.destroy();
-      };
-
-      PathWalk.prototype.destroy = function() {
-        this.pathTimeout.destroy();
-        return this.destroyProperties();
-      };
-
-      return PathWalk;
-
-    })(Element);
-    return PathWalk;
-  });
-
-  (function(definition) {
-    Parallelio.Damageable = definition();
-    return Parallelio.Damageable.definition = definition;
-  })(function(dependencies) {
-    var Damageable, Element;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Damageable = (function(superClass) {
-      extend(Damageable, superClass);
-
-      function Damageable() {
-        return Damageable.__super__.constructor.apply(this, arguments);
-      }
-
-      Damageable.properties({
-        damageable: {
-          "default": true
-        },
-        maxHealth: {
-          "default": 1000
-        },
-        health: {
-          "default": 1000,
-          change: function() {
-            if (this.health === 0) {
-              return this.whenNoHealth();
-            }
-          }
-        }
-      });
-
-      Damageable.prototype.damage = function(val) {
-        return this.health = Math.max(0, this.health - val);
-      };
-
-      Damageable.prototype.whenNoHealth = function() {};
-
-      return Damageable;
-
-    })(Element);
-    return Damageable;
   });
 
   (function(definition) {
@@ -2784,11 +2842,12 @@
     Parallelio.Tile = definition();
     return Parallelio.Tile.definition = definition;
   })(function(dependencies) {
-    var Element, Tile;
+    var Direction, Element, Tile;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
     Tile = (function(superClass) {
       extend(Tile, superClass);
 
@@ -2798,10 +2857,34 @@
         this.init();
       }
 
-      Tile.prototype.init = function() {};
+      Tile.prototype.init = function() {
+        var container;
+        return container = null;
+      };
 
       Tile.properties({
         children: {
+          collection: true
+        },
+        container: {
+          change: function() {
+            return this.adjacentTiles.forEach(function(tile) {
+              return tile.invalidateAdjacentTiles();
+            });
+          }
+        },
+        adjacentTiles: {
+          calcul: function() {
+            return Direction.adjacents.map((function(_this) {
+              return function(d) {
+                return _this.getRelativeTile(d.x, d.y);
+              };
+            })(this)).filter((function(_this) {
+              return function(t) {
+                return t != null;
+              };
+            })(this));
+          },
           collection: true
         }
       });

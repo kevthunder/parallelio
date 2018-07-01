@@ -7,6 +7,8 @@
 
   require('parallelio-pathfinder/test/path_finder.js');
 
+  require('parallelio-wiring/test/tests.js');
+
   require('./door');
 
   require('./automatic_door');
