@@ -2893,6 +2893,19 @@
         return this.container.getTile(this.x + x, this.y + y);
       };
 
+      Tile.prototype.findDirectionOf = function(tile) {
+        if (tile.tile) {
+          tile = tile.tile;
+        }
+        if ((tile.x != null) && (tile.y != null)) {
+          return Direction.all.find((function(_this) {
+            return function(d) {
+              return d.x === tile.x - _this.x && d.y === tile.y - _this.y;
+            };
+          })(this));
+        }
+      };
+
       Tile.prototype.addChild = function(child) {
         var index;
         index = this.children.indexOf(child);

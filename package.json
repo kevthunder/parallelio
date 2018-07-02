@@ -18,21 +18,21 @@
     "gulp": "^3.9.1",
     "gulp-coffee": "^2.3.3",
     "gulp-concat": "^2.6.1",
-    "gulp-mocha": "^4.3.0",
     "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^2.0.1",
+    "gulp-uglify": "^3.0.0",
+    "gulp-mocha": "^6.0.0",
+    "mocha": "^5.2.0",
     "merge2": "^1.2.0",
-    "mocha": "^3.2.0",
     "seedrandom": "^2.4.3",
-    "spark-wrapper": "kevthunder/spark-wrapper",
+    "spark-wrapper": "github:kevthunder/spark-wrapper",
     "wolfy87-eventemitter": "^5.2.3"
   },
   "dependencies": {
-    "parallelio-timing": "kevthunder/parallelio-timing",
-    "parallelio-pathfinder": "kevthunder/parallelio-pathfinder",
-    "parallelio-strings": "kevthunder/parallelio-strings",
-    "parallelio-tiles": "kevthunder/parallelio-tiles",
-    "parallelio-wiring": "kevthunder/parallelio-wiring",
+    "parallelio-pathfinder": "github:kevthunder/parallelio-pathfinder",
+    "parallelio-strings": "github:kevthunder/parallelio-strings",
+    "parallelio-tiles": "github:kevthunder/parallelio-tiles",
+    "parallelio-timing": "github:kevthunder/parallelio-timing",
+    "parallelio-wiring": "github:kevthunder/parallelio-wiring",
     "spark-starter": "github:kevthunder/spark-starter#v0.6.x"
   }
 }
