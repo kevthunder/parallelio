@@ -27,7 +27,7 @@ gulp.task('concat', ['concatStrings'], function() {
       .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-tiles'},'src/*.coffee'))
       .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-pathfinder',main:'PathFinder'},'src/*.coffee'))
       .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-timing',main:'Timing'},'src/*.coffee'))
-      .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-wiring'},'src/*.wiring')),
+      .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-wiring'},'src/*.coffee')),
     gulp.src([
       './tmp/_strings.coffee',
       './src/*.coffee'

@@ -21,6 +21,15 @@
     it('contains Timing', function() {
       return assert.isFunction(Parallelio.Timing);
     });
+    it('contains Tile', function() {
+      assert.isFunction(Parallelio.Tile);
+      assert.isFunction(Parallelio.Tiled);
+      return assert.isFunction(Parallelio.Direction);
+    });
+    it('contains Wire', function() {
+      assert.isFunction(Parallelio.Wire);
+      return assert.isFunction(Parallelio.Connected);
+    });
     return it('contains strings', function() {
       assert.isObject(Parallelio.strings);
       return assert.isArray(Parallelio.strings.greekAlphabet);
