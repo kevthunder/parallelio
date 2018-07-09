@@ -1500,7 +1500,7 @@
 
       Property.fn = {
         getProperty: function(name) {
-          return this._properties.find(function(prop) {
+          return this._properties && this._properties.find(function(prop) {
             return prop.name === name;
           });
         },
@@ -1603,7 +1603,7 @@
     Element = (function() {
       function Element() {}
 
-      Element.elementKeywords = ['extended', 'included', '__super__', 'constructor'];
+      Element.elementKeywords = ['extended', 'included', 'constructor'];
 
       Element.prototype.tap = function(name) {
         var args;
@@ -1651,23 +1651,45 @@
         return this;
       };
 
-      Element.include = function(obj) {
-        var k, key, len, property, ref1, value;
-        for (key in obj) {
-          value = obj[key];
-          if (indexOf.call(Element.elementKeywords, key) < 0) {
-            if (key === '_properties') {
-              for (k = 0, len = value.length; k < len; k++) {
-                property = value[k];
-                this.property(property.name, Object.assign({}, property.options));
-              }
-            } else {
-              this.prototype[key] = value;
-            }
+      Element.getIncludableProperties = function(obj) {
+        var exclude, props;
+        exclude = Element.elementKeywords;
+        if (obj._properties != null) {
+          exclude = exclude.concat(obj._properties.map(function(prop) {
+            return prop.name;
+          }));
+          exclude.push("_properties");
+        }
+        props = [];
+        while (true) {
+          props = props.concat(Object.getOwnPropertyNames(obj).filter((function(_this) {
+            return function(key) {
+              return !_this.prototype.hasOwnProperty(key) && key.substr(0, 2) !== "__" && indexOf.call(exclude, key) < 0 && indexOf.call(props, key) < 0;
+            };
+          })(this)));
+          if (!((obj = Object.getPrototypeOf(obj)) && obj !== Object && obj !== Element.prototype)) {
+            break;
           }
         }
-        if ((ref1 = obj.included) != null) {
-          ref1.apply(this);
+        return props;
+      };
+
+      Element.include = function(obj) {
+        var k, key, l, len, len1, property, ref1, ref2, ref3;
+        ref1 = this.getIncludableProperties(obj);
+        for (k = 0, len = ref1.length; k < len; k++) {
+          key = ref1[k];
+          this.prototype[key] = obj[key];
+        }
+        if (obj._properties != null) {
+          ref2 = obj._properties;
+          for (l = 0, len1 = ref2.length; l < len1; l++) {
+            property = ref2[l];
+            this.property(property.name, Object.assign({}, property.options));
+          }
+        }
+        if ((ref3 = obj.included) != null) {
+          ref3.apply(this);
         }
         return this;
       };
@@ -3229,6 +3251,426 @@
   });
 
   (function(definition) {
+    Parallelio.SignalOperation = definition();
+    return Parallelio.SignalOperation.definition = definition;
+  })(function(dependencies) {
+    var Element, SignalOperation;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    SignalOperation = (function(superClass) {
+      extend(SignalOperation, superClass);
+
+      function SignalOperation() {
+        SignalOperation.__super__.constructor.call(this);
+        this.queue = [];
+        this.limiters = [];
+      }
+
+      SignalOperation.prototype.addOperation = function(funct, priority) {
+        if (priority == null) {
+          priority = 1;
+        }
+        if (priority) {
+          return this.queue.unshift(funct);
+        } else {
+          return this.queue.push(funct);
+        }
+      };
+
+      SignalOperation.prototype.addLimiter = function(connected) {
+        if (!this.findLimiter(connected)) {
+          return this.limiters.push(connected);
+        }
+      };
+
+      SignalOperation.prototype.findLimiter = function(connected) {
+        return this.limiters.indexOf(connected) > -1;
+      };
+
+      SignalOperation.prototype.start = function() {
+        var results;
+        results = [];
+        while (this.queue.length) {
+          results.push(this.step());
+        }
+        return results;
+      };
+
+      SignalOperation.prototype.step = function() {
+        var funct;
+        if (this.queue.length === 0) {
+          return this.done();
+        } else {
+          funct = this.queue.shift(funct);
+          return funct(this);
+        }
+      };
+
+      SignalOperation.prototype.done = function() {};
+
+      return SignalOperation;
+
+    })(Element);
+    return SignalOperation;
+  });
+
+  (function(definition) {
+    Parallelio.Connected = definition();
+    return Parallelio.Connected.definition = definition;
+  })(function(dependencies) {
+    var Connected, Element, SignalOperation;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
+    Connected = (function(superClass) {
+      extend(Connected, superClass);
+
+      function Connected() {
+        return Connected.__super__.constructor.apply(this, arguments);
+      }
+
+      Connected.properties({
+        signals: {
+          collection: true
+        },
+        inputs: {
+          collection: true
+        },
+        outputs: {
+          collection: true
+        }
+      });
+
+      Connected.prototype.canConnectTo = function(target) {
+        return typeof target.addSignal === "function";
+      };
+
+      Connected.prototype.acceptSignal = function(signal) {
+        return true;
+      };
+
+      Connected.prototype.onAddConnection = function(conn) {};
+
+      Connected.prototype.onRemoveConnection = function(conn) {};
+
+      Connected.prototype.onNewSignalType = function(signal) {};
+
+      Connected.prototype.onAddSignal = function(signal, op) {};
+
+      Connected.prototype.onRemoveSignal = function(signal, op) {};
+
+      Connected.prototype.onRemoveSignalType = function(signal, op) {};
+
+      Connected.prototype.onReplaceSignal = function(oldSignal, newSignal, op) {};
+
+      Connected.prototype.containsSignal = function(signal, checkLast, checkOrigin) {
+        if (checkLast == null) {
+          checkLast = false;
+        }
+        return this.signals.find(function(c) {
+          return c.match(signal, checkLast, checkOrigin);
+        });
+      };
+
+      Connected.prototype.addSignal = function(signal, op) {
+        var autoStart;
+        if (!(op != null ? op.findLimiter(this) : void 0)) {
+          if (!op) {
+            op = new SignalOperation();
+            autoStart = true;
+          }
+          op.addOperation((function(_this) {
+            return function() {
+              var similar;
+              if (!_this.containsSignal(signal, true) && _this.acceptSignal(signal)) {
+                similar = _this.containsSignal(signal);
+                _this.signals.push(signal);
+                _this.onAddSignal(signal, op);
+                if (!similar) {
+                  return _this.onNewSignalType(signal, op);
+                }
+              }
+            };
+          })(this));
+          if (autoStart) {
+            op.start();
+          }
+        }
+        return signal;
+      };
+
+      Connected.prototype.removeSignal = function(signal, op) {
+        var autoStart;
+        if (!(op != null ? op.findLimiter(this) : void 0)) {
+          if (!op) {
+            op = new SignalOperation;
+            autoStart = true;
+          }
+          op.addOperation((function(_this) {
+            return function() {
+              var existing;
+              if ((existing = _this.containsSignal(signal, true)) && _this.acceptSignal(signal)) {
+                _this.signals.splice(_this.signals.indexOf(existing), 1);
+                _this.onRemoveSignal(signal, op);
+                op.addOperation(function() {
+                  var similar;
+                  similar = _this.containsSignal(signal);
+                  if (similar) {
+                    return _this.onReplaceSignal(signal, similar, op);
+                  } else {
+                    return _this.onRemoveSignalType(signal, op);
+                  }
+                }, 0);
+              }
+              if (stepByStep) {
+                return op.step();
+              }
+            };
+          })(this));
+          if (autoStart) {
+            return op.start();
+          }
+        }
+      };
+
+      Connected.prototype.prepForwardedSignal = function(signal) {
+        if (signal.last === this) {
+          return signal;
+        } else {
+          return signal.withLast(this);
+        }
+      };
+
+      Connected.prototype.forwardSignal = function(signal, op) {
+        var next;
+        next = this.prepForwardedSignal(signal);
+        return this.outputs.forEach(function(conn) {
+          if (signal.last !== conn) {
+            return conn.addSignal(next, op);
+          }
+        });
+      };
+
+      Connected.prototype.forwardAllSignalsTo = function(conn, op) {
+        return this.signals.forEach((function(_this) {
+          return function(signal) {
+            var next;
+            next = _this.prepForwardedSignal(signal);
+            return conn.addSignal(next, op);
+          };
+        })(this));
+      };
+
+      Connected.prototype.stopForwardedSignal = function(signal, op) {
+        var next;
+        next = this.prepForwardedSignal(signal);
+        return this.outputs.forEach(function(conn) {
+          if (signal.last !== conn) {
+            return conn.removeSignal(next, op);
+          }
+        });
+      };
+
+      Connected.prototype.stopAllForwardedSignalTo = function(conn, op) {
+        return this.signals.forEach((function(_this) {
+          return function(signal) {
+            var next;
+            next = _this.prepForwardedSignal(signal);
+            return conn.removeSignal(next, op);
+          };
+        })(this));
+      };
+
+      return Connected;
+
+    })(Element);
+    return Connected;
+  });
+
+  (function(definition) {
+    Parallelio.Signal = definition();
+    return Parallelio.Signal.definition = definition;
+  })(function(dependencies) {
+    var Element, Signal;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Signal = (function(superClass) {
+      extend(Signal, superClass);
+
+      function Signal(origin1, type, exclusive) {
+        this.origin = origin1;
+        this.type = type != null ? type : 'signal';
+        this.exclusive = exclusive != null ? exclusive : false;
+        Signal.__super__.constructor.call(this);
+        this.last = this.origin;
+      }
+
+      Signal.prototype.withLast = function(last) {
+        var signal;
+        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
+        signal.last = last;
+        return signal;
+      };
+
+      Signal.prototype.copy = function() {
+        var signal;
+        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
+        signal.last = this.last;
+        return signal;
+      };
+
+      Signal.prototype.match = function(signal, checkLast, checkOrigin) {
+        if (checkLast == null) {
+          checkLast = false;
+        }
+        if (checkOrigin == null) {
+          checkOrigin = this.exclusive;
+        }
+        return (!checkLast || signal.last === this.last) && (checkOrigin || signal.origin === this.origin) && signal.type === this.type;
+      };
+
+      return Signal;
+
+    })(Element);
+    return Signal;
+  });
+
+  (function(definition) {
+    Parallelio.SignalSource = definition();
+    return Parallelio.SignalSource.definition = definition;
+  })(function(dependencies) {
+    var Connected, Signal, SignalSource;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Signal = dependencies.hasOwnProperty("Signal") ? dependencies.Signal : Parallelio.Signal;
+    SignalSource = (function(superClass) {
+      extend(SignalSource, superClass);
+
+      function SignalSource() {
+        return SignalSource.__super__.constructor.apply(this, arguments);
+      }
+
+      SignalSource.properties({
+        activated: {
+          change: function() {
+            var op;
+            op = new SignalOperation();
+            if (this.activated) {
+              this.forwardSignal(this.signal, op);
+            } else {
+              this.stopForwardedSignal(this.signal, op);
+            }
+            return op.start();
+          }
+        },
+        signal: {
+          calcul: function() {
+            return new Signal(this, 'power', true);
+          }
+        }
+      });
+
+      return SignalSource;
+
+    })(Connected);
+    return SignalSource;
+  });
+
+  (function(definition) {
+    Parallelio.Switch = definition();
+    return Parallelio.Switch.definition = definition;
+  })(function(dependencies) {
+    var Connected, Switch;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Switch = (function(superClass) {
+      extend(Switch, superClass);
+
+      function Switch() {
+        return Switch.__super__.constructor.apply(this, arguments);
+      }
+
+      return Switch;
+
+    })(Connected);
+    return Switch;
+  });
+
+  (function(definition) {
+    Parallelio.Wire = definition();
+    return Parallelio.Wire.definition = definition;
+  })(function(dependencies) {
+    var Connected, Direction, Tiled, Wire;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Wire = (function(superClass) {
+      extend(Wire, superClass);
+
+      Wire.extend(Connected);
+
+      function Wire(wireType) {
+        this.wireType = wireType != null ? wireType : 'red';
+        Wire.__super__.constructor.call(this);
+      }
+
+      Wire.properties({
+        outputs: {
+          calcul: function(invalidation) {
+            var parent;
+            parent = invalidation.prop('tile');
+            return invalidation.prop('adjacentTiles', parent).reduce((function(_this) {
+              return function(res, tile) {
+                return res.concat(invalidation.prop('children', tile).filter(function(child) {
+                  return _this.canConnectTo(child);
+                }).toArray());
+              };
+            })(this), []);
+          }
+        },
+        connectedDirections: {
+          calcul: function(invalidation) {
+            return invalidation.prop('outputs').reduce((function(_this) {
+              return function(out, conn) {
+                var d;
+                if ((d = _this.tile.findDirectionOf(conn)) && indexOf.call(out, d) < 0) {
+                  out.push(d);
+                }
+                return out;
+              };
+            })(this), []);
+          }
+        }
+      });
+
+      Wire.prototype.canConnectTo = function(target) {
+        return Connected.prototype.canConnectTo.call(this, target) && ((target.wireType == null) || target.wireType === this.wireType);
+      };
+
+      Wire.prototype.onNewSignalType = function(signal, op) {
+        return this.forwardSignal(signal, op);
+      };
+
+      return Wire;
+
+    })(Tiled);
+    return Wire;
+  });
+
+  (function(definition) {
     Parallelio.TileContainer = definition();
     return Parallelio.TileContainer.definition = definition;
   })(function(dependencies) {
@@ -3803,426 +4245,6 @@
 
     })();
     return RoomGenerator;
-  });
-
-  (function(definition) {
-    Parallelio.SignalOperation = definition();
-    return Parallelio.SignalOperation.definition = definition;
-  })(function(dependencies) {
-    var Element, SignalOperation;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    SignalOperation = (function(superClass) {
-      extend(SignalOperation, superClass);
-
-      function SignalOperation() {
-        SignalOperation.__super__.constructor.call(this);
-        this.queue = [];
-        this.limiters = [];
-      }
-
-      SignalOperation.prototype.addOperation = function(funct, priority) {
-        if (priority == null) {
-          priority = 1;
-        }
-        if (priority) {
-          return this.queue.unshift(funct);
-        } else {
-          return this.queue.push(funct);
-        }
-      };
-
-      SignalOperation.prototype.addLimiter = function(connected) {
-        if (!this.findLimiter(connected)) {
-          return this.limiters.push(connected);
-        }
-      };
-
-      SignalOperation.prototype.findLimiter = function(connected) {
-        return this.limiters.indexOf(connected) > -1;
-      };
-
-      SignalOperation.prototype.start = function() {
-        var results;
-        results = [];
-        while (this.queue.length) {
-          results.push(this.step());
-        }
-        return results;
-      };
-
-      SignalOperation.prototype.step = function() {
-        var funct;
-        if (this.queue.length === 0) {
-          return this.done();
-        } else {
-          funct = this.queue.shift(funct);
-          return funct(this);
-        }
-      };
-
-      SignalOperation.prototype.done = function() {};
-
-      return SignalOperation;
-
-    })(Element);
-    return SignalOperation;
-  });
-
-  (function(definition) {
-    Parallelio.Connected = definition();
-    return Parallelio.Connected.definition = definition;
-  })(function(dependencies) {
-    var Connected, Element, SignalOperation;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
-    Connected = (function(superClass) {
-      extend(Connected, superClass);
-
-      function Connected() {
-        return Connected.__super__.constructor.apply(this, arguments);
-      }
-
-      Connected.properties({
-        signals: {
-          collection: true
-        },
-        inputs: {
-          collection: true
-        },
-        outputs: {
-          collection: true
-        }
-      });
-
-      Connected.prototype.canConnectTo = function(target) {
-        return typeof target.addSignal === "function";
-      };
-
-      Connected.prototype.acceptSignal = function(signal) {
-        return true;
-      };
-
-      Connected.prototype.onAddConnection = function(conn) {};
-
-      Connected.prototype.onRemoveConnection = function(conn) {};
-
-      Connected.prototype.onNewSignalType = function(signal) {};
-
-      Connected.prototype.onAddSignal = function(signal, op) {};
-
-      Connected.prototype.onRemoveSignal = function(signal, op) {};
-
-      Connected.prototype.onRemoveSignalType = function(signal, op) {};
-
-      Connected.prototype.onReplaceSignal = function(oldSignal, newSignal, op) {};
-
-      Connected.prototype.containsSignal = function(signal, checkLast, checkOrigin) {
-        if (checkLast == null) {
-          checkLast = false;
-        }
-        return this.signals.find(function(c) {
-          return c.match(signal, checkLast, checkOrigin);
-        });
-      };
-
-      Connected.prototype.addSignal = function(signal, op) {
-        var autoStart;
-        if (!(op != null ? op.findLimiter(this) : void 0)) {
-          if (!op) {
-            op = new SignalOperation();
-            autoStart = true;
-          }
-          op.addOperation((function(_this) {
-            return function() {
-              var similar;
-              if (!_this.containsSignal(signal, true) && _this.acceptSignal(signal)) {
-                similar = _this.containsSignal(signal);
-                _this.signals.push(signal);
-                _this.onAddSignal(signal, op);
-                if (!similar) {
-                  return _this.onNewSignalType(signal, op);
-                }
-              }
-            };
-          })(this));
-          if (autoStart) {
-            op.start();
-          }
-        }
-        return signal;
-      };
-
-      Connected.prototype.removeSignal = function(signal, op) {
-        var autoStart;
-        if (!(op != null ? op.findLimiter(this) : void 0)) {
-          if (!op) {
-            op = new SignalOperation;
-            autoStart = true;
-          }
-          op.addOperation((function(_this) {
-            return function() {
-              var existing;
-              if ((existing = _this.containsSignal(signal, true)) && _this.acceptSignal(signal)) {
-                _this.signals.splice(_this.signals.indexOf(existing), 1);
-                _this.onRemoveSignal(signal, op);
-                op.addOperation(function() {
-                  var similar;
-                  similar = _this.containsSignal(signal);
-                  if (similar) {
-                    return _this.onReplaceSignal(signal, similar, op);
-                  } else {
-                    return _this.onRemoveSignalType(signal, op);
-                  }
-                }, 0);
-              }
-              if (stepByStep) {
-                return op.step();
-              }
-            };
-          })(this));
-          if (autoStart) {
-            return op.start();
-          }
-        }
-      };
-
-      Connected.prototype.prepForwardedSignal = function(signal) {
-        if (signal.last === this) {
-          return signal;
-        } else {
-          return signal.withLast(this);
-        }
-      };
-
-      Connected.prototype.forwardSignal = function(signal, op) {
-        var next;
-        next = this.prepForwardedSignal(signal);
-        return this.outputs.forEach(function(conn) {
-          if (signal.last !== conn) {
-            return conn.addSignal(next, op);
-          }
-        });
-      };
-
-      Connected.prototype.forwardAllSignalsTo = function(conn, op) {
-        return this.signals.forEach((function(_this) {
-          return function(signal) {
-            var next;
-            next = _this.prepForwardedSignal(signal);
-            return conn.addSignal(next, op);
-          };
-        })(this));
-      };
-
-      Connected.prototype.stopForwardedSignal = function(signal, op) {
-        var next;
-        next = this.prepForwardedSignal(signal);
-        return this.outputs.forEach(function(conn) {
-          if (signal.last !== conn) {
-            return conn.removeSignal(next, op);
-          }
-        });
-      };
-
-      Connected.prototype.stopAllForwardedSignalTo = function(conn, op) {
-        return this.signals.forEach((function(_this) {
-          return function(signal) {
-            var next;
-            next = _this.prepForwardedSignal(signal);
-            return conn.removeSignal(next, op);
-          };
-        })(this));
-      };
-
-      return Connected;
-
-    })(Element);
-    return Connected;
-  });
-
-  (function(definition) {
-    Parallelio.Signal = definition();
-    return Parallelio.Signal.definition = definition;
-  })(function(dependencies) {
-    var Element, Signal;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Signal = (function(superClass) {
-      extend(Signal, superClass);
-
-      function Signal(origin1, type, exclusive) {
-        this.origin = origin1;
-        this.type = type != null ? type : 'signal';
-        this.exclusive = exclusive != null ? exclusive : false;
-        Signal.__super__.constructor.call(this);
-        this.last = this.origin;
-      }
-
-      Signal.prototype.withLast = function(last) {
-        var signal;
-        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
-        signal.last = last;
-        return signal;
-      };
-
-      Signal.prototype.copy = function() {
-        var signal;
-        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
-        signal.last = this.last;
-        return signal;
-      };
-
-      Signal.prototype.match = function(signal, checkLast, checkOrigin) {
-        if (checkLast == null) {
-          checkLast = false;
-        }
-        if (checkOrigin == null) {
-          checkOrigin = this.exclusive;
-        }
-        return (!checkLast || signal.last === this.last) && (checkOrigin || signal.origin === this.origin) && signal.type === this.type;
-      };
-
-      return Signal;
-
-    })(Element);
-    return Signal;
-  });
-
-  (function(definition) {
-    Parallelio.SignalSource = definition();
-    return Parallelio.SignalSource.definition = definition;
-  })(function(dependencies) {
-    var Connected, Signal, SignalSource;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Signal = dependencies.hasOwnProperty("Signal") ? dependencies.Signal : Parallelio.Signal;
-    SignalSource = (function(superClass) {
-      extend(SignalSource, superClass);
-
-      function SignalSource() {
-        return SignalSource.__super__.constructor.apply(this, arguments);
-      }
-
-      SignalSource.properties({
-        activated: {
-          change: function() {
-            var op;
-            op = new SignalOperation();
-            if (this.activated) {
-              this.forwardSignal(this.signal, op);
-            } else {
-              this.stopForwardedSignal(this.signal, op);
-            }
-            return op.start();
-          }
-        },
-        signal: {
-          calcul: function() {
-            return new Signal(this, 'power', true);
-          }
-        }
-      });
-
-      return SignalSource;
-
-    })(Connected);
-    return SignalSource;
-  });
-
-  (function(definition) {
-    Parallelio.Switch = definition();
-    return Parallelio.Switch.definition = definition;
-  })(function(dependencies) {
-    var Connected, Switch;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Switch = (function(superClass) {
-      extend(Switch, superClass);
-
-      function Switch() {
-        return Switch.__super__.constructor.apply(this, arguments);
-      }
-
-      return Switch;
-
-    })(Connected);
-    return Switch;
-  });
-
-  (function(definition) {
-    Parallelio.Wire = definition();
-    return Parallelio.Wire.definition = definition;
-  })(function(dependencies) {
-    var Connected, Direction, Tiled, Wire;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Wire = (function(superClass) {
-      extend(Wire, superClass);
-
-      Wire.extend(Connected);
-
-      function Wire(wireType) {
-        this.wireType = wireType != null ? wireType : 'red';
-        Wire.__super__.constructor.call(this);
-      }
-
-      Wire.properties({
-        outputs: {
-          calcul: function(invalidation) {
-            var parent;
-            parent = invalidation.prop('tile');
-            return invalidation.prop('adjacentTiles', parent).reduce((function(_this) {
-              return function(res, tile) {
-                return res.concat(invalidation.prop('children', tile).filter(function(child) {
-                  return _this.canConnectTo(child);
-                }).toArray());
-              };
-            })(this), []);
-          }
-        },
-        connectedDirections: {
-          calcul: function(invalidation) {
-            return invalidation.prop('outputs').reduce((function(_this) {
-              return function(out, conn) {
-                var d;
-                if ((d = _this.tile.findDirectionOf(conn)) && indexOf.call(out, d) < 0) {
-                  out.push(d);
-                }
-                return out;
-              };
-            })(this), []);
-          }
-        }
-      });
-
-      Wire.prototype.canConnectTo = function(target) {
-        return Connected.prototype.canConnectTo.call(this, target) && ((target.wireType == null) || target.wireType === this.wireType);
-      };
-
-      Wire.prototype.onNewSignalType = function(signal, op) {
-        return this.forwardSignal(signal, op);
-      };
-
-      return Wire;
-
-    })(Tiled);
-    return Wire;
   });
 
   (function(definition) {
