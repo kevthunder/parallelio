@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "gulp test",
-    "build": "gulp build"
+    "build": "gulp build",
+    "update": "gulp update"
   },
   "author": "kevthunder",
   "license": "ISC",
@@ -23,7 +24,9 @@
     "gulp-uglify": "^3.0.0",
     "merge2": "^1.2.0",
     "mocha": "^5.2.0",
+    "run-sequence": "^2.2.1",
     "seedrandom": "^2.4.3",
+    "spark-auto-commit": "github:kevthunder/spark-auto-commit",
     "spark-wrapper": "github:kevthunder/spark-wrapper",
     "wolfy87-eventemitter": "^5.2.3"
   },

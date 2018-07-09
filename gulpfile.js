@@ -7,6 +7,8 @@ var mocha = require('gulp-mocha');
 var merge = require('merge2');
 var concatStrings = require('parallelio-strings/gulp/concatStrings');
 var wrapper = require('spark-wrapper');
+var run = require('run-sequence');
+var autoCommit = require('spark-auto-commit');
 
 gulp.task('coffee', function() {
   return gulp.src(['./src/*.coffee'])
@@ -55,6 +57,12 @@ gulp.task('coffeeTest', function() {
   return gulp.src('./test/src/*.coffee')
     .pipe(coffee())
     .pipe(gulp.dest('./test/'));
+});
+
+gulp.task('update', function() {
+  return autoCommit.afterModuleUpdate(function(){
+    run('test');
+  });
 });
 
 gulp.task('test', ['build','coffeeTest'], function() {
