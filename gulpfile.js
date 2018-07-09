@@ -60,8 +60,8 @@ gulp.task('coffeeTest', function() {
 });
 
 gulp.task('update', function() {
-  return autoCommit.afterModuleUpdate(function(){
-    run('test');
+  return autoCommit.afterModuleUpdate(function(cb){
+    return run('test',cb);
   });
 });
 
