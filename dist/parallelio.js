@@ -1115,8 +1115,16 @@
         }
       };
 
+      PropertyInstance.prototype.hasChangedFunctions = function() {
+        return typeof this.property.options.change === 'function';
+      };
+
+      PropertyInstance.prototype.hasChangedEvents = function() {
+        return typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.property.getChangeEventName()).length > 0;
+      };
+
       PropertyInstance.prototype.isImmediate = function() {
-        return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : (this.getUpdater() == null) && ((typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.property.getChangeEventName()).length > 0) || typeof this.property.options.change === 'function')));
+        return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : (this.getUpdater() == null) && (this.hasChangedEvents() || this.hasChangedFunctions())));
       };
 
       PropertyInstance.bind = function(target, prop) {
@@ -1216,6 +1224,10 @@
           })(this));
         }
         return CollectionProperty.__super__.callChangedFunctions.call(this, old);
+      };
+
+      CollectionProperty.prototype.hasChangedFunctions = function() {
+        return CollectionProperty.__super__.hasChangedFunctions.call(this) || typeof this.property.options.itemAdded === 'function' || typeof this.property.options.itemRemoved === 'function';
       };
 
       return CollectionProperty;
@@ -3828,6 +3840,295 @@
   });
 
   (function(definition) {
+    Parallelio.Star = definition();
+    return Parallelio.Star.definition = definition;
+  })(function(dependencies) {
+    var Element, Star;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Star = (function(superClass) {
+      extend(Star, superClass);
+
+      function Star(x5, y5) {
+        this.x = x5;
+        this.y = y5;
+        this.init();
+      }
+
+      Star.properties({
+        x: {},
+        y: {},
+        links: {
+          collection: {
+            findStar: function(star) {
+              return this.find(function(link) {
+                return link.star2 === star || link.star1 === star;
+              });
+            }
+          }
+        }
+      });
+
+      Star.prototype.init = function() {};
+
+      Star.prototype.linkTo = function(star) {
+        if (!this.links.findStar(star)) {
+          return this.addLink(new this.constructor.Link(this, star));
+        }
+      };
+
+      Star.prototype.addLink = function(link) {
+        this.links.add(link);
+        link.otherStar(this).links.add(link);
+        return link;
+      };
+
+      Star.prototype.dist = function(x, y) {
+        var xDist, yDist;
+        xDist = this.x - x;
+        yDist = this.y - y;
+        return Math.sqrt((xDist * xDist) + (yDist * yDist));
+      };
+
+      Star.collenctionFn = {
+        closest: function(x, y) {
+          var min, minDist;
+          min = null;
+          minDist = null;
+          this.forEach(function(star) {
+            var dist;
+            dist = star.dist(x, y);
+            if ((min == null) || minDist > dist) {
+              min = star;
+              return minDist = dist;
+            }
+          });
+          return min;
+        },
+        closests: function(x, y) {
+          var dists;
+          dists = this.map(function(star) {
+            return {
+              dist: star.dist(x, y),
+              star: star
+            };
+          });
+          dists.sort(function(a, b) {
+            return a.dist - b.dist;
+          });
+          return this.copy(dists.map(function(dist) {
+            return dist.star;
+          }));
+        }
+      };
+
+      return Star;
+
+    })(Element);
+    Star.Link = (function(superClass) {
+      extend(Link, superClass);
+
+      function Link(star1, star2) {
+        this.star1 = star1;
+        this.star2 = star2;
+      }
+
+      Link.prototype.remove = function() {
+        this.star1.links.remove(this);
+        return this.star2.links.remove(this);
+      };
+
+      Link.prototype.otherStar = function(star) {
+        if (star === this.star1) {
+          return this.star2;
+        } else {
+          return this.star1;
+        }
+      };
+
+      Link.prototype.getLength = function() {
+        return this.star1.dist(this.star2.x, this.star2.y);
+      };
+
+      Link.prototype.inBoundaryBox = function(x, y, padding) {
+        var x1, x2, y1, y2;
+        if (padding == null) {
+          padding = 0;
+        }
+        x1 = Math.min(this.star1.x, this.star2.x) - padding;
+        y1 = Math.min(this.star1.y, this.star2.y) - padding;
+        x2 = Math.max(this.star1.x, this.star2.x) + padding;
+        y2 = Math.max(this.star1.y, this.star2.y) + padding;
+        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+      };
+
+      Link.prototype.closeToPoint = function(x, y, minDist) {
+        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
+        if (!this.inBoundaryBox(x, y, minDist)) {
+          return false;
+        }
+        a = this.star1;
+        b = this.star2;
+        c = {
+          "x": x,
+          "y": y
+        };
+        xAbDist = b.x - a.x;
+        yAbDist = b.y - a.y;
+        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
+        abxAngle = Math.atan(yAbDist / xAbDist);
+        xAcDist = c.x - a.x;
+        yAcDist = c.y - a.y;
+        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
+        acxAngle = Math.atan(yAcDist / xAcDist);
+        abcAngle = abxAngle - acxAngle;
+        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
+        return cdDist <= minDist;
+      };
+
+      Link.prototype.intersectLink = function(link) {
+        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
+        x1 = this.star1.x;
+        y1 = this.star1.y;
+        x2 = this.star2.x;
+        y2 = this.star2.y;
+        x3 = link.star1.x;
+        y3 = link.star1.y;
+        x4 = link.star2.x;
+        y4 = link.star2.y;
+        s1_x = x2 - x1;
+        s1_y = y2 - y1;
+        s2_x = x4 - x3;
+        s2_y = y4 - y3;
+        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
+        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
+        return s > 0 && s < 1 && t > 0 && t < 1;
+      };
+
+      return Link;
+
+    })(Element);
+    return Star;
+  });
+
+  (function(definition) {
+    Parallelio.Weapon = definition();
+    return Parallelio.Weapon.definition = definition;
+  })(function(dependencies) {
+    var Damageable, Projectile, Tiled, Timing, Weapon;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
+    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
+    Weapon = (function(superClass) {
+      extend(Weapon, superClass);
+
+      Weapon.extend(Damageable);
+
+      function Weapon(options) {
+        this.setProperties(options);
+        Weapon.__super__.constructor.call(this);
+      }
+
+      Weapon.properties({
+        rechargeTime: {
+          "default": 1000
+        },
+        power: {
+          "default": 10
+        },
+        blastRange: {
+          "default": 1
+        },
+        propagationType: {
+          "default": null
+        },
+        projectileSpeed: {
+          "default": 10
+        },
+        target: {
+          "default": null,
+          change: function() {
+            if (this.autoFire) {
+              return this.fire();
+            }
+          }
+        },
+        charged: {
+          "default": true
+        },
+        charging: {
+          "default": true
+        },
+        enabled: {
+          "default": true
+        },
+        autoFire: {
+          "default": true
+        },
+        criticalHealth: {
+          "default": 0.3
+        },
+        canFire: {
+          get: function() {
+            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
+          }
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
+        }
+      });
+
+      Weapon.prototype.fire = function() {
+        var projectile;
+        if (this.canFire) {
+          projectile = new Projectile({
+            origin: this,
+            target: this.target,
+            power: this.power,
+            blastRange: this.blastRange,
+            propagationType: this.propagationType,
+            speed: this.projectileSpeed,
+            timing: this.timing
+          });
+          projectile.launch();
+          this.charged = false;
+          this.recharge();
+          return projectile;
+        }
+      };
+
+      Weapon.prototype.recharge = function() {
+        this.charging = true;
+        return this.chargeTimeout = this.timing.setTimeout((function(_this) {
+          return function() {
+            _this.charging = false;
+            return _this.recharged();
+          };
+        })(this), this.rechargeTime);
+      };
+
+      Weapon.prototype.recharged = function() {
+        this.charged = true;
+        if (this.autoFire) {
+          return this.fire();
+        }
+      };
+
+      return Weapon;
+
+    })(Tiled);
+    return Weapon;
+  });
+
+  (function(definition) {
     Parallelio.SignalOperation = definition();
     return Parallelio.SignalOperation.definition = definition;
   })(function(dependencies) {
@@ -4245,295 +4546,6 @@
 
     })(Tiled);
     return Wire;
-  });
-
-  (function(definition) {
-    Parallelio.Star = definition();
-    return Parallelio.Star.definition = definition;
-  })(function(dependencies) {
-    var Element, Star;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Star = (function(superClass) {
-      extend(Star, superClass);
-
-      function Star(x5, y5) {
-        this.x = x5;
-        this.y = y5;
-        this.init();
-      }
-
-      Star.properties({
-        x: {},
-        y: {},
-        links: {
-          collection: {
-            findStar: function(star) {
-              return this.find(function(link) {
-                return link.star2 === star || link.star1 === star;
-              });
-            }
-          }
-        }
-      });
-
-      Star.prototype.init = function() {};
-
-      Star.prototype.linkTo = function(star) {
-        if (!this.links.findStar(star)) {
-          return this.addLink(new this.constructor.Link(this, star));
-        }
-      };
-
-      Star.prototype.addLink = function(link) {
-        this.links.add(link);
-        link.otherStar(this).links.add(link);
-        return link;
-      };
-
-      Star.prototype.dist = function(x, y) {
-        var xDist, yDist;
-        xDist = this.x - x;
-        yDist = this.y - y;
-        return Math.sqrt((xDist * xDist) + (yDist * yDist));
-      };
-
-      Star.collenctionFn = {
-        closest: function(x, y) {
-          var min, minDist;
-          min = null;
-          minDist = null;
-          this.forEach(function(star) {
-            var dist;
-            dist = star.dist(x, y);
-            if ((min == null) || minDist > dist) {
-              min = star;
-              return minDist = dist;
-            }
-          });
-          return min;
-        },
-        closests: function(x, y) {
-          var dists;
-          dists = this.map(function(star) {
-            return {
-              dist: star.dist(x, y),
-              star: star
-            };
-          });
-          dists.sort(function(a, b) {
-            return a.dist - b.dist;
-          });
-          return this.copy(dists.map(function(dist) {
-            return dist.star;
-          }));
-        }
-      };
-
-      return Star;
-
-    })(Element);
-    Star.Link = (function(superClass) {
-      extend(Link, superClass);
-
-      function Link(star1, star2) {
-        this.star1 = star1;
-        this.star2 = star2;
-      }
-
-      Link.prototype.remove = function() {
-        this.star1.links.remove(this);
-        return this.star2.links.remove(this);
-      };
-
-      Link.prototype.otherStar = function(star) {
-        if (star === this.star1) {
-          return this.star2;
-        } else {
-          return this.star1;
-        }
-      };
-
-      Link.prototype.getLength = function() {
-        return this.star1.dist(this.star2.x, this.star2.y);
-      };
-
-      Link.prototype.inBoundaryBox = function(x, y, padding) {
-        var x1, x2, y1, y2;
-        if (padding == null) {
-          padding = 0;
-        }
-        x1 = Math.min(this.star1.x, this.star2.x) - padding;
-        y1 = Math.min(this.star1.y, this.star2.y) - padding;
-        x2 = Math.max(this.star1.x, this.star2.x) + padding;
-        y2 = Math.max(this.star1.y, this.star2.y) + padding;
-        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
-      };
-
-      Link.prototype.closeToPoint = function(x, y, minDist) {
-        var a, abDist, abcAngle, abxAngle, acDist, acxAngle, b, c, cdDist, xAbDist, xAcDist, yAbDist, yAcDist;
-        if (!this.inBoundaryBox(x, y, minDist)) {
-          return false;
-        }
-        a = this.star1;
-        b = this.star2;
-        c = {
-          "x": x,
-          "y": y
-        };
-        xAbDist = b.x - a.x;
-        yAbDist = b.y - a.y;
-        abDist = Math.sqrt((xAbDist * xAbDist) + (yAbDist * yAbDist));
-        abxAngle = Math.atan(yAbDist / xAbDist);
-        xAcDist = c.x - a.x;
-        yAcDist = c.y - a.y;
-        acDist = Math.sqrt((xAcDist * xAcDist) + (yAcDist * yAcDist));
-        acxAngle = Math.atan(yAcDist / xAcDist);
-        abcAngle = abxAngle - acxAngle;
-        cdDist = Math.abs(Math.sin(abcAngle) * acDist);
-        return cdDist <= minDist;
-      };
-
-      Link.prototype.intersectLink = function(link) {
-        var s, s1_x, s1_y, s2_x, s2_y, t, x1, x2, x3, x4, y1, y2, y3, y4;
-        x1 = this.star1.x;
-        y1 = this.star1.y;
-        x2 = this.star2.x;
-        y2 = this.star2.y;
-        x3 = link.star1.x;
-        y3 = link.star1.y;
-        x4 = link.star2.x;
-        y4 = link.star2.y;
-        s1_x = x2 - x1;
-        s1_y = y2 - y1;
-        s2_x = x4 - x3;
-        s2_y = y4 - y3;
-        s = (-s1_y * (x1 - x3) + s1_x * (y1 - y3)) / (-s2_x * s1_y + s1_x * s2_y);
-        t = (s2_x * (y1 - y3) - s2_y * (x1 - x3)) / (-s2_x * s1_y + s1_x * s2_y);
-        return s > 0 && s < 1 && t > 0 && t < 1;
-      };
-
-      return Link;
-
-    })(Element);
-    return Star;
-  });
-
-  (function(definition) {
-    Parallelio.Weapon = definition();
-    return Parallelio.Weapon.definition = definition;
-  })(function(dependencies) {
-    var Damageable, Projectile, Tiled, Timing, Weapon;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
-    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
-    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
-    Weapon = (function(superClass) {
-      extend(Weapon, superClass);
-
-      Weapon.extend(Damageable);
-
-      function Weapon(options) {
-        this.setProperties(options);
-        Weapon.__super__.constructor.call(this);
-      }
-
-      Weapon.properties({
-        rechargeTime: {
-          "default": 1000
-        },
-        power: {
-          "default": 10
-        },
-        blastRange: {
-          "default": 1
-        },
-        propagationType: {
-          "default": null
-        },
-        projectileSpeed: {
-          "default": 10
-        },
-        target: {
-          "default": null,
-          change: function() {
-            if (this.autoFire) {
-              return this.fire();
-            }
-          }
-        },
-        charged: {
-          "default": true
-        },
-        charging: {
-          "default": true
-        },
-        enabled: {
-          "default": true
-        },
-        autoFire: {
-          "default": true
-        },
-        criticalHealth: {
-          "default": 0.3
-        },
-        canFire: {
-          get: function() {
-            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
-          }
-        },
-        timing: {
-          calcul: function() {
-            return new Timing();
-          }
-        }
-      });
-
-      Weapon.prototype.fire = function() {
-        var projectile;
-        if (this.canFire) {
-          projectile = new Projectile({
-            origin: this,
-            target: this.target,
-            power: this.power,
-            blastRange: this.blastRange,
-            propagationType: this.propagationType,
-            speed: this.projectileSpeed,
-            timing: this.timing
-          });
-          projectile.launch();
-          this.charged = false;
-          this.recharge();
-          return projectile;
-        }
-      };
-
-      Weapon.prototype.recharge = function() {
-        this.charging = true;
-        return this.chargeTimeout = this.timing.setTimeout((function(_this) {
-          return function() {
-            _this.charging = false;
-            return _this.recharged();
-          };
-        })(this), this.rechargeTime);
-      };
-
-      Weapon.prototype.recharged = function() {
-        this.charged = true;
-        if (this.autoFire) {
-          return this.fire();
-        }
-      };
-
-      return Weapon;
-
-    })(Tiled);
-    return Weapon;
   });
 
 }).call(this);
