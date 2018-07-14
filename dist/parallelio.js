@@ -17,6 +17,179 @@
   };
 
   (function(definition) {
+    Parallelio.Spark.PropertyInstance = definition();
+    return Parallelio.Spark.PropertyInstance.definition = definition;
+  })(function() {
+    var PropertyInstance;
+    PropertyInstance = (function() {
+      function PropertyInstance(property1, obj1) {
+        this.property = property1;
+        this.obj = obj1;
+        this.init();
+      }
+
+      PropertyInstance.prototype.init = function() {
+        this.value = this.ingest(this["default"]);
+        return this.calculated = false;
+      };
+
+      PropertyInstance.prototype.get = function() {
+        this.calculated = true;
+        return this.output();
+      };
+
+      PropertyInstance.prototype.set = function(val) {
+        return this.setAndCheckChanges(val);
+      };
+
+      PropertyInstance.prototype.callbackSet = function(val) {
+        this.callOptionFunct("set", val);
+        return this;
+      };
+
+      PropertyInstance.prototype.setAndCheckChanges = function(val) {
+        var old;
+        val = this.ingest(val);
+        this.revalidated();
+        if (this.value !== val) {
+          old = this.value;
+          this.value = val;
+          this.manual = true;
+          this.changed(old);
+        }
+        return this;
+      };
+
+      PropertyInstance.prototype.destroy = function() {};
+
+      PropertyInstance.prototype.callOptionFunct = function() {
+        var args, funct;
+        funct = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
+        if (typeof funct === 'string') {
+          funct = this.property.options[funct];
+        }
+        if (typeof funct.overrided === 'function') {
+          args.push((function(_this) {
+            return function() {
+              var args;
+              args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+              return _this.callOptionFunct.apply(_this, [funct.overrided].concat(slice.call(args)));
+            };
+          })(this));
+        }
+        return funct.apply(this.obj, args);
+      };
+
+      PropertyInstance.prototype.revalidated = function() {
+        this.calculated = true;
+        return this.initiated = true;
+      };
+
+      PropertyInstance.prototype.ingest = function(val) {
+        if (typeof this.property.options.ingest === 'function') {
+          return val = this.callOptionFunct("ingest", val);
+        } else {
+          return val;
+        }
+      };
+
+      PropertyInstance.prototype.output = function() {
+        if (typeof this.property.options.output === 'function') {
+          return this.callOptionFunct("output", this.value);
+        } else {
+          return this.value;
+        }
+      };
+
+      PropertyInstance.prototype.changed = function(old) {
+        this.callChangedFunctions(old);
+        if (typeof this.obj.emitEvent === 'function') {
+          this.obj.emitEvent(this.updateEventName, [old]);
+          this.obj.emitEvent(this.changeEventName, [old]);
+        }
+        return this;
+      };
+
+      PropertyInstance.prototype.callChangedFunctions = function(old) {
+        if (typeof this.property.options.change === 'function') {
+          return this.callOptionFunct("change", old);
+        }
+      };
+
+      PropertyInstance.prototype.hasChangedFunctions = function() {
+        return typeof this.property.options.change === 'function';
+      };
+
+      PropertyInstance.prototype.hasChangedEvents = function() {
+        return typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.changeEventName).length > 0;
+      };
+
+      PropertyInstance.compose = function(prop) {
+        if (prop.instanceType == null) {
+          prop.instanceType = (function(superClass) {
+            extend(_Class, superClass);
+
+            function _Class() {
+              return _Class.__super__.constructor.apply(this, arguments);
+            }
+
+            return _Class;
+
+          })(PropertyInstance);
+        }
+        if (typeof prop.options.set === 'function') {
+          prop.instanceType.prototype.set = this.prototype.callbackSet;
+        } else {
+          prop.instanceType.prototype.set = this.prototype.setAndCheckChanges;
+        }
+        prop.instanceType.prototype["default"] = prop.options["default"];
+        prop.instanceType.prototype.initiated = typeof prop.options["default"] !== 'undefined';
+        return this.setEventNames(prop);
+      };
+
+      PropertyInstance.setEventNames = function(prop) {
+        prop.instanceType.prototype.changeEventName = prop.options.changeEventName || prop.name + 'Changed';
+        prop.instanceType.prototype.updateEventName = prop.options.updateEventName || prop.name + 'Updated';
+        return prop.instanceType.prototype.invalidateEventName = prop.options.invalidateEventName || prop.name + 'Invalidated';
+      };
+
+      PropertyInstance.bind = function(target, prop) {
+        var maj, opt;
+        maj = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
+        opt = {
+          configurable: true,
+          get: function() {
+            return prop.getInstance(this).get();
+          }
+        };
+        if (prop.options.set !== false) {
+          opt.set = function(val) {
+            return prop.getInstance(this).set(val);
+          };
+        }
+        Object.defineProperty(target, prop.name, opt);
+        target['get' + maj] = function() {
+          return prop.getInstance(this).get();
+        };
+        if (prop.options.set !== false) {
+          target['set' + maj] = function(val) {
+            prop.getInstance(this).set(val);
+            return this;
+          };
+        }
+        return target['invalidate' + maj] = function() {
+          prop.getInstance(this).invalidate();
+          return this;
+        };
+      };
+
+      return PropertyInstance;
+
+    })();
+    return PropertyInstance;
+  });
+
+  (function(definition) {
     Parallelio.Spark.Collection = definition();
     return Parallelio.Spark.Collection.definition = definition;
   })(function() {
@@ -861,25 +1034,28 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.PropertyInstance = definition();
-    return Parallelio.Spark.PropertyInstance.definition = definition;
+    Parallelio.Spark.DynamicProperty = definition();
+    return Parallelio.Spark.DynamicProperty.definition = definition;
   })(function(dependencies) {
-    var Invalidator, PropertyInstance;
+    var DynamicProperty, Invalidator, PropertyInstance;
     if (dependencies == null) {
       dependencies = {};
     }
     Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
-    PropertyInstance = (function() {
-      function PropertyInstance(property1, obj1) {
-        this.property = property1;
-        this.obj = obj1;
-        this.init();
+    PropertyInstance = dependencies.hasOwnProperty("PropertyInstance") ? dependencies.PropertyInstance : Parallelio.Spark.PropertyInstance;
+    DynamicProperty = (function(superClass) {
+      extend(DynamicProperty, superClass);
+
+      function DynamicProperty() {
+        return DynamicProperty.__super__.constructor.apply(this, arguments);
       }
 
-      PropertyInstance.prototype.init = function() {
-        this.value = this.ingest(this.property.options["default"]);
-        this.calculated = false;
-        this.initiated = typeof this.property.options["default"] !== 'undefined';
+      DynamicProperty.prototype.init = function() {
+        DynamicProperty.__super__.init.call(this);
+        return this.initRevalidate();
+      };
+
+      DynamicProperty.prototype.initRevalidate = function() {
         return this.revalidateCallback = (function(_this) {
           return function() {
             return _this.get();
@@ -887,87 +1063,39 @@
         })(this);
       };
 
-      PropertyInstance.prototype.get = function() {
-        var initiated, old, res;
-        if (this.property.options.get === false) {
-          return void 0;
-        } else if (typeof this.property.options.get === 'function') {
-          res = this.callOptionFunct("get");
-          this.revalidated();
-          return res;
-        } else {
-          if (this.invalidator) {
-            this.invalidator.validateUnknowns();
-          }
-          if (this.isActive()) {
-            if (!this.calculated) {
-              old = this.value;
-              initiated = this.initiated;
-              this.calcul();
-              if (this.value !== old) {
-                if (initiated) {
-                  this.changed(old);
-                } else if (typeof this.obj.emitEvent === 'function') {
-                  this.obj.emitEvent(this.property.getUpdateEventName(), [old]);
-                }
-              }
-            }
-            if (this.pendingChanges) {
-              this.changed(this.pendingOld);
-            }
-            return this.output();
-          } else {
-            this.initiated = true;
-            return void 0;
-          }
-        }
+      DynamicProperty.prototype.callbackGet = function() {
+        var res;
+        res = this.callOptionFunct("get");
+        this.revalidated();
+        return res;
       };
 
-      PropertyInstance.prototype.set = function(val) {
-        var old;
-        if (this.property.options.set === false) {
-          void 0;
-        } else if (typeof this.property.options.set === 'function') {
-          this.callOptionFunct("set", val);
-        } else {
-          val = this.ingest(val);
-          this.revalidated();
-          if (this.value !== val) {
-            old = this.value;
-            this.value = val;
-            this.manual = true;
-            this.changed(old);
-          }
-        }
-        return this;
-      };
-
-      PropertyInstance.prototype.invalidate = function() {
+      DynamicProperty.prototype.invalidate = function() {
         if (this.calculated || this.active === false) {
           this.calculated = false;
-          if (this._invalidateNotice()) {
-            if (this.invalidator != null) {
-              this.invalidator.unbind();
-            }
-          }
-        }
-        return this;
-      };
-
-      PropertyInstance.prototype.unknown = function() {
-        if (this.calculated || this.active === false) {
           this._invalidateNotice();
         }
         return this;
       };
 
-      PropertyInstance.prototype._invalidateNotice = function() {
+      DynamicProperty.prototype.revalidate = function() {
+        DynamicProperty.__super__.revalidate.call(this);
+        return this.revalidateUpdater();
+      };
+
+      DynamicProperty.prototype.revalidateUpdater = function() {
+        if (this.getUpdater() != null) {
+          return this.getUpdater().unbind();
+        }
+      };
+
+      DynamicProperty.prototype._invalidateNotice = function() {
         if (this.isImmediate()) {
           this.get();
           return false;
         } else {
           if (typeof this.obj.emitEvent === 'function') {
-            this.obj.emitEvent(this.property.getInvalidateEventName());
+            this.obj.emitEvent(this.invalidateEventName);
           }
           if (this.getUpdater() != null) {
             this.getUpdater().bind();
@@ -976,87 +1104,7 @@
         }
       };
 
-      PropertyInstance.prototype.destroy = function() {
-        if (this.invalidator != null) {
-          return this.invalidator.unbind();
-        }
-      };
-
-      PropertyInstance.prototype.callOptionFunct = function() {
-        var args, funct;
-        funct = arguments[0], args = 2 <= arguments.length ? slice.call(arguments, 1) : [];
-        if (typeof funct === 'string') {
-          funct = this.property.options[funct];
-        }
-        if (typeof funct.overrided === 'function') {
-          args.push((function(_this) {
-            return function() {
-              var args;
-              args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-              return _this.callOptionFunct.apply(_this, [funct.overrided].concat(slice.call(args)));
-            };
-          })(this));
-        }
-        return funct.apply(this.obj, args);
-      };
-
-      PropertyInstance.prototype.isActive = function() {
-        var invalidator;
-        if (typeof this.property.options.active === "boolean") {
-          return this.property.options.active;
-        } else if (typeof this.property.options.active === 'function') {
-          invalidator = this.activeInvalidator || new Invalidator(this, this.obj);
-          invalidator.recycle((function(_this) {
-            return function(invalidator, done) {
-              _this.active = _this.callOptionFunct("active", invalidator);
-              done();
-              if (_this.active || invalidator.isEmpty()) {
-                invalidator.unbind();
-                return _this.activeInvalidator = null;
-              } else {
-                _this.invalidator = invalidator;
-                _this.activeInvalidator = invalidator;
-                return invalidator.bind();
-              }
-            };
-          })(this));
-          return this.active;
-        } else {
-          return true;
-        }
-      };
-
-      PropertyInstance.prototype.calcul = function() {
-        if (typeof this.property.options.calcul === 'function') {
-          if (!this.invalidator) {
-            this.invalidator = new Invalidator(this, this.obj);
-          }
-          this.invalidator.recycle((function(_this) {
-            return function(invalidator, done) {
-              _this.value = _this.callOptionFunct("calcul", invalidator);
-              _this.manual = false;
-              done();
-              if (invalidator.isEmpty()) {
-                return _this.invalidator = null;
-              } else {
-                return invalidator.bind();
-              }
-            };
-          })(this));
-        }
-        this.revalidated();
-        return this.value;
-      };
-
-      PropertyInstance.prototype.revalidated = function() {
-        this.calculated = true;
-        this.initiated = true;
-        if (this.getUpdater() != null) {
-          return this.getUpdater().unbind();
-        }
-      };
-
-      PropertyInstance.prototype.getUpdater = function() {
+      DynamicProperty.prototype.getUpdater = function() {
         if (typeof this.updater === 'undefined') {
           if (this.property.options.updater != null) {
             this.updater = this.property.options.updater;
@@ -1075,31 +1123,108 @@
         return this.updater;
       };
 
-      PropertyInstance.prototype.ingest = function(val) {
-        if (typeof this.property.options.ingest === 'function') {
-          return val = this.callOptionFunct("ingest", val);
-        } else {
-          return val;
+      DynamicProperty.prototype.isImmediate = function() {
+        return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : (this.getUpdater() == null) && (this.hasChangedEvents() || this.hasChangedFunctions())));
+      };
+
+      DynamicProperty.compose = function(prop) {
+        if (typeof prop.options.get === 'function' || typeof prop.options.calcul === 'function' || typeof prop.options.active === 'function') {
+          if (prop.instanceType == null) {
+            prop.instanceType = (function(superClass1) {
+              extend(_Class, superClass1);
+
+              function _Class() {
+                return _Class.__super__.constructor.apply(this, arguments);
+              }
+
+              return _Class;
+
+            })(DynamicProperty);
+          }
+        }
+        if (typeof prop.options.get === 'function') {
+          return prop.instanceType.prototype.get = this.prototype.callbackGet;
         }
       };
 
-      PropertyInstance.prototype.output = function() {
-        if (typeof this.property.options.output === 'function') {
-          return this.callOptionFunct("output", this.value);
+      return DynamicProperty;
+
+    })(PropertyInstance);
+    return DynamicProperty;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.ActivableProperty = definition();
+    return Parallelio.Spark.ActivableProperty.definition = definition;
+  })(function(dependencies) {
+    var ActivableProperty, Invalidator, PropertyInstance;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
+    PropertyInstance = dependencies.hasOwnProperty("PropertyInstance") ? dependencies.PropertyInstance : Parallelio.Spark.PropertyInstance;
+    ActivableProperty = (function(superClass) {
+      extend(ActivableProperty, superClass);
+
+      function ActivableProperty() {
+        return ActivableProperty.__super__.constructor.apply(this, arguments);
+      }
+
+      ActivableProperty.prototype.activableGet = function() {
+        return this.get();
+      };
+
+      ActivableProperty.prototype.activableGet = function() {
+        var out;
+        if (this.isActive()) {
+          out = this.activeGet();
+          if (this.pendingChanges) {
+            this.changed(this.pendingOld);
+          }
+          return out;
         } else {
-          return this.value;
+          this.initiated = true;
+          return void 0;
         }
       };
 
-      PropertyInstance.prototype.changed = function(old) {
+      ActivableProperty.prototype.isActive = function() {
+        return true;
+      };
+
+      ActivableProperty.prototype.manualActive = function() {
+        return this.active;
+      };
+
+      ActivableProperty.prototype.callbackActive = function() {
+        var invalidator;
+        invalidator = this.activeInvalidator || new Invalidator(this, this.obj);
+        invalidator.recycle((function(_this) {
+          return function(invalidator, done) {
+            _this.active = _this.callOptionFunct(_this.activeFunct, invalidator);
+            done();
+            if (_this.active || invalidator.isEmpty()) {
+              invalidator.unbind();
+              return _this.activeInvalidator = null;
+            } else {
+              _this.invalidator = invalidator;
+              _this.activeInvalidator = invalidator;
+              return invalidator.bind();
+            }
+          };
+        })(this));
+        return this.active;
+      };
+
+      ActivableProperty.prototype.activeChanged = function(old) {
+        return this.changed(old);
+      };
+
+      ActivableProperty.prototype.activableChanged = function(old) {
         if (this.isActive()) {
           this.pendingChanges = false;
           this.pendingOld = void 0;
-          this.callChangedFunctions(old);
-          if (typeof this.obj.emitEvent === 'function') {
-            this.obj.emitEvent(this.property.getUpdateEventName(), [old]);
-            this.obj.emitEvent(this.property.getChangeEventName(), [old]);
-          }
+          this.activeChanged();
         } else {
           this.pendingChanges = true;
           if (typeof this.pendingOld === 'undefined') {
@@ -1109,64 +1234,37 @@
         return this;
       };
 
-      PropertyInstance.prototype.callChangedFunctions = function(old) {
-        if (typeof this.property.options.change === 'function') {
-          return this.callOptionFunct("change", old);
+      ActivableProperty.compose = function(prop) {
+        if (typeof prop.options.active !== "undefined") {
+          prop.instanceType.prototype.activeGet = prop.instanceType.prototype.get;
+          prop.instanceType.prototype.get = this.prototype.activableGet;
+          prop.instanceType.prototype.activeChanged = prop.instanceType.prototype.changed;
+          prop.instanceType.prototype.changed = this.prototype.activableChanged;
+          if (typeof prop.options.active === "boolean") {
+            prop.instanceType.prototype.active = prop.options.active;
+            return prop.instanceType.prototype.isActive = this.prototype.manualActive;
+          } else if (typeof prop.options.active === 'function') {
+            prop.instanceType.prototype.activeFunct = prop.options.active;
+            return prop.instanceType.prototype.isActive = this.prototype.callbackActive;
+          }
         }
       };
 
-      PropertyInstance.prototype.hasChangedFunctions = function() {
-        return typeof this.property.options.change === 'function';
-      };
+      return ActivableProperty;
 
-      PropertyInstance.prototype.hasChangedEvents = function() {
-        return typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.property.getChangeEventName()).length > 0;
-      };
-
-      PropertyInstance.prototype.isImmediate = function() {
-        return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : (this.getUpdater() == null) && (this.hasChangedEvents() || this.hasChangedFunctions())));
-      };
-
-      PropertyInstance.bind = function(target, prop) {
-        var maj;
-        maj = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
-        Object.defineProperty(target, prop.name, {
-          configurable: true,
-          get: function() {
-            return prop.getInstance(this).get();
-          },
-          set: function(val) {
-            return prop.getInstance(this).set(val);
-          }
-        });
-        target['get' + maj] = function() {
-          return prop.getInstance(this).get();
-        };
-        target['set' + maj] = function(val) {
-          prop.getInstance(this).set(val);
-          return this;
-        };
-        return target['invalidate' + maj] = function() {
-          prop.getInstance(this).invalidate();
-          return this;
-        };
-      };
-
-      return PropertyInstance;
-
-    })();
-    return PropertyInstance;
+    })(PropertyInstance);
+    return ActivableProperty;
   });
 
   (function(definition) {
     Parallelio.Spark.CollectionProperty = definition();
     return Parallelio.Spark.CollectionProperty.definition = definition;
   })(function(dependencies) {
-    var Collection, CollectionProperty, PropertyInstance;
+    var Collection, CollectionProperty, DynamicProperty;
     if (dependencies == null) {
       dependencies = {};
     }
-    PropertyInstance = dependencies.hasOwnProperty("PropertyInstance") ? dependencies.PropertyInstance : Parallelio.Spark.PropertyInstance;
+    DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
     Collection = dependencies.hasOwnProperty("Collection") ? dependencies.Collection : Parallelio.Spark.Collection;
     CollectionProperty = (function(superClass) {
       extend(CollectionProperty, superClass);
@@ -1230,21 +1328,155 @@
         return CollectionProperty.__super__.hasChangedFunctions.call(this) || typeof this.property.options.itemAdded === 'function' || typeof this.property.options.itemRemoved === 'function';
       };
 
+      CollectionProperty.compose = function(prop) {
+        if (prop.options.collection != null) {
+          return prop.instanceType = (function(superClass1) {
+            extend(_Class, superClass1);
+
+            function _Class() {
+              return _Class.__super__.constructor.apply(this, arguments);
+            }
+
+            return _Class;
+
+          })(CollectionProperty);
+        }
+      };
+
       return CollectionProperty;
 
-    })(PropertyInstance);
+    })(DynamicProperty);
     return CollectionProperty;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.CalculatedProperty = definition();
+    return Parallelio.Spark.CalculatedProperty.definition = definition;
+  })(function(dependencies) {
+    var CalculatedProperty, DynamicProperty, Invalidator;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
+    DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
+    CalculatedProperty = (function(superClass) {
+      extend(CalculatedProperty, superClass);
+
+      function CalculatedProperty() {
+        return CalculatedProperty.__super__.constructor.apply(this, arguments);
+      }
+
+      CalculatedProperty.prototype.calculatedGet = function() {
+        var initiated, old;
+        if (this.invalidator) {
+          this.invalidator.validateUnknowns();
+        }
+        if (!this.calculated) {
+          old = this.value;
+          initiated = this.initiated;
+          this.calcul();
+          if (this.value !== old) {
+            if (initiated) {
+              this.changed(old);
+            } else if (typeof this.obj.emitEvent === 'function') {
+              this.obj.emitEvent(this.updateEventName, [old]);
+            }
+          }
+        }
+        return this.output();
+      };
+
+      CalculatedProperty.prototype.calcul = function() {
+        this.revalidated();
+        return this.value;
+      };
+
+      CalculatedProperty.prototype.callbackCalcul = function() {
+        this.value = this.callOptionFunct(this.calculFunct);
+        this.manual = false;
+        this.revalidated();
+        return this.value;
+      };
+
+      CalculatedProperty.prototype.invalidatedCalcul = function() {
+        if (!this.invalidator) {
+          this.invalidator = new Invalidator(this, this.obj);
+        }
+        this.invalidator.recycle((function(_this) {
+          return function(invalidator, done) {
+            _this.value = _this.callOptionFunct(_this.calculFunct, invalidator);
+            _this.manual = false;
+            done();
+            if (invalidator.isEmpty()) {
+              return _this.invalidator = null;
+            } else {
+              return invalidator.bind();
+            }
+          };
+        })(this));
+        this.revalidated();
+        return this.value;
+      };
+
+      CalculatedProperty.prototype.unknown = function() {
+        if (this.calculated || this.active === false) {
+          this._invalidateNotice();
+        }
+        return this;
+      };
+
+      CalculatedProperty.prototype.destroyWhithoutInvalidator = function() {
+        return this.destroy();
+      };
+
+      CalculatedProperty.prototype.destroyInvalidator = function() {
+        this.destroyWhithoutInvalidator();
+        if (this.invalidator != null) {
+          return this.invalidator.unbind();
+        }
+      };
+
+      CalculatedProperty.prototype.invalidateInvalidator = function() {
+        if (this.calculated || this.active === false) {
+          this.calculated = false;
+          if (this._invalidateNotice() && (this.invalidator != null)) {
+            this.invalidator.unbind();
+          }
+        }
+        return this;
+      };
+
+      CalculatedProperty.compose = function(prop) {
+        if (typeof prop.options.calcul === 'function') {
+          prop.instanceType.prototype.calculFunct = prop.options.calcul;
+          prop.instanceType.prototype.get = this.prototype.calculatedGet;
+          if (prop.options.calcul.length > 0) {
+            prop.instanceType.prototype.calcul = this.prototype.invalidatedCalcul;
+            prop.instanceType.prototype.destroyWhithoutInvalidator = prop.instanceType.prototype.destroy;
+            prop.instanceType.prototype.destroy = this.prototype.destroyInvalidator;
+            prop.instanceType.prototype.invalidate = this.prototype.invalidateInvalidator;
+            return prop.instanceType.prototype.unknown = this.prototype.unknown;
+          } else {
+            return prop.instanceType.prototype.calcul = this.prototype.callbackCalcul;
+          }
+        }
+      };
+
+      return CalculatedProperty;
+
+    })(DynamicProperty);
+    return CalculatedProperty;
   });
 
   (function(definition) {
     Parallelio.Spark.ComposedProperty = definition();
     return Parallelio.Spark.ComposedProperty.definition = definition;
   })(function(dependencies) {
-    var Collection, ComposedProperty, Invalidator, PropertyInstance;
+    var CalculatedProperty, Collection, ComposedProperty, Invalidator;
     if (dependencies == null) {
       dependencies = {};
     }
-    PropertyInstance = dependencies.hasOwnProperty("PropertyInstance") ? dependencies.PropertyInstance : Parallelio.Spark.PropertyInstance;
+    CalculatedProperty = dependencies.hasOwnProperty("CalculatedProperty") ? dependencies.CalculatedProperty : Parallelio.Spark.CalculatedProperty;
     Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
     Collection = dependencies.hasOwnProperty("Collection") ? dependencies.Collection : Parallelio.Spark.Collection;
     ComposedProperty = (function(superClass) {
@@ -1256,6 +1488,10 @@
 
       ComposedProperty.prototype.init = function() {
         ComposedProperty.__super__.init.call(this);
+        return this.initComposed();
+      };
+
+      ComposedProperty.prototype.initComposed = function() {
         if (this.property.options.hasOwnProperty('default')) {
           this["default"] = this.property.options["default"];
         } else {
@@ -1293,8 +1529,24 @@
         return this.value;
       };
 
+      ComposedProperty.compose = function(prop) {
+        if (prop.options.composed != null) {
+          prop.instanceType = (function(superClass1) {
+            extend(_Class, superClass1);
+
+            function _Class() {
+              return _Class.__super__.constructor.apply(this, arguments);
+            }
+
+            return _Class;
+
+          })(ComposedProperty);
+          return prop.instanceType.prototype.get = this.prototype.calculatedGet;
+        }
+      };
+
       ComposedProperty.bind = function(target, prop) {
-        PropertyInstance.bind(target, prop);
+        CalculatedProperty.bind(target, prop);
         return Object.defineProperty(target, prop.name + 'Members', {
           configurable: true,
           get: function() {
@@ -1314,7 +1566,7 @@
 
       return ComposedProperty;
 
-    })(PropertyInstance);
+    })(CalculatedProperty);
     ComposedProperty.Members = (function(superClass) {
       extend(Members, superClass);
 
@@ -1386,19 +1638,22 @@
     Parallelio.Spark.Property = definition();
     return Parallelio.Spark.Property.definition = definition;
   })(function(dependencies) {
-    var CollectionProperty, ComposedProperty, Property, PropertyInstance;
+    var ActivableProperty, CalculatedProperty, CollectionProperty, ComposedProperty, DynamicProperty, Property, PropertyInstance;
     if (dependencies == null) {
       dependencies = {};
     }
     PropertyInstance = dependencies.hasOwnProperty("PropertyInstance") ? dependencies.PropertyInstance : Parallelio.Spark.PropertyInstance;
     CollectionProperty = dependencies.hasOwnProperty("CollectionProperty") ? dependencies.CollectionProperty : Parallelio.Spark.CollectionProperty;
     ComposedProperty = dependencies.hasOwnProperty("ComposedProperty") ? dependencies.ComposedProperty : Parallelio.Spark.ComposedProperty;
+    DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
+    CalculatedProperty = dependencies.hasOwnProperty("CalculatedProperty") ? dependencies.CalculatedProperty : Parallelio.Spark.CalculatedProperty;
+    ActivableProperty = dependencies.hasOwnProperty("ActivableProperty") ? dependencies.ActivableProperty : Parallelio.Spark.ActivableProperty;
     Property = (function() {
+      Property.prototype.composers = [ComposedProperty, CollectionProperty, DynamicProperty, PropertyInstance, CalculatedProperty, ActivableProperty];
+
       function Property(name1, options1) {
-        var calculated;
         this.name = name1;
         this.options = options1 != null ? options1 : {};
-        calculated = false;
       }
 
       Property.prototype.bind = function(target) {
@@ -1489,25 +1744,14 @@
       };
 
       Property.prototype.getInstanceType = function() {
-        if (this.options.composed != null) {
-          return ComposedProperty;
+        if (!this.instanceType) {
+          this.composers.forEach((function(_this) {
+            return function(composer) {
+              return composer.compose(_this);
+            };
+          })(this));
         }
-        if (this.options.collection != null) {
-          return CollectionProperty;
-        }
-        return PropertyInstance;
-      };
-
-      Property.prototype.getChangeEventName = function() {
-        return this.options.changeEventName || this.name + 'Changed';
-      };
-
-      Property.prototype.getUpdateEventName = function() {
-        return this.options.changeEventName || this.name + 'Updated';
-      };
-
-      Property.prototype.getInvalidateEventName = function() {
-        return this.options.changeEventName || this.name + 'Invalidated';
+        return this.instanceType;
       };
 
       Property.fn = {
@@ -1589,7 +1833,7 @@
         afterAddListener: function(event) {
           return this._properties.forEach((function(_this) {
             return function(prop) {
-              if (prop.getChangeEventName() === event) {
+              if (prop.getInstanceType().prototype.changeEventName === event) {
                 return prop.getInstance(_this).get();
               }
             };
@@ -4014,121 +4258,6 @@
   });
 
   (function(definition) {
-    Parallelio.Weapon = definition();
-    return Parallelio.Weapon.definition = definition;
-  })(function(dependencies) {
-    var Damageable, Projectile, Tiled, Timing, Weapon;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
-    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
-    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
-    Weapon = (function(superClass) {
-      extend(Weapon, superClass);
-
-      Weapon.extend(Damageable);
-
-      function Weapon(options) {
-        this.setProperties(options);
-        Weapon.__super__.constructor.call(this);
-      }
-
-      Weapon.properties({
-        rechargeTime: {
-          "default": 1000
-        },
-        power: {
-          "default": 10
-        },
-        blastRange: {
-          "default": 1
-        },
-        propagationType: {
-          "default": null
-        },
-        projectileSpeed: {
-          "default": 10
-        },
-        target: {
-          "default": null,
-          change: function() {
-            if (this.autoFire) {
-              return this.fire();
-            }
-          }
-        },
-        charged: {
-          "default": true
-        },
-        charging: {
-          "default": true
-        },
-        enabled: {
-          "default": true
-        },
-        autoFire: {
-          "default": true
-        },
-        criticalHealth: {
-          "default": 0.3
-        },
-        canFire: {
-          get: function() {
-            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
-          }
-        },
-        timing: {
-          calcul: function() {
-            return new Timing();
-          }
-        }
-      });
-
-      Weapon.prototype.fire = function() {
-        var projectile;
-        if (this.canFire) {
-          projectile = new Projectile({
-            origin: this,
-            target: this.target,
-            power: this.power,
-            blastRange: this.blastRange,
-            propagationType: this.propagationType,
-            speed: this.projectileSpeed,
-            timing: this.timing
-          });
-          projectile.launch();
-          this.charged = false;
-          this.recharge();
-          return projectile;
-        }
-      };
-
-      Weapon.prototype.recharge = function() {
-        this.charging = true;
-        return this.chargeTimeout = this.timing.setTimeout((function(_this) {
-          return function() {
-            _this.charging = false;
-            return _this.recharged();
-          };
-        })(this), this.rechargeTime);
-      };
-
-      Weapon.prototype.recharged = function() {
-        this.charged = true;
-        if (this.autoFire) {
-          return this.fire();
-        }
-      };
-
-      return Weapon;
-
-    })(Tiled);
-    return Weapon;
-  });
-
-  (function(definition) {
     Parallelio.SignalOperation = definition();
     return Parallelio.SignalOperation.definition = definition;
   })(function(dependencies) {
@@ -4546,6 +4675,121 @@
 
     })(Tiled);
     return Wire;
+  });
+
+  (function(definition) {
+    Parallelio.Weapon = definition();
+    return Parallelio.Weapon.definition = definition;
+  })(function(dependencies) {
+    var Damageable, Projectile, Tiled, Timing, Weapon;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
+    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
+    Weapon = (function(superClass) {
+      extend(Weapon, superClass);
+
+      Weapon.extend(Damageable);
+
+      function Weapon(options) {
+        this.setProperties(options);
+        Weapon.__super__.constructor.call(this);
+      }
+
+      Weapon.properties({
+        rechargeTime: {
+          "default": 1000
+        },
+        power: {
+          "default": 10
+        },
+        blastRange: {
+          "default": 1
+        },
+        propagationType: {
+          "default": null
+        },
+        projectileSpeed: {
+          "default": 10
+        },
+        target: {
+          "default": null,
+          change: function() {
+            if (this.autoFire) {
+              return this.fire();
+            }
+          }
+        },
+        charged: {
+          "default": true
+        },
+        charging: {
+          "default": true
+        },
+        enabled: {
+          "default": true
+        },
+        autoFire: {
+          "default": true
+        },
+        criticalHealth: {
+          "default": 0.3
+        },
+        canFire: {
+          get: function() {
+            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
+          }
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
+        }
+      });
+
+      Weapon.prototype.fire = function() {
+        var projectile;
+        if (this.canFire) {
+          projectile = new Projectile({
+            origin: this,
+            target: this.target,
+            power: this.power,
+            blastRange: this.blastRange,
+            propagationType: this.propagationType,
+            speed: this.projectileSpeed,
+            timing: this.timing
+          });
+          projectile.launch();
+          this.charged = false;
+          this.recharge();
+          return projectile;
+        }
+      };
+
+      Weapon.prototype.recharge = function() {
+        this.charging = true;
+        return this.chargeTimeout = this.timing.setTimeout((function(_this) {
+          return function() {
+            _this.charging = false;
+            return _this.recharged();
+          };
+        })(this), this.rechargeTime);
+      };
+
+      Weapon.prototype.recharged = function() {
+        this.charged = true;
+        if (this.autoFire) {
+          return this.fire();
+        }
+      };
+
+      return Weapon;
+
+    })(Tiled);
+    return Weapon;
   });
 
 }).call(this);

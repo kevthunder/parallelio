@@ -36,6 +36,6 @@
     "parallelio-tiles": "github:kevthunder/parallelio-tiles",
     "parallelio-timing": "github:kevthunder/parallelio-timing",
     "parallelio-wiring": "github:kevthunder/parallelio-wiring",
-    "spark-starter": "github:kevthunder/spark-starter#v0.6.x"
+    "spark-starter": "github:kevthunder/spark-starter#v0.7.x"
   }
 }
