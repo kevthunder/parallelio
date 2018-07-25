@@ -398,370 +398,6 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.Updater = definition();
-    return Parallelio.Spark.Updater.definition = definition;
-  })(function(dependencies) {
-    var Binder, Updater;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
-    Updater = (function() {
-      function Updater() {
-        this.callbacks = [];
-        this.next = [];
-        this.updating = false;
-      }
-
-      Updater.prototype.update = function() {
-        var callback;
-        this.updating = true;
-        this.next = this.callbacks.slice();
-        while (this.callbacks.length > 0) {
-          callback = this.callbacks.shift();
-          callback();
-        }
-        this.callbacks = this.next;
-        this.updating = false;
-        return this;
-      };
-
-      Updater.prototype.addCallback = function(callback) {
-        if (!this.callbacks.includes(callback)) {
-          this.callbacks.push(callback);
-        }
-        if (this.updating && !this.next.includes(callback)) {
-          return this.next.push(callback);
-        }
-      };
-
-      Updater.prototype.nextTick = function(callback) {
-        if (this.updating) {
-          if (!this.next.includes(callback)) {
-            return this.next.push(callback);
-          }
-        } else {
-          return this.addCallback(callback);
-        }
-      };
-
-      Updater.prototype.removeCallback = function(callback) {
-        var index;
-        index = this.callbacks.indexOf(callback);
-        if (index !== -1) {
-          this.callbacks.splice(index, 1);
-        }
-        index = this.next.indexOf(callback);
-        if (index !== -1) {
-          return this.next.splice(index, 1);
-        }
-      };
-
-      Updater.prototype.getBinder = function() {
-        return new Updater.Binder(this);
-      };
-
-      Updater.prototype.destroy = function() {
-        this.callbacks = [];
-        return this.next = [];
-      };
-
-      return Updater;
-
-    })();
-    Updater.Binder = (function(superClass) {
-      extend(Binder, superClass);
-
-      function Binder() {
-        return Binder.__super__.constructor.apply(this, arguments);
-      }
-
-      Binder.prototype.doBind = function() {
-        return this.target.addCallback(this.callback);
-      };
-
-      Binder.prototype.doUnbind = function() {
-        return this.target.removeCallback(this.callback);
-      };
-
-      return Binder;
-
-    })(Binder);
-    return Updater;
-  });
-
-  (function(definition) {
-    Parallelio.Timing = definition();
-    return Parallelio.Timing.definition = definition;
-  })(function(dependencies) {
-    var BaseUpdater, Timing;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    BaseUpdater = dependencies.hasOwnProperty("BaseUpdater") ? dependencies.BaseUpdater : Parallelio.Spark.Updater;
-    Timing = (function() {
-      function Timing(running) {
-        this.running = running != null ? running : true;
-        this.children = [];
-      }
-
-      Timing.prototype.addChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (this.updater) {
-          child.updater.dispatcher = this.updater;
-        }
-        if (index === -1) {
-          this.children.push(child);
-        }
-        child.parent = this;
-        return this;
-      };
-
-      Timing.prototype.removeChild = function(child) {
-        var index;
-        index = this.children.indexOf(child);
-        if (index > -1) {
-          this.children.splice(index, 1);
-        }
-        if (child.parent === this) {
-          child.parent = null;
-        }
-        return this;
-      };
-
-      Timing.prototype.toggle = function(val) {
-        if (typeof val === "undefined") {
-          val = !this.running;
-        }
-        this.running = val;
-        return this.children.forEach(function(child) {
-          return child.toggle(val);
-        });
-      };
-
-      Timing.prototype.setTimeout = function(callback, time) {
-        var timer;
-        timer = new this.constructor.Timer(time, callback, this.running);
-        this.addChild(timer);
-        return timer;
-      };
-
-      Timing.prototype.setInterval = function(callback, time) {
-        var timer;
-        timer = new this.constructor.Timer(time, callback, this.running, true);
-        this.addChild(timer);
-        return timer;
-      };
-
-      Timing.prototype.pause = function() {
-        return this.toggle(false);
-      };
-
-      Timing.prototype.unpause = function() {
-        return this.toggle(true);
-      };
-
-      return Timing;
-
-    })();
-    Timing.Timer = (function() {
-      function Timer(time1, callback, running, repeat) {
-        this.time = time1;
-        this.running = running != null ? running : true;
-        this.repeat = repeat != null ? repeat : false;
-        this.remainingTime = this.time;
-        this.updater = new Timing.Updater(this);
-        this.dispatcher = new BaseUpdater();
-        if (callback) {
-          this.dispatcher.addCallback(callback);
-        }
-        if (this.running) {
-          this._start();
-        }
-      }
-
-      Timer.now = function() {
-        var ref1;
-        if ((typeof window !== "undefined" && window !== null ? (ref1 = window.performance) != null ? ref1.now : void 0 : void 0) != null) {
-          return window.performance.now();
-        } else if ((typeof process !== "undefined" && process !== null ? process.uptime : void 0) != null) {
-          return process.uptime() * 1000;
-        } else {
-          return Date.now();
-        }
-      };
-
-      Timer.prototype.toggle = function(val) {
-        if (typeof val === "undefined") {
-          val = !this.running;
-        }
-        if (val) {
-          return this._start();
-        } else {
-          return this._stop();
-        }
-      };
-
-      Timer.prototype.pause = function() {
-        return this.toggle(false);
-      };
-
-      Timer.prototype.unpause = function() {
-        return this.toggle(true);
-      };
-
-      Timer.prototype.getElapsedTime = function() {
-        if (this.running) {
-          return this.constructor.now() - this.startTime + this.time - this.remainingTime;
-        } else {
-          return this.time - this.remainingTime;
-        }
-      };
-
-      Timer.prototype.setElapsedTime = function(val) {
-        this._stop();
-        this.remainingTime = this.time - val;
-        return this._start();
-      };
-
-      Timer.prototype.getPrc = function() {
-        return this.getElapsedTime() / this.time;
-      };
-
-      Timer.prototype.setPrc = function(val) {
-        return this.setElapsedTime(this.time * val);
-      };
-
-      Timer.prototype._start = function() {
-        this.running = true;
-        this.updater.forwardCallbacks();
-        this.startTime = this.constructor.now();
-        if (this.repeat && !this.interupted) {
-          return this.id = setInterval(this.tick.bind(this), this.remainingTime);
-        } else {
-          return this.id = setTimeout(this.tick.bind(this), this.remainingTime);
-        }
-      };
-
-      Timer.prototype._stop = function() {
-        var wasInterupted;
-        wasInterupted = this.interupted;
-        this.running = false;
-        this.updater.unforwardCallbacks();
-        this.remainingTime = this.time - (this.constructor.now() - this.startTime);
-        this.interupted = this.remainingTime !== this.time;
-        if (this.repeat && !wasInterupted) {
-          return clearInterval(this.id);
-        } else {
-          return clearTimeout(this.id);
-        }
-      };
-
-      Timer.prototype.tick = function() {
-        var wasInterupted;
-        wasInterupted = this.interupted;
-        this.interupted = false;
-        if (this.repeat) {
-          this.remainingTime = this.time;
-        } else {
-          this.remainingTime = 0;
-        }
-        this.dispatcher.update();
-        if (this.repeat) {
-          if (wasInterupted) {
-            return this._start();
-          } else {
-            return this.startTime = this.constructor.now();
-          }
-        } else {
-          return this.destroy();
-        }
-      };
-
-      Timer.prototype.destroy = function() {
-        if (this.repeat) {
-          clearInterval(this.id);
-        } else {
-          clearTimeout(this.id);
-        }
-        this.updater.destroy();
-        this.dispatcher.destroy();
-        this.running = false;
-        if (this.parent) {
-          return this.parent.removeChild(this);
-        }
-      };
-
-      return Timer;
-
-    })();
-    Timing.Updater = (function() {
-      function Updater(parent1) {
-        this.parent = parent1;
-        this.dispatcher = new BaseUpdater();
-        this.callbacks = [];
-      }
-
-      Updater.prototype.addCallback = function(callback) {
-        if (!this.callbacks.includes(callback)) {
-          this.callbacks.push(callback);
-        }
-        if (this.parent.running && this.dispatcher) {
-          return this.dispatcher.addCallback(callback);
-        }
-      };
-
-      Updater.prototype.removeCallback = function(callback) {
-        var index;
-        index = this.callbacks.indexOf(callback);
-        if (index !== -1) {
-          this.callbacks.splice(index, 1);
-        }
-        if (this.dispatcher) {
-          return this.dispatcher.removeCallback(callback);
-        }
-      };
-
-      Updater.prototype.getBinder = function() {
-        if (this.dispatcher) {
-          return new BaseUpdater.Binder(this);
-        }
-      };
-
-      Updater.prototype.forwardCallbacks = function() {
-        if (this.dispatcher) {
-          return this.callbacks.forEach((function(_this) {
-            return function(callback) {
-              return _this.dispatcher.addCallback(callback);
-            };
-          })(this));
-        }
-      };
-
-      Updater.prototype.unforwardCallbacks = function() {
-        if (this.dispatcher) {
-          return this.callbacks.forEach((function(_this) {
-            return function(callback) {
-              return _this.dispatcher.removeCallback(callback);
-            };
-          })(this));
-        }
-      };
-
-      Updater.prototype.destroy = function() {
-        this.unforwardCallbacks();
-        this.callbacks = [];
-        return this.parent = null;
-      };
-
-      return Updater;
-
-    })();
-    return Timing;
-  });
-
-  (function(definition) {
     Parallelio.Spark.EventBind = definition();
     return Parallelio.Spark.EventBind.definition = definition;
   })(function(dependencies) {
@@ -1971,131 +1607,915 @@
   });
 
   (function(definition) {
-    Parallelio.PathWalk = definition();
-    return Parallelio.PathWalk.definition = definition;
+    Parallelio.SignalOperation = definition();
+    return Parallelio.SignalOperation.definition = definition;
   })(function(dependencies) {
-    var Element, PathWalk, Timing;
+    var Element, SignalOperation;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
-    PathWalk = (function(superClass) {
-      extend(PathWalk, superClass);
+    SignalOperation = (function(superClass) {
+      extend(SignalOperation, superClass);
 
-      function PathWalk(walker, path1, options) {
-        this.walker = walker;
-        this.path = path1;
-        this.setProperties(options);
-        PathWalk.__super__.constructor.call(this);
+      function SignalOperation() {
+        SignalOperation.__super__.constructor.call(this);
+        this.queue = [];
+        this.limiters = [];
       }
 
-      PathWalk.properties({
-        speed: {
-          "default": 5
-        },
-        timing: {
-          calcul: function() {
-            return new Timing();
-          }
-        },
-        pathLength: {
-          calcul: function() {
-            return this.path.solution.getTotalLength();
-          }
-        },
-        totalTime: {
-          calcul: function() {
-            return this.pathLength / this.speed * 1000;
-          }
+      SignalOperation.prototype.addOperation = function(funct, priority) {
+        if (priority == null) {
+          priority = 1;
         }
-      });
-
-      PathWalk.prototype.start = function() {
-        if (!this.path.solution) {
-          this.path.calcul();
-        }
-        if (this.path.solution) {
-          this.pathTimeout = this.timing.setTimeout((function(_this) {
-            return function() {
-              return _this.end();
-            };
-          })(this), this.totalTime);
-          return this.pathTimeout.updater.addCallback(this.callback('update'));
+        if (priority) {
+          return this.queue.unshift(funct);
+        } else {
+          return this.queue.push(funct);
         }
       };
 
-      PathWalk.prototype.stop = function() {
-        return this.pathTimeout.pause();
+      SignalOperation.prototype.addLimiter = function(connected) {
+        if (!this.findLimiter(connected)) {
+          return this.limiters.push(connected);
+        }
       };
 
-      PathWalk.prototype.update = function() {
-        var pos;
-        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc());
-        this.walker.tile = pos.tile;
-        this.walker.offsetX = pos.offsetX;
-        return this.walker.offsetY = pos.offsetY;
+      SignalOperation.prototype.findLimiter = function(connected) {
+        return this.limiters.indexOf(connected) > -1;
       };
 
-      PathWalk.prototype.end = function() {
-        this.update();
-        return this.destroy();
+      SignalOperation.prototype.start = function() {
+        var results;
+        results = [];
+        while (this.queue.length) {
+          results.push(this.step());
+        }
+        return results;
       };
 
-      PathWalk.prototype.destroy = function() {
-        this.pathTimeout.destroy();
-        return this.destroyProperties();
+      SignalOperation.prototype.step = function() {
+        var funct;
+        if (this.queue.length === 0) {
+          return this.done();
+        } else {
+          funct = this.queue.shift(funct);
+          return funct(this);
+        }
       };
 
-      return PathWalk;
+      SignalOperation.prototype.done = function() {};
+
+      return SignalOperation;
 
     })(Element);
-    return PathWalk;
+    return SignalOperation;
   });
 
   (function(definition) {
-    Parallelio.Damageable = definition();
-    return Parallelio.Damageable.definition = definition;
+    Parallelio.Connected = definition();
+    return Parallelio.Connected.definition = definition;
   })(function(dependencies) {
-    var Damageable, Element;
+    var Connected, Element, SignalOperation;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Damageable = (function(superClass) {
-      extend(Damageable, superClass);
+    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
+    Connected = (function(superClass) {
+      extend(Connected, superClass);
 
-      function Damageable() {
-        return Damageable.__super__.constructor.apply(this, arguments);
+      function Connected() {
+        return Connected.__super__.constructor.apply(this, arguments);
       }
 
-      Damageable.properties({
-        damageable: {
-          "default": true
+      Connected.properties({
+        signals: {
+          collection: true
         },
-        maxHealth: {
-          "default": 1000
+        inputs: {
+          collection: true
         },
-        health: {
-          "default": 1000,
+        outputs: {
+          collection: true,
+          itemAdded: function(output, i) {
+            return this.forwardedSignals.forEach((function(_this) {
+              return function(signal) {
+                return _this.forwardSignalTo(signal, output);
+              };
+            })(this));
+          },
+          itemRemoved: function(output, i) {
+            return this.forwardedSignals.forEach((function(_this) {
+              return function(signal) {
+                return _this.stopForwardedSignalTo(signal, output);
+              };
+            })(this));
+          }
+        },
+        forwardedSignals: {
+          collection: true
+        }
+      });
+
+      Connected.prototype.canConnectTo = function(target) {
+        return typeof target.addSignal === "function";
+      };
+
+      Connected.prototype.acceptSignal = function(signal) {
+        return true;
+      };
+
+      Connected.prototype.onAddConnection = function(conn) {};
+
+      Connected.prototype.onRemoveConnection = function(conn) {};
+
+      Connected.prototype.onNewSignalType = function(signal) {};
+
+      Connected.prototype.onAddSignal = function(signal, op) {};
+
+      Connected.prototype.onRemoveSignal = function(signal, op) {};
+
+      Connected.prototype.onRemoveSignalType = function(signal, op) {};
+
+      Connected.prototype.onReplaceSignal = function(oldSignal, newSignal, op) {};
+
+      Connected.prototype.containsSignal = function(signal, checkLast, checkOrigin) {
+        if (checkLast == null) {
+          checkLast = false;
+        }
+        return this.signals.find(function(c) {
+          return c.match(signal, checkLast, checkOrigin);
+        });
+      };
+
+      Connected.prototype.addSignal = function(signal, op) {
+        var autoStart;
+        if (!(op != null ? op.findLimiter(this) : void 0)) {
+          if (!op) {
+            op = new SignalOperation();
+            autoStart = true;
+          }
+          op.addOperation((function(_this) {
+            return function() {
+              var similar;
+              if (!_this.containsSignal(signal, true) && _this.acceptSignal(signal)) {
+                similar = _this.containsSignal(signal);
+                _this.signals.push(signal);
+                _this.onAddSignal(signal, op);
+                if (!similar) {
+                  return _this.onNewSignalType(signal, op);
+                }
+              }
+            };
+          })(this));
+          if (autoStart) {
+            op.start();
+          }
+        }
+        return signal;
+      };
+
+      Connected.prototype.removeSignal = function(signal, op) {
+        var autoStart;
+        if (!(op != null ? op.findLimiter(this) : void 0)) {
+          if (!op) {
+            op = new SignalOperation;
+            autoStart = true;
+          }
+          op.addOperation((function(_this) {
+            return function() {
+              var existing;
+              if ((existing = _this.containsSignal(signal, true)) && _this.acceptSignal(signal)) {
+                _this.signals.splice(_this.signals.indexOf(existing), 1);
+                _this.onRemoveSignal(signal, op);
+                op.addOperation(function() {
+                  var similar;
+                  similar = _this.containsSignal(signal);
+                  if (similar) {
+                    return _this.onReplaceSignal(signal, similar, op);
+                  } else {
+                    return _this.onRemoveSignalType(signal, op);
+                  }
+                }, 0);
+              }
+              if (stepByStep) {
+                return op.step();
+              }
+            };
+          })(this));
+          if (autoStart) {
+            return op.start();
+          }
+        }
+      };
+
+      Connected.prototype.prepForwardedSignal = function(signal) {
+        if (signal.last === this) {
+          return signal;
+        } else {
+          return signal.withLast(this);
+        }
+      };
+
+      Connected.prototype.forwardSignal = function(signal, op) {
+        var next;
+        this.forwardedSignals.add(signal);
+        next = this.prepForwardedSignal(signal);
+        return this.outputs.forEach(function(conn) {
+          if (signal.last !== conn) {
+            return conn.addSignal(next, op);
+          }
+        });
+      };
+
+      Connected.prototype.forwardAllSignalsTo = function(conn, op) {
+        return this.signals.forEach((function(_this) {
+          return function(signal) {
+            var next;
+            next = _this.prepForwardedSignal(signal);
+            return conn.addSignal(next, op);
+          };
+        })(this));
+      };
+
+      Connected.prototype.stopForwardedSignal = function(signal, op) {
+        var next;
+        this.forwardedSignals.remove(signal);
+        next = this.prepForwardedSignal(signal);
+        return this.outputs.forEach(function(conn) {
+          if (signal.last !== conn) {
+            return conn.removeSignal(next, op);
+          }
+        });
+      };
+
+      Connected.prototype.stopAllForwardedSignalTo = function(conn, op) {
+        return this.signals.forEach((function(_this) {
+          return function(signal) {
+            var next;
+            next = _this.prepForwardedSignal(signal);
+            return conn.removeSignal(next, op);
+          };
+        })(this));
+      };
+
+      Connected.prototype.forwardSignalTo = function(signal, conn, op) {
+        var next;
+        next = this.prepForwardedSignal(signal);
+        if (signal.last !== conn) {
+          return conn.addSignal(next, op);
+        }
+      };
+
+      Connected.prototype.stopForwardedSignalTo = function(signal, conn, op) {
+        var next;
+        next = this.prepForwardedSignal(signal);
+        if (signal.last !== conn) {
+          return conn.removeSignal(next, op);
+        }
+      };
+
+      return Connected;
+
+    })(Element);
+    return Connected;
+  });
+
+  (function(definition) {
+    Parallelio.Signal = definition();
+    return Parallelio.Signal.definition = definition;
+  })(function(dependencies) {
+    var Element, Signal;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Signal = (function(superClass) {
+      extend(Signal, superClass);
+
+      function Signal(origin1, type, exclusive) {
+        this.origin = origin1;
+        this.type = type != null ? type : 'signal';
+        this.exclusive = exclusive != null ? exclusive : false;
+        Signal.__super__.constructor.call(this);
+        this.last = this.origin;
+      }
+
+      Signal.prototype.withLast = function(last) {
+        var signal;
+        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
+        signal.last = last;
+        return signal;
+      };
+
+      Signal.prototype.copy = function() {
+        var signal;
+        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
+        signal.last = this.last;
+        return signal;
+      };
+
+      Signal.prototype.match = function(signal, checkLast, checkOrigin) {
+        if (checkLast == null) {
+          checkLast = false;
+        }
+        if (checkOrigin == null) {
+          checkOrigin = this.exclusive;
+        }
+        return (!checkLast || signal.last === this.last) && (checkOrigin || signal.origin === this.origin) && signal.type === this.type;
+      };
+
+      return Signal;
+
+    })(Element);
+    return Signal;
+  });
+
+  (function(definition) {
+    Parallelio.SignalSource = definition();
+    return Parallelio.SignalSource.definition = definition;
+  })(function(dependencies) {
+    var Connected, Signal, SignalOperation, SignalSource;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Signal = dependencies.hasOwnProperty("Signal") ? dependencies.Signal : Parallelio.Signal;
+    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
+    SignalSource = (function(superClass) {
+      extend(SignalSource, superClass);
+
+      function SignalSource() {
+        return SignalSource.__super__.constructor.apply(this, arguments);
+      }
+
+      SignalSource.properties({
+        activated: {
           change: function() {
-            if (this.health === 0) {
-              return this.whenNoHealth();
+            var op;
+            op = new SignalOperation();
+            if (this.activated) {
+              this.forwardSignal(this.signal, op);
+            } else {
+              this.stopForwardedSignal(this.signal, op);
             }
+            return op.start();
+          }
+        },
+        signal: {
+          calcul: function() {
+            return new Signal(this, 'power', true);
           }
         }
       });
 
-      Damageable.prototype.damage = function(val) {
-        return this.health = Math.max(0, this.health - val);
-      };
+      return SignalSource;
 
-      Damageable.prototype.whenNoHealth = function() {};
+    })(Connected);
+    return SignalSource;
+  });
 
-      return Damageable;
+  (function(definition) {
+    Parallelio.Switch = definition();
+    return Parallelio.Switch.definition = definition;
+  })(function(dependencies) {
+    var Connected, Switch;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Switch = (function(superClass) {
+      extend(Switch, superClass);
+
+      function Switch() {
+        return Switch.__super__.constructor.apply(this, arguments);
+      }
+
+      return Switch;
+
+    })(Connected);
+    return Switch;
+  });
+
+  (function(definition) {
+    Parallelio.Tiled = definition();
+    return Parallelio.Tiled.definition = definition;
+  })(function(dependencies) {
+    var Element, Tiled;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Tiled = (function(superClass) {
+      extend(Tiled, superClass);
+
+      function Tiled() {
+        return Tiled.__super__.constructor.apply(this, arguments);
+      }
+
+      Tiled.properties({
+        tile: {
+          change: function(old) {
+            if (old != null) {
+              old.removeChild(this);
+            }
+            if (this.tile) {
+              return this.tile.addChild(this);
+            }
+          }
+        },
+        offsetX: {
+          "default": 0
+        },
+        offsetY: {
+          "default": 0
+        }
+      });
+
+      return Tiled;
 
     })(Element);
-    return Damageable;
+    return Tiled;
+  });
+
+  (function(definition) {
+    Parallelio.Direction = definition();
+    return Parallelio.Direction.definition = definition;
+  })(function() {
+    var Direction;
+    Direction = (function() {
+      function Direction(name1, x5, y5, inverseName) {
+        this.name = name1;
+        this.x = x5;
+        this.y = y5;
+        this.inverseName = inverseName;
+      }
+
+      Direction.prototype.getInverse = function() {
+        return this.constructor[this.inverseName];
+      };
+
+      return Direction;
+
+    })();
+    Direction.up = new Direction('up', 0, -1, 'down');
+    Direction.down = new Direction('down', 0, 1, 'up');
+    Direction.left = new Direction('left', -1, 0, 'right');
+    Direction.right = new Direction('right', 1, 0, 'left');
+    Direction.adjacents = [Direction.up, Direction.down, Direction.left, Direction.right];
+    Direction.topLeft = new Direction('topLeft', -1, -1, 'bottomRight');
+    Direction.topRight = new Direction('topRight', 1, -1, 'bottomLeft');
+    Direction.bottomRight = new Direction('bottomRight', 1, 1, 'topLeft');
+    Direction.bottomLeft = new Direction('bottomLeft', -1, 1, 'topRight');
+    Direction.corners = [Direction.topLeft, Direction.topRight, Direction.bottomRight, Direction.bottomLeft];
+    Direction.all = [Direction.up, Direction.down, Direction.left, Direction.right, Direction.topLeft, Direction.topRight, Direction.bottomRight, Direction.bottomLeft];
+    return Direction;
+  });
+
+  (function(definition) {
+    Parallelio.Wire = definition();
+    return Parallelio.Wire.definition = definition;
+  })(function(dependencies) {
+    var Connected, Direction, Tiled, Wire;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
+    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
+    Wire = (function(superClass) {
+      extend(Wire, superClass);
+
+      Wire.extend(Connected);
+
+      function Wire(wireType) {
+        this.wireType = wireType != null ? wireType : 'red';
+        Wire.__super__.constructor.call(this);
+      }
+
+      Wire.properties({
+        outputs: {
+          calcul: function(invalidation) {
+            var parent;
+            parent = invalidation.prop('tile');
+            if (parent) {
+              return invalidation.prop('adjacentTiles', parent).reduce((function(_this) {
+                return function(res, tile) {
+                  return res.concat(invalidation.prop('children', tile).filter(function(child) {
+                    return _this.canConnectTo(child);
+                  }).toArray());
+                };
+              })(this), []);
+            } else {
+              return [];
+            }
+          }
+        },
+        connectedDirections: {
+          calcul: function(invalidation) {
+            return invalidation.prop('outputs').reduce((function(_this) {
+              return function(out, conn) {
+                _this.findDirectionsTo(conn).forEach(function(d) {
+                  if (indexOf.call(out, d) < 0) {
+                    return out.push(d);
+                  }
+                });
+                return out;
+              };
+            })(this), []);
+          }
+        }
+      });
+
+      Wire.prototype.findDirectionsTo = function(conn) {
+        var directions;
+        directions = conn.tiles != null ? conn.tiles.map((function(_this) {
+          return function(tile) {
+            return _this.tile.findDirectionOf(tile);
+          };
+        })(this)) : [this.tile.findDirectionOf(conn)];
+        return directions.filter(function(d) {
+          return d != null;
+        });
+      };
+
+      Wire.prototype.canConnectTo = function(target) {
+        return Connected.prototype.canConnectTo.call(this, target) && ((target.wireType == null) || target.wireType === this.wireType);
+      };
+
+      Wire.prototype.onNewSignalType = function(signal, op) {
+        return this.forwardSignal(signal, op);
+      };
+
+      return Wire;
+
+    })(Tiled);
+    return Wire;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Updater = definition();
+    return Parallelio.Spark.Updater.definition = definition;
+  })(function(dependencies) {
+    var Binder, Updater;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
+    Updater = (function() {
+      function Updater() {
+        this.callbacks = [];
+        this.next = [];
+        this.updating = false;
+      }
+
+      Updater.prototype.update = function() {
+        var callback;
+        this.updating = true;
+        this.next = this.callbacks.slice();
+        while (this.callbacks.length > 0) {
+          callback = this.callbacks.shift();
+          callback();
+        }
+        this.callbacks = this.next;
+        this.updating = false;
+        return this;
+      };
+
+      Updater.prototype.addCallback = function(callback) {
+        if (!this.callbacks.includes(callback)) {
+          this.callbacks.push(callback);
+        }
+        if (this.updating && !this.next.includes(callback)) {
+          return this.next.push(callback);
+        }
+      };
+
+      Updater.prototype.nextTick = function(callback) {
+        if (this.updating) {
+          if (!this.next.includes(callback)) {
+            return this.next.push(callback);
+          }
+        } else {
+          return this.addCallback(callback);
+        }
+      };
+
+      Updater.prototype.removeCallback = function(callback) {
+        var index;
+        index = this.callbacks.indexOf(callback);
+        if (index !== -1) {
+          this.callbacks.splice(index, 1);
+        }
+        index = this.next.indexOf(callback);
+        if (index !== -1) {
+          return this.next.splice(index, 1);
+        }
+      };
+
+      Updater.prototype.getBinder = function() {
+        return new Updater.Binder(this);
+      };
+
+      Updater.prototype.destroy = function() {
+        this.callbacks = [];
+        return this.next = [];
+      };
+
+      return Updater;
+
+    })();
+    Updater.Binder = (function(superClass) {
+      extend(Binder, superClass);
+
+      function Binder() {
+        return Binder.__super__.constructor.apply(this, arguments);
+      }
+
+      Binder.prototype.doBind = function() {
+        return this.target.addCallback(this.callback);
+      };
+
+      Binder.prototype.doUnbind = function() {
+        return this.target.removeCallback(this.callback);
+      };
+
+      return Binder;
+
+    })(Binder);
+    return Updater;
+  });
+
+  (function(definition) {
+    Parallelio.Timing = definition();
+    return Parallelio.Timing.definition = definition;
+  })(function(dependencies) {
+    var BaseUpdater, Timing;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    BaseUpdater = dependencies.hasOwnProperty("BaseUpdater") ? dependencies.BaseUpdater : Parallelio.Spark.Updater;
+    Timing = (function() {
+      function Timing(running) {
+        this.running = running != null ? running : true;
+        this.children = [];
+      }
+
+      Timing.prototype.addChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (this.updater) {
+          child.updater.dispatcher = this.updater;
+        }
+        if (index === -1) {
+          this.children.push(child);
+        }
+        child.parent = this;
+        return this;
+      };
+
+      Timing.prototype.removeChild = function(child) {
+        var index;
+        index = this.children.indexOf(child);
+        if (index > -1) {
+          this.children.splice(index, 1);
+        }
+        if (child.parent === this) {
+          child.parent = null;
+        }
+        return this;
+      };
+
+      Timing.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        this.running = val;
+        return this.children.forEach(function(child) {
+          return child.toggle(val);
+        });
+      };
+
+      Timing.prototype.setTimeout = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.setInterval = function(callback, time) {
+        var timer;
+        timer = new this.constructor.Timer(time, callback, this.running, true);
+        this.addChild(timer);
+        return timer;
+      };
+
+      Timing.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timing.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      return Timing;
+
+    })();
+    Timing.Timer = (function() {
+      function Timer(time1, callback, running, repeat) {
+        this.time = time1;
+        this.running = running != null ? running : true;
+        this.repeat = repeat != null ? repeat : false;
+        this.remainingTime = this.time;
+        this.updater = new Timing.Updater(this);
+        this.dispatcher = new BaseUpdater();
+        if (callback) {
+          this.dispatcher.addCallback(callback);
+        }
+        if (this.running) {
+          this._start();
+        }
+      }
+
+      Timer.now = function() {
+        var ref1;
+        if ((typeof window !== "undefined" && window !== null ? (ref1 = window.performance) != null ? ref1.now : void 0 : void 0) != null) {
+          return window.performance.now();
+        } else if ((typeof process !== "undefined" && process !== null ? process.uptime : void 0) != null) {
+          return process.uptime() * 1000;
+        } else {
+          return Date.now();
+        }
+      };
+
+      Timer.prototype.toggle = function(val) {
+        if (typeof val === "undefined") {
+          val = !this.running;
+        }
+        if (val) {
+          return this._start();
+        } else {
+          return this._stop();
+        }
+      };
+
+      Timer.prototype.pause = function() {
+        return this.toggle(false);
+      };
+
+      Timer.prototype.unpause = function() {
+        return this.toggle(true);
+      };
+
+      Timer.prototype.getElapsedTime = function() {
+        if (this.running) {
+          return this.constructor.now() - this.startTime + this.time - this.remainingTime;
+        } else {
+          return this.time - this.remainingTime;
+        }
+      };
+
+      Timer.prototype.setElapsedTime = function(val) {
+        this._stop();
+        this.remainingTime = this.time - val;
+        return this._start();
+      };
+
+      Timer.prototype.getPrc = function() {
+        return this.getElapsedTime() / this.time;
+      };
+
+      Timer.prototype.setPrc = function(val) {
+        return this.setElapsedTime(this.time * val);
+      };
+
+      Timer.prototype._start = function() {
+        this.running = true;
+        this.updater.forwardCallbacks();
+        this.startTime = this.constructor.now();
+        if (this.repeat && !this.interupted) {
+          return this.id = setInterval(this.tick.bind(this), this.remainingTime);
+        } else {
+          return this.id = setTimeout(this.tick.bind(this), this.remainingTime);
+        }
+      };
+
+      Timer.prototype._stop = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.running = false;
+        this.updater.unforwardCallbacks();
+        this.remainingTime = this.time - (this.constructor.now() - this.startTime);
+        this.interupted = this.remainingTime !== this.time;
+        if (this.repeat && !wasInterupted) {
+          return clearInterval(this.id);
+        } else {
+          return clearTimeout(this.id);
+        }
+      };
+
+      Timer.prototype.tick = function() {
+        var wasInterupted;
+        wasInterupted = this.interupted;
+        this.interupted = false;
+        if (this.repeat) {
+          this.remainingTime = this.time;
+        } else {
+          this.remainingTime = 0;
+        }
+        this.dispatcher.update();
+        if (this.repeat) {
+          if (wasInterupted) {
+            return this._start();
+          } else {
+            return this.startTime = this.constructor.now();
+          }
+        } else {
+          return this.destroy();
+        }
+      };
+
+      Timer.prototype.destroy = function() {
+        if (this.repeat) {
+          clearInterval(this.id);
+        } else {
+          clearTimeout(this.id);
+        }
+        this.updater.destroy();
+        this.dispatcher.destroy();
+        this.running = false;
+        if (this.parent) {
+          return this.parent.removeChild(this);
+        }
+      };
+
+      return Timer;
+
+    })();
+    Timing.Updater = (function() {
+      function Updater(parent1) {
+        this.parent = parent1;
+        this.dispatcher = new BaseUpdater();
+        this.callbacks = [];
+      }
+
+      Updater.prototype.addCallback = function(callback) {
+        if (!this.callbacks.includes(callback)) {
+          this.callbacks.push(callback);
+        }
+        if (this.parent.running && this.dispatcher) {
+          return this.dispatcher.addCallback(callback);
+        }
+      };
+
+      Updater.prototype.removeCallback = function(callback) {
+        var index;
+        index = this.callbacks.indexOf(callback);
+        if (index !== -1) {
+          this.callbacks.splice(index, 1);
+        }
+        if (this.dispatcher) {
+          return this.dispatcher.removeCallback(callback);
+        }
+      };
+
+      Updater.prototype.getBinder = function() {
+        if (this.dispatcher) {
+          return new BaseUpdater.Binder(this);
+        }
+      };
+
+      Updater.prototype.forwardCallbacks = function() {
+        if (this.dispatcher) {
+          return this.callbacks.forEach((function(_this) {
+            return function(callback) {
+              return _this.dispatcher.addCallback(callback);
+            };
+          })(this));
+        }
+      };
+
+      Updater.prototype.unforwardCallbacks = function() {
+        if (this.dispatcher) {
+          return this.callbacks.forEach((function(_this) {
+            return function(callback) {
+              return _this.dispatcher.removeCallback(callback);
+            };
+          })(this));
+        }
+      };
+
+      Updater.prototype.destroy = function() {
+        this.unforwardCallbacks();
+        this.callbacks = [];
+        return this.parent = null;
+      };
+
+      return Updater;
+
+    })();
+    return Timing;
   });
 
   (function(definition) {
@@ -2423,44 +2843,291 @@
   });
 
   (function(definition) {
-    Parallelio.Tiled = definition();
-    return Parallelio.Tiled.definition = definition;
+    Parallelio.Tile = definition();
+    return Parallelio.Tile.definition = definition;
   })(function(dependencies) {
-    var Element, Tiled;
+    var Direction, Element, Tile;
     if (dependencies == null) {
       dependencies = {};
     }
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Tiled = (function(superClass) {
-      extend(Tiled, superClass);
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
+    Tile = (function(superClass) {
+      extend(Tile, superClass);
 
-      function Tiled() {
-        return Tiled.__super__.constructor.apply(this, arguments);
+      function Tile(x5, y5) {
+        this.x = x5;
+        this.y = y5;
+        this.init();
       }
 
-      Tiled.properties({
-        tile: {
-          change: function(old) {
-            if (old != null) {
-              old.removeChild(this);
-            }
-            if (this.tile) {
-              return this.tile.addChild(this);
-            }
+      Tile.prototype.init = function() {
+        var container;
+        return container = null;
+      };
+
+      Tile.properties({
+        children: {
+          collection: true
+        },
+        container: {
+          change: function() {
+            return this.adjacentTiles.forEach(function(tile) {
+              return tile.invalidateAdjacentTiles();
+            });
           }
         },
-        offsetX: {
-          "default": 0
-        },
-        offsetY: {
-          "default": 0
+        adjacentTiles: {
+          calcul: function(invalidation) {
+            if (this.container != null) {
+              return Direction.adjacents.map((function(_this) {
+                return function(d) {
+                  return _this.getRelativeTile(d.x, d.y);
+                };
+              })(this)).filter((function(_this) {
+                return function(t) {
+                  return t != null;
+                };
+              })(this));
+            }
+          },
+          collection: true
         }
       });
 
-      return Tiled;
+      Tile.prototype.getRelativeTile = function(x, y) {
+        if (this.container != null) {
+          return this.container.getTile(this.x + x, this.y + y);
+        }
+      };
+
+      Tile.prototype.findDirectionOf = function(tile) {
+        if (tile.tile) {
+          tile = tile.tile;
+        }
+        if ((tile.x != null) && (tile.y != null)) {
+          return Direction.all.find((function(_this) {
+            return function(d) {
+              return d.x === tile.x - _this.x && d.y === tile.y - _this.y;
+            };
+          })(this));
+        }
+      };
+
+      Tile.prototype.addChild = function(child, checkRef) {
+        var index;
+        if (checkRef == null) {
+          checkRef = true;
+        }
+        index = this.children.indexOf(child);
+        if (index === -1) {
+          this.children.push(child);
+        }
+        if (checkRef) {
+          child.tile = this;
+        }
+        return child;
+      };
+
+      Tile.prototype.removeChild = function(child, checkRef) {
+        var index;
+        if (checkRef == null) {
+          checkRef = true;
+        }
+        index = this.children.indexOf(child);
+        if (index > -1) {
+          this.children.splice(index, 1);
+        }
+        if (checkRef && child.tile === this) {
+          return child.tile = null;
+        }
+      };
+
+      Tile.prototype.dist = function(tile) {
+        var ctnDist, ref1, x, y;
+        if (((tile != null ? tile.x : void 0) != null) && (tile.y != null) && (this.x != null) && (this.y != null) && (this.container === tile.container || (ctnDist = (ref1 = this.container) != null ? typeof ref1.dist === "function" ? ref1.dist(tile.container) : void 0 : void 0))) {
+          x = tile.x - this.x;
+          y = tile.y - this.y;
+          if (ctnDist) {
+            x += ctnDist.x;
+            y += ctnDist.y;
+          }
+          return {
+            x: x,
+            y: y,
+            length: Math.sqrt(x * x + y * y)
+          };
+        } else {
+          return null;
+        }
+      };
+
+      return Tile;
 
     })(Element);
-    return Tiled;
+    return Tile;
+  });
+
+  (function(definition) {
+    Parallelio.TileContainer = definition();
+    return Parallelio.TileContainer.definition = definition;
+  })(function(dependencies) {
+    var Element, TileContainer;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileContainer = (function(superClass) {
+      extend(TileContainer, superClass);
+
+      function TileContainer() {
+        this.init();
+      }
+
+      TileContainer.properties({
+        boundaries: {
+          calcul: function() {
+            var boundaries;
+            boundaries = {
+              top: null,
+              left: null,
+              bottom: null,
+              right: null
+            };
+            this.tiles.forEach((function(_this) {
+              return function(tile) {
+                return _this._addToBondaries(tile, boundaries);
+              };
+            })(this));
+            return boundaries;
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        }
+      });
+
+      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
+        if ((boundaries.top == null) || tile.y < boundaries.top) {
+          boundaries.top = tile.y;
+        }
+        if ((boundaries.left == null) || tile.x < boundaries.left) {
+          boundaries.left = tile.x;
+        }
+        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
+          boundaries.bottom = tile.y;
+        }
+        if ((boundaries.right == null) || tile.x > boundaries.right) {
+          return boundaries.right = tile.x;
+        }
+      };
+
+      TileContainer.prototype.init = function() {
+        this.coords = {};
+        return this.tiles = [];
+      };
+
+      TileContainer.prototype.addTile = function(tile) {
+        var ref1;
+        if (!this.tiles.includes(tile)) {
+          this.tiles.push(tile);
+          if (this.coords[tile.x] == null) {
+            this.coords[tile.x] = {};
+          }
+          this.coords[tile.x][tile.y] = tile;
+          tile.container = this;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            this._addToBondaries(tile, this._boundaries.value);
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.removeTile = function(tile) {
+        var index, ref1;
+        index = this.tiles.indexOf(tile);
+        if (index > -1) {
+          this.tiles.splice(index, 1);
+          delete this.coords[tile.x][tile.y];
+          tile.container = null;
+          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
+            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
+              return this.invalidateBoundaries();
+            }
+          }
+        }
+      };
+
+      TileContainer.prototype.removeTileAt = function(x, y) {
+        var tile;
+        if (tile = this.getTile(x, y)) {
+          return this.removeTile(tile);
+        }
+      };
+
+      TileContainer.prototype.getTile = function(x, y) {
+        var ref1;
+        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
+          return this.coords[x][y];
+        }
+      };
+
+      TileContainer.prototype.loadMatrix = function(matrix) {
+        var options, row, tile, x, y;
+        for (y in matrix) {
+          row = matrix[y];
+          for (x in row) {
+            tile = row[x];
+            options = {
+              x: parseInt(x),
+              y: parseInt(y)
+            };
+            if (typeof tile === "function") {
+              this.addTile(tile(options));
+            } else {
+              tile.x = options.x;
+              tile.y = options.y;
+              this.addTile(tile);
+            }
+          }
+        }
+        return this;
+      };
+
+      TileContainer.prototype.inRange = function(tile, range) {
+        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
+        tiles = [];
+        range--;
+        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
+          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
+            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
+              tiles.push(found);
+            }
+          }
+        }
+        return tiles;
+      };
+
+      TileContainer.prototype.allTiles = function() {
+        return this.tiles.slice();
+      };
+
+      TileContainer.prototype.clearAll = function() {
+        var k, len, ref1, tile;
+        ref1 = this.tiles;
+        for (k = 0, len = ref1.length; k < len; k++) {
+          tile = ref1[k];
+          tile.container = null;
+        }
+        this.coords = {};
+        this.tiles = [];
+        return this;
+      };
+
+      return TileContainer;
+
+    })(Element);
+    return TileContainer;
   });
 
   (function(definition) {
@@ -2520,6 +3187,134 @@
 
     })(Tiled);
     return Door;
+  });
+
+  (function(definition) {
+    Parallelio.PathWalk = definition();
+    return Parallelio.PathWalk.definition = definition;
+  })(function(dependencies) {
+    var Element, PathWalk, Timing;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    PathWalk = (function(superClass) {
+      extend(PathWalk, superClass);
+
+      function PathWalk(walker, path1, options) {
+        this.walker = walker;
+        this.path = path1;
+        this.setProperties(options);
+        PathWalk.__super__.constructor.call(this);
+      }
+
+      PathWalk.properties({
+        speed: {
+          "default": 5
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
+        },
+        pathLength: {
+          calcul: function() {
+            return this.path.solution.getTotalLength();
+          }
+        },
+        totalTime: {
+          calcul: function() {
+            return this.pathLength / this.speed * 1000;
+          }
+        }
+      });
+
+      PathWalk.prototype.start = function() {
+        if (!this.path.solution) {
+          this.path.calcul();
+        }
+        if (this.path.solution) {
+          this.pathTimeout = this.timing.setTimeout((function(_this) {
+            return function() {
+              return _this.end();
+            };
+          })(this), this.totalTime);
+          return this.pathTimeout.updater.addCallback(this.callback('update'));
+        }
+      };
+
+      PathWalk.prototype.stop = function() {
+        return this.pathTimeout.pause();
+      };
+
+      PathWalk.prototype.update = function() {
+        var pos;
+        pos = this.path.getPosAtPrc(this.pathTimeout.getPrc());
+        this.walker.tile = pos.tile;
+        this.walker.offsetX = pos.offsetX;
+        return this.walker.offsetY = pos.offsetY;
+      };
+
+      PathWalk.prototype.end = function() {
+        this.update();
+        return this.destroy();
+      };
+
+      PathWalk.prototype.destroy = function() {
+        this.pathTimeout.destroy();
+        return this.destroyProperties();
+      };
+
+      return PathWalk;
+
+    })(Element);
+    return PathWalk;
+  });
+
+  (function(definition) {
+    Parallelio.Damageable = definition();
+    return Parallelio.Damageable.definition = definition;
+  })(function(dependencies) {
+    var Damageable, Element;
+    if (dependencies == null) {
+      dependencies = {};
+    }
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Damageable = (function(superClass) {
+      extend(Damageable, superClass);
+
+      function Damageable() {
+        return Damageable.__super__.constructor.apply(this, arguments);
+      }
+
+      Damageable.properties({
+        damageable: {
+          "default": true
+        },
+        maxHealth: {
+          "default": 1000
+        },
+        health: {
+          "default": 1000,
+          change: function() {
+            if (this.health === 0) {
+              return this.whenNoHealth();
+            }
+          }
+        }
+      });
+
+      Damageable.prototype.damage = function(val) {
+        return this.health = Math.max(0, this.health - val);
+      };
+
+      Damageable.prototype.whenNoHealth = function() {};
+
+      return Damageable;
+
+    })(Element);
+    return Damageable;
   });
 
   (function(definition) {
@@ -2652,40 +3447,6 @@
 
     })(Door);
     return AutomaticDoor;
-  });
-
-  (function(definition) {
-    Parallelio.Direction = definition();
-    return Parallelio.Direction.definition = definition;
-  })(function() {
-    var Direction;
-    Direction = (function() {
-      function Direction(name1, x5, y5, inverseName) {
-        this.name = name1;
-        this.x = x5;
-        this.y = y5;
-        this.inverseName = inverseName;
-      }
-
-      Direction.prototype.getInverse = function() {
-        return this.constructor[this.inverseName];
-      };
-
-      return Direction;
-
-    })();
-    Direction.up = new Direction('up', 0, -1, 'down');
-    Direction.down = new Direction('down', 0, 1, 'up');
-    Direction.left = new Direction('left', -1, 0, 'right');
-    Direction.right = new Direction('right', 1, 0, 'left');
-    Direction.adjacents = [Direction.up, Direction.down, Direction.left, Direction.right];
-    Direction.topLeft = new Direction('topLeft', -1, -1, 'bottomRight');
-    Direction.topRight = new Direction('topRight', 1, -1, 'bottomLeft');
-    Direction.bottomRight = new Direction('bottomRight', 1, 1, 'topLeft');
-    Direction.bottomLeft = new Direction('bottomLeft', -1, 1, 'topRight');
-    Direction.corners = [Direction.topLeft, Direction.topRight, Direction.bottomRight, Direction.bottomLeft];
-    Direction.all = [Direction.up, Direction.down, Direction.left, Direction.right, Direction.topLeft, Direction.topRight, Direction.bottomRight, Direction.bottomLeft];
-    return Direction;
   });
 
   (function(definition) {
@@ -3143,132 +3904,6 @@
   });
 
   (function(definition) {
-    Parallelio.Tile = definition();
-    return Parallelio.Tile.definition = definition;
-  })(function(dependencies) {
-    var Direction, Element, Tile;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
-    Tile = (function(superClass) {
-      extend(Tile, superClass);
-
-      function Tile(x5, y5) {
-        this.x = x5;
-        this.y = y5;
-        this.init();
-      }
-
-      Tile.prototype.init = function() {
-        var container;
-        return container = null;
-      };
-
-      Tile.properties({
-        children: {
-          collection: true
-        },
-        container: {
-          change: function() {
-            return this.adjacentTiles.forEach(function(tile) {
-              return tile.invalidateAdjacentTiles();
-            });
-          }
-        },
-        adjacentTiles: {
-          calcul: function(invalidation) {
-            if (this.container != null) {
-              return Direction.adjacents.map((function(_this) {
-                return function(d) {
-                  return _this.getRelativeTile(d.x, d.y);
-                };
-              })(this)).filter((function(_this) {
-                return function(t) {
-                  return t != null;
-                };
-              })(this));
-            }
-          },
-          collection: true
-        }
-      });
-
-      Tile.prototype.getRelativeTile = function(x, y) {
-        if (this.container != null) {
-          return this.container.getTile(this.x + x, this.y + y);
-        }
-      };
-
-      Tile.prototype.findDirectionOf = function(tile) {
-        if (tile.tile) {
-          tile = tile.tile;
-        }
-        if ((tile.x != null) && (tile.y != null)) {
-          return Direction.all.find((function(_this) {
-            return function(d) {
-              return d.x === tile.x - _this.x && d.y === tile.y - _this.y;
-            };
-          })(this));
-        }
-      };
-
-      Tile.prototype.addChild = function(child, checkRef) {
-        var index;
-        if (checkRef == null) {
-          checkRef = true;
-        }
-        index = this.children.indexOf(child);
-        if (index === -1) {
-          this.children.push(child);
-        }
-        if (checkRef) {
-          child.tile = this;
-        }
-        return child;
-      };
-
-      Tile.prototype.removeChild = function(child, checkRef) {
-        var index;
-        if (checkRef == null) {
-          checkRef = true;
-        }
-        index = this.children.indexOf(child);
-        if (index > -1) {
-          this.children.splice(index, 1);
-        }
-        if (checkRef && child.tile === this) {
-          return child.tile = null;
-        }
-      };
-
-      Tile.prototype.dist = function(tile) {
-        var ctnDist, ref1, x, y;
-        if (((tile != null ? tile.x : void 0) != null) && (tile.y != null) && (this.x != null) && (this.y != null) && (this.container === tile.container || (ctnDist = (ref1 = this.container) != null ? typeof ref1.dist === "function" ? ref1.dist(tile.container) : void 0 : void 0))) {
-          x = tile.x - this.x;
-          y = tile.y - this.y;
-          if (ctnDist) {
-            x += ctnDist.x;
-            y += ctnDist.y;
-          }
-          return {
-            x: x,
-            y: y,
-            length: Math.sqrt(x * x + y * y)
-          };
-        } else {
-          return null;
-        }
-      };
-
-      return Tile;
-
-    })(Element);
-    return Tile;
-  });
-
-  (function(definition) {
     Parallelio.Floor = definition();
     return Parallelio.Floor.definition = definition;
   })(function(dependencies) {
@@ -3297,641 +3932,6 @@
 
     })(Tile);
     return Floor;
-  });
-
-  (function(definition) {
-    Parallelio.SignalOperation = definition();
-    return Parallelio.SignalOperation.definition = definition;
-  })(function(dependencies) {
-    var Element, SignalOperation;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    SignalOperation = (function(superClass) {
-      extend(SignalOperation, superClass);
-
-      function SignalOperation() {
-        SignalOperation.__super__.constructor.call(this);
-        this.queue = [];
-        this.limiters = [];
-      }
-
-      SignalOperation.prototype.addOperation = function(funct, priority) {
-        if (priority == null) {
-          priority = 1;
-        }
-        if (priority) {
-          return this.queue.unshift(funct);
-        } else {
-          return this.queue.push(funct);
-        }
-      };
-
-      SignalOperation.prototype.addLimiter = function(connected) {
-        if (!this.findLimiter(connected)) {
-          return this.limiters.push(connected);
-        }
-      };
-
-      SignalOperation.prototype.findLimiter = function(connected) {
-        return this.limiters.indexOf(connected) > -1;
-      };
-
-      SignalOperation.prototype.start = function() {
-        var results;
-        results = [];
-        while (this.queue.length) {
-          results.push(this.step());
-        }
-        return results;
-      };
-
-      SignalOperation.prototype.step = function() {
-        var funct;
-        if (this.queue.length === 0) {
-          return this.done();
-        } else {
-          funct = this.queue.shift(funct);
-          return funct(this);
-        }
-      };
-
-      SignalOperation.prototype.done = function() {};
-
-      return SignalOperation;
-
-    })(Element);
-    return SignalOperation;
-  });
-
-  (function(definition) {
-    Parallelio.Connected = definition();
-    return Parallelio.Connected.definition = definition;
-  })(function(dependencies) {
-    var Connected, Element, SignalOperation;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
-    Connected = (function(superClass) {
-      extend(Connected, superClass);
-
-      function Connected() {
-        return Connected.__super__.constructor.apply(this, arguments);
-      }
-
-      Connected.properties({
-        signals: {
-          collection: true
-        },
-        inputs: {
-          collection: true
-        },
-        outputs: {
-          collection: true,
-          itemAdded: function(output, i) {
-            return this.forwardedSignals.forEach((function(_this) {
-              return function(signal) {
-                return _this.forwardSignalTo(signal, output);
-              };
-            })(this));
-          },
-          itemRemoved: function(output, i) {
-            return this.forwardedSignals.forEach((function(_this) {
-              return function(signal) {
-                return _this.stopForwardedSignalTo(signal, output);
-              };
-            })(this));
-          }
-        },
-        forwardedSignals: {
-          collection: true
-        }
-      });
-
-      Connected.prototype.canConnectTo = function(target) {
-        return typeof target.addSignal === "function";
-      };
-
-      Connected.prototype.acceptSignal = function(signal) {
-        return true;
-      };
-
-      Connected.prototype.onAddConnection = function(conn) {};
-
-      Connected.prototype.onRemoveConnection = function(conn) {};
-
-      Connected.prototype.onNewSignalType = function(signal) {};
-
-      Connected.prototype.onAddSignal = function(signal, op) {};
-
-      Connected.prototype.onRemoveSignal = function(signal, op) {};
-
-      Connected.prototype.onRemoveSignalType = function(signal, op) {};
-
-      Connected.prototype.onReplaceSignal = function(oldSignal, newSignal, op) {};
-
-      Connected.prototype.containsSignal = function(signal, checkLast, checkOrigin) {
-        if (checkLast == null) {
-          checkLast = false;
-        }
-        return this.signals.find(function(c) {
-          return c.match(signal, checkLast, checkOrigin);
-        });
-      };
-
-      Connected.prototype.addSignal = function(signal, op) {
-        var autoStart;
-        if (!(op != null ? op.findLimiter(this) : void 0)) {
-          if (!op) {
-            op = new SignalOperation();
-            autoStart = true;
-          }
-          op.addOperation((function(_this) {
-            return function() {
-              var similar;
-              if (!_this.containsSignal(signal, true) && _this.acceptSignal(signal)) {
-                similar = _this.containsSignal(signal);
-                _this.signals.push(signal);
-                _this.onAddSignal(signal, op);
-                if (!similar) {
-                  return _this.onNewSignalType(signal, op);
-                }
-              }
-            };
-          })(this));
-          if (autoStart) {
-            op.start();
-          }
-        }
-        return signal;
-      };
-
-      Connected.prototype.removeSignal = function(signal, op) {
-        var autoStart;
-        if (!(op != null ? op.findLimiter(this) : void 0)) {
-          if (!op) {
-            op = new SignalOperation;
-            autoStart = true;
-          }
-          op.addOperation((function(_this) {
-            return function() {
-              var existing;
-              if ((existing = _this.containsSignal(signal, true)) && _this.acceptSignal(signal)) {
-                _this.signals.splice(_this.signals.indexOf(existing), 1);
-                _this.onRemoveSignal(signal, op);
-                op.addOperation(function() {
-                  var similar;
-                  similar = _this.containsSignal(signal);
-                  if (similar) {
-                    return _this.onReplaceSignal(signal, similar, op);
-                  } else {
-                    return _this.onRemoveSignalType(signal, op);
-                  }
-                }, 0);
-              }
-              if (stepByStep) {
-                return op.step();
-              }
-            };
-          })(this));
-          if (autoStart) {
-            return op.start();
-          }
-        }
-      };
-
-      Connected.prototype.prepForwardedSignal = function(signal) {
-        if (signal.last === this) {
-          return signal;
-        } else {
-          return signal.withLast(this);
-        }
-      };
-
-      Connected.prototype.forwardSignal = function(signal, op) {
-        var next;
-        this.forwardedSignals.add(signal);
-        next = this.prepForwardedSignal(signal);
-        return this.outputs.forEach(function(conn) {
-          if (signal.last !== conn) {
-            return conn.addSignal(next, op);
-          }
-        });
-      };
-
-      Connected.prototype.forwardAllSignalsTo = function(conn, op) {
-        return this.signals.forEach((function(_this) {
-          return function(signal) {
-            var next;
-            next = _this.prepForwardedSignal(signal);
-            return conn.addSignal(next, op);
-          };
-        })(this));
-      };
-
-      Connected.prototype.stopForwardedSignal = function(signal, op) {
-        var next;
-        this.forwardedSignals.remove(signal);
-        next = this.prepForwardedSignal(signal);
-        return this.outputs.forEach(function(conn) {
-          if (signal.last !== conn) {
-            return conn.removeSignal(next, op);
-          }
-        });
-      };
-
-      Connected.prototype.stopAllForwardedSignalTo = function(conn, op) {
-        return this.signals.forEach((function(_this) {
-          return function(signal) {
-            var next;
-            next = _this.prepForwardedSignal(signal);
-            return conn.removeSignal(next, op);
-          };
-        })(this));
-      };
-
-      Connected.prototype.forwardSignalTo = function(signal, conn, op) {
-        var next;
-        next = this.prepForwardedSignal(signal);
-        if (signal.last !== conn) {
-          return conn.addSignal(next, op);
-        }
-      };
-
-      Connected.prototype.stopForwardedSignalTo = function(signal, conn, op) {
-        var next;
-        next = this.prepForwardedSignal(signal);
-        if (signal.last !== conn) {
-          return conn.removeSignal(next, op);
-        }
-      };
-
-      return Connected;
-
-    })(Element);
-    return Connected;
-  });
-
-  (function(definition) {
-    Parallelio.Signal = definition();
-    return Parallelio.Signal.definition = definition;
-  })(function(dependencies) {
-    var Element, Signal;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Signal = (function(superClass) {
-      extend(Signal, superClass);
-
-      function Signal(origin1, type, exclusive) {
-        this.origin = origin1;
-        this.type = type != null ? type : 'signal';
-        this.exclusive = exclusive != null ? exclusive : false;
-        Signal.__super__.constructor.call(this);
-        this.last = this.origin;
-      }
-
-      Signal.prototype.withLast = function(last) {
-        var signal;
-        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
-        signal.last = last;
-        return signal;
-      };
-
-      Signal.prototype.copy = function() {
-        var signal;
-        signal = new this.__proto__.constructor(this.origin, this.type, this.exclusive);
-        signal.last = this.last;
-        return signal;
-      };
-
-      Signal.prototype.match = function(signal, checkLast, checkOrigin) {
-        if (checkLast == null) {
-          checkLast = false;
-        }
-        if (checkOrigin == null) {
-          checkOrigin = this.exclusive;
-        }
-        return (!checkLast || signal.last === this.last) && (checkOrigin || signal.origin === this.origin) && signal.type === this.type;
-      };
-
-      return Signal;
-
-    })(Element);
-    return Signal;
-  });
-
-  (function(definition) {
-    Parallelio.SignalSource = definition();
-    return Parallelio.SignalSource.definition = definition;
-  })(function(dependencies) {
-    var Connected, Signal, SignalOperation, SignalSource;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Signal = dependencies.hasOwnProperty("Signal") ? dependencies.Signal : Parallelio.Signal;
-    SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
-    SignalSource = (function(superClass) {
-      extend(SignalSource, superClass);
-
-      function SignalSource() {
-        return SignalSource.__super__.constructor.apply(this, arguments);
-      }
-
-      SignalSource.properties({
-        activated: {
-          change: function() {
-            var op;
-            op = new SignalOperation();
-            if (this.activated) {
-              this.forwardSignal(this.signal, op);
-            } else {
-              this.stopForwardedSignal(this.signal, op);
-            }
-            return op.start();
-          }
-        },
-        signal: {
-          calcul: function() {
-            return new Signal(this, 'power', true);
-          }
-        }
-      });
-
-      return SignalSource;
-
-    })(Connected);
-    return SignalSource;
-  });
-
-  (function(definition) {
-    Parallelio.Switch = definition();
-    return Parallelio.Switch.definition = definition;
-  })(function(dependencies) {
-    var Connected, Switch;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Switch = (function(superClass) {
-      extend(Switch, superClass);
-
-      function Switch() {
-        return Switch.__super__.constructor.apply(this, arguments);
-      }
-
-      return Switch;
-
-    })(Connected);
-    return Switch;
-  });
-
-  (function(definition) {
-    Parallelio.Wire = definition();
-    return Parallelio.Wire.definition = definition;
-  })(function(dependencies) {
-    var Connected, Direction, Tiled, Wire;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
-    Connected = dependencies.hasOwnProperty("Connected") ? dependencies.Connected : Parallelio.Connected;
-    Wire = (function(superClass) {
-      extend(Wire, superClass);
-
-      Wire.extend(Connected);
-
-      function Wire(wireType) {
-        this.wireType = wireType != null ? wireType : 'red';
-        Wire.__super__.constructor.call(this);
-      }
-
-      Wire.properties({
-        outputs: {
-          calcul: function(invalidation) {
-            var parent;
-            parent = invalidation.prop('tile');
-            if (parent) {
-              return invalidation.prop('adjacentTiles', parent).reduce((function(_this) {
-                return function(res, tile) {
-                  return res.concat(invalidation.prop('children', tile).filter(function(child) {
-                    return _this.canConnectTo(child);
-                  }).toArray());
-                };
-              })(this), []);
-            } else {
-              return [];
-            }
-          }
-        },
-        connectedDirections: {
-          calcul: function(invalidation) {
-            return invalidation.prop('outputs').reduce((function(_this) {
-              return function(out, conn) {
-                _this.findDirectionsTo(conn).forEach(function(d) {
-                  if (indexOf.call(out, d) < 0) {
-                    return out.push(d);
-                  }
-                });
-                return out;
-              };
-            })(this), []);
-          }
-        }
-      });
-
-      Wire.prototype.findDirectionsTo = function(conn) {
-        var directions;
-        directions = conn.tiles != null ? conn.tiles.map((function(_this) {
-          return function(tile) {
-            return _this.tile.findDirectionOf(tile);
-          };
-        })(this)) : [this.tile.findDirectionOf(conn)];
-        return directions.filter(function(d) {
-          return d != null;
-        });
-      };
-
-      Wire.prototype.canConnectTo = function(target) {
-        return Connected.prototype.canConnectTo.call(this, target) && ((target.wireType == null) || target.wireType === this.wireType);
-      };
-
-      Wire.prototype.onNewSignalType = function(signal, op) {
-        return this.forwardSignal(signal, op);
-      };
-
-      return Wire;
-
-    })(Tiled);
-    return Wire;
-  });
-
-  (function(definition) {
-    Parallelio.TileContainer = definition();
-    return Parallelio.TileContainer.definition = definition;
-  })(function(dependencies) {
-    var Element, TileContainer;
-    if (dependencies == null) {
-      dependencies = {};
-    }
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    TileContainer = (function(superClass) {
-      extend(TileContainer, superClass);
-
-      function TileContainer() {
-        this.init();
-      }
-
-      TileContainer.properties({
-        boundaries: {
-          calcul: function() {
-            var boundaries;
-            boundaries = {
-              top: null,
-              left: null,
-              bottom: null,
-              right: null
-            };
-            this.tiles.forEach((function(_this) {
-              return function(tile) {
-                return _this._addToBondaries(tile, boundaries);
-              };
-            })(this));
-            return boundaries;
-          },
-          output: function(val) {
-            return Object.assign({}, val);
-          }
-        }
-      });
-
-      TileContainer.prototype._addToBondaries = function(tile, boundaries) {
-        if ((boundaries.top == null) || tile.y < boundaries.top) {
-          boundaries.top = tile.y;
-        }
-        if ((boundaries.left == null) || tile.x < boundaries.left) {
-          boundaries.left = tile.x;
-        }
-        if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
-          boundaries.bottom = tile.y;
-        }
-        if ((boundaries.right == null) || tile.x > boundaries.right) {
-          return boundaries.right = tile.x;
-        }
-      };
-
-      TileContainer.prototype.init = function() {
-        this.coords = {};
-        return this.tiles = [];
-      };
-
-      TileContainer.prototype.addTile = function(tile) {
-        var ref1;
-        if (!this.tiles.includes(tile)) {
-          this.tiles.push(tile);
-          if (this.coords[tile.x] == null) {
-            this.coords[tile.x] = {};
-          }
-          this.coords[tile.x][tile.y] = tile;
-          tile.container = this;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            this._addToBondaries(tile, this._boundaries.value);
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.removeTile = function(tile) {
-        var index, ref1;
-        index = this.tiles.indexOf(tile);
-        if (index > -1) {
-          this.tiles.splice(index, 1);
-          delete this.coords[tile.x][tile.y];
-          tile.container = null;
-          if ((ref1 = this._boundaries) != null ? ref1.calculated : void 0) {
-            if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
-              return this.invalidateBoundaries();
-            }
-          }
-        }
-      };
-
-      TileContainer.prototype.removeTileAt = function(x, y) {
-        var tile;
-        if (tile = this.getTile(x, y)) {
-          return this.removeTile(tile);
-        }
-      };
-
-      TileContainer.prototype.getTile = function(x, y) {
-        var ref1;
-        if (((ref1 = this.coords[x]) != null ? ref1[y] : void 0) != null) {
-          return this.coords[x][y];
-        }
-      };
-
-      TileContainer.prototype.loadMatrix = function(matrix) {
-        var options, row, tile, x, y;
-        for (y in matrix) {
-          row = matrix[y];
-          for (x in row) {
-            tile = row[x];
-            options = {
-              x: parseInt(x),
-              y: parseInt(y)
-            };
-            if (typeof tile === "function") {
-              this.addTile(tile(options));
-            } else {
-              tile.x = options.x;
-              tile.y = options.y;
-              this.addTile(tile);
-            }
-          }
-        }
-        return this;
-      };
-
-      TileContainer.prototype.inRange = function(tile, range) {
-        var found, k, l, ref1, ref2, ref3, ref4, tiles, x, y;
-        tiles = [];
-        range--;
-        for (x = k = ref1 = tile.x - range, ref2 = tile.x + range; ref1 <= ref2 ? k <= ref2 : k >= ref2; x = ref1 <= ref2 ? ++k : --k) {
-          for (y = l = ref3 = tile.y - range, ref4 = tile.y + range; ref3 <= ref4 ? l <= ref4 : l >= ref4; y = ref3 <= ref4 ? ++l : --l) {
-            if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
-              tiles.push(found);
-            }
-          }
-        }
-        return tiles;
-      };
-
-      TileContainer.prototype.allTiles = function() {
-        return this.tiles.slice();
-      };
-
-      TileContainer.prototype.clearAll = function() {
-        var k, len, ref1, tile;
-        ref1 = this.tiles;
-        for (k = 0, len = ref1.length; k < len; k++) {
-          tile = ref1[k];
-          tile.container = null;
-        }
-        this.coords = {};
-        this.tiles = [];
-        return this;
-      };
-
-      return TileContainer;
-
-    })(Element);
-    return TileContainer;
   });
 
   (function(definition) {
