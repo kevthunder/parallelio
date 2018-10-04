@@ -2,6 +2,7 @@ Element = require('spark-starter').Element
 
 class Star extends Element
   constructor: (@x, @y) ->
+    super()
     @init()
   @properties
     x:{}
@@ -40,6 +41,7 @@ class Star extends Element
 
 class Star.Link extends Element
   constructor: (@star1, @star2) ->
+    super()
   remove: ->
     @star1.links.remove(this)
     @star2.links.remove(this)

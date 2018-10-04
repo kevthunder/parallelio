@@ -5,6 +5,7 @@ alea = require('seedrandom/lib/alea');
 describe 'RoomGenerator', ->
   it 'create rooms', ->
     gen = new RoomGenerator({rng:new alea('seed'),width:12,height:12,minVolume:10,maxVolume:15})
+    debugger
     tiles = gen.getTiles()
     map = for x in [0..gen.width]
             for y in [0..gen.height]

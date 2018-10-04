@@ -6,8 +6,8 @@ Projectile = require('./Projectile')
 class Weapon extends Tiled
   @extend Damageable
   constructor: (options) ->
-    @setProperties(options)
     super()
+    @setProperties(options)
   @properties
     rechargeTime:
       default: 1000

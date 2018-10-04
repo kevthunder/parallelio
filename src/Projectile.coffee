@@ -3,6 +3,7 @@ Timing = require('parallelio-timing')
 
 class Projectile extends Element
   constructor: (options) ->
+    super()
     @setProperties(options)
     @init()
   init:->

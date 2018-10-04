@@ -4,8 +4,8 @@ Timing = require('parallelio-timing')
 
 class PathWalk extends Element
   constructor: (@walker, @path, options) ->
-    @setProperties(options)
     super()
+    @setProperties(options)
   @properties
     speed:
       default: 5

@@ -10,22 +10,25 @@
   "scripts": {
     "test": "gulp test",
     "build": "gulp build",
-    "update": "gulp update"
+    "update": "gulp update",
+    "build-debug": "node --inspect-brk ./node_modules/gulp/bin/gulp build",
+    "test-debug": "gulp test-debug"
   },
   "author": "kevthunder",
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.1",
-    "gulp": "^3.9.1",
-    "gulp-coffee": "^2.3.3",
+    "gulp": "^4.0",
+    "gulp-coffee": "^3.0.2",
     "gulp-concat": "^2.6.1",
     "gulp-mocha": "^6.0.0",
     "gulp-rename": "^1.4.0",
-    "gulp-uglify": "^3.0.1",
+    "gulp-uglify-es": "^1.0.4",
     "merge2": "^1.2.0",
     "mocha": "^5.2.0",
     "run-sequence": "^2.2.1",
     "seedrandom": "^2.4.3",
+    "source-map-support": "^0.5.9",
     "spark-auto-commit": "github:kevthunder/spark-auto-commit",
     "spark-wrapper": "github:kevthunder/spark-wrapper",
     "wolfy87-eventemitter": "^5.2.3"
@@ -36,6 +39,6 @@
     "parallelio-tiles": "github:kevthunder/parallelio-tiles",
     "parallelio-timing": "github:kevthunder/parallelio-timing",
     "parallelio-wiring": "github:kevthunder/parallelio-wiring",
-    "spark-starter": "github:kevthunder/spark-starter#v0.7.x"
+    "spark-starter": "github:kevthunder/spark-starter#v0.8.x"
   }
 }

@@ -17,15 +17,16 @@
         minVolume: 10,
         maxVolume: 15
       });
+      debugger;
       tiles = gen.getTiles();
       map = (function() {
         var i, ref, results;
         results = [];
-        for (x = i = 0, ref = gen.width; 0 <= ref ? i <= ref : i >= ref; x = 0 <= ref ? ++i : --i) {
+        for (x = i = 0, ref = gen.width; (0 <= ref ? i <= ref : i >= ref); x = 0 <= ref ? ++i : --i) {
           results.push((function() {
             var j, ref1, results1;
             results1 = [];
-            for (y = j = 0, ref1 = gen.height; 0 <= ref1 ? j <= ref1 : j >= ref1; y = 0 <= ref1 ? ++j : --j) {
+            for (y = j = 0, ref1 = gen.height; (0 <= ref1 ? j <= ref1 : j >= ref1); y = 0 <= ref1 ? ++j : --j) {
               results1.push(0);
             }
             return results1;

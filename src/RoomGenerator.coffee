@@ -5,6 +5,7 @@ Door = require('./Door')
 
 class RoomGenerator extends Element
   constructor: (options) ->
+    super()
     @setProperties(options)
     @directions = [
       {x:1, y:0}
@@ -30,7 +31,7 @@ class RoomGenerator extends Element
       default: 30
     height:
       default: 15
-    tiles:
+    tileContainer:
       calcul: ->
         tiles = new TileContainer()
         for x in [0..@width]
@@ -48,9 +49,9 @@ class RoomGenerator extends Element
   init: ->
     @finalTiles = null
     @rooms = []
-    @free = @tiles.allTiles().filter (tile) =>
+    @free = @tileContainer.allTiles().filter (tile) =>
       for direction in @allDirections
-        next = @tiles.getTile(tile.x + direction.x, tile.y + direction.y)
+        next = @tileContainer.getTile(tile.x + direction.x, tile.y + direction.y)
         unless next?
           return false
       true
@@ -63,7 +64,7 @@ class RoomGenerator extends Element
     @rooms
     @makeFinalTiles()
   makeFinalTiles: ->
-    @finalTiles = @tiles.allTiles().map (tile) =>
+    @finalTiles = @tileContainer.allTiles().map (tile) =>
       if tile.factory?
         opt = {x:tile.x,y:tile.y}
         if tile.factoryOptions?
@@ -124,10 +125,10 @@ class RoomGenerator extends Element
   allocateWalls: (room) ->
     for tile in room.tiles
       for direction in @allDirections
-        next = @tiles.getTile(tile.x + direction.x, tile.y + direction.y)
+        next = @tileContainer.getTile(tile.x + direction.x, tile.y + direction.y)
         if next? and next.room != room
           unless direction in @corners
-            otherSide = @tiles.getTile(tile.x + direction.x * 2, tile.y + direction.y * 2)
+            otherSide = @tileContainer.getTile(tile.x + direction.x * 2, tile.y + direction.y * 2)
             nextRoom = if otherSide?.room? then otherSide.room else null
             room.addWall(next, nextRoom)
             nextRoom.addWall(next, room) if nextRoom?
@@ -140,7 +141,7 @@ class RoomGenerator extends Element
           door = walls.tiles[Math.floor(@rng()*walls.tiles.length)]
           door.factory = @doorFactory
           door.factoryOptions = {
-            direction: if @tiles.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.vertical else Door.directions.horizontal
+            direction: if @tileContainer.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.vertical else Door.directions.horizontal
           }
           room.addDoor(door, walls.room)
           walls.room.addDoor(door, room)
@@ -154,7 +155,7 @@ class RoomGenerator extends Element
   tileOffsetIsFree: (tile, direction, multiply = 1) ->
     @tileIsFree(tile.x + direction.x * multiply, tile.y + direction.y * multiply)
   tileIsFree: (x,y) ->
-    tile = @tiles.getTile(x,y)
+    tile = @tileContainer.getTile(x,y)
     if tile? and tile in @free
       tile
     else
