@@ -1,5 +1,5 @@
 assert = require('chai').assert
-EventEmitter = require("wolfy87-eventemitter")
+EventEmitter = require('spark-starter').EventEmitter
 Door = require('../lib/Door')
 Floor = require('../lib/Floor')
 

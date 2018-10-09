@@ -1,5 +1,5 @@
 assert = require('chai').assert
-EventEmitter = require("wolfy87-eventemitter")
+EventEmitter = require('spark-starter').EventEmitter
 AutomaticDoor = require('../lib/AutomaticDoor')
 Floor = require('../lib/Floor')
 Tile = require('parallelio-tiles').Tile
