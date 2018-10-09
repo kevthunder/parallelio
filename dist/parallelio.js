@@ -3303,6 +3303,36 @@
   });
 
   (function(definition) {
+    Parallelio.Game = definition();
+    return Parallelio.Game.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, Game;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Game = (function() {
+      class Game extends Element {
+        start() {}
+
+        add(elem) {
+          return elem.game = this;
+        }
+
+      };
+
+      Game.properties({
+        timing: {
+          calcul: function() {
+            return new Parallelio.Timing();
+          }
+        }
+      });
+
+      return Game;
+
+    }).call(this);
+    return Game;
+  });
+
+  (function(definition) {
     Parallelio.Projectile = definition();
     return Parallelio.Projectile.definition = definition;
   })(function(dependencies = {}) {
