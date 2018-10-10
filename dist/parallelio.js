@@ -4844,4 +4844,230 @@
     return EventEmitter;
   });
 
+  (function(definition) {
+    Parallelio.GridCell = definition();
+    return Parallelio.GridCell.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, EventEmitter, GridCell;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
+    GridCell = (function() {
+      class GridCell extends Element {};
+
+      GridCell.extend(EventEmitter);
+
+      GridCell.properties({
+        grid: {
+          calcul: function(invalidator) {
+            return invalidator.prop('grid', invalidator.prop('row'));
+          }
+        },
+        row: {},
+        columnPosition: {
+          calcul: function(invalidator) {
+            var row;
+            row = invalidator.prop('row');
+            if (row) {
+              return invalidator.prop('cells', row).indexOf(this);
+            }
+          }
+        },
+        width: {
+          calcul: function(invalidator) {
+            return 1 / invalidator.prop('cells', invalidator.prop('row')).length;
+          }
+        },
+        left: {
+          calcul: function(invalidator) {
+            return invalidator.prop('width') * invalidator.prop('columnPosition');
+          }
+        },
+        right: {
+          calcul: function(invalidator) {
+            return invalidator.prop('width') * (invalidator.prop('columnPosition') + 1);
+          }
+        },
+        height: {
+          calcul: function(invalidator) {
+            return invalidator.prop('height', invalidator.prop('row'));
+          }
+        },
+        top: {
+          calcul: function(invalidator) {
+            return invalidator.prop('top', invalidator.prop('row'));
+          }
+        },
+        bottom: {
+          calcul: function(invalidator) {
+            return invalidator.prop('bottom', invalidator.prop('row'));
+          }
+        }
+      });
+
+      return GridCell;
+
+    }).call(this);
+    return GridCell;
+  });
+
+  (function(definition) {
+    Parallelio.GridRow = definition();
+    return Parallelio.GridRow.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, EventEmitter, GridCell, GridRow;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
+    GridCell = dependencies.hasOwnProperty("GridCell") ? dependencies.GridCell : Parallelio.GridCell;
+    GridRow = (function() {
+      class GridRow extends Element {
+        addCell(cell = null) {
+          if (!cell) {
+            cell = new GridCell();
+          }
+          this.cells.push(cell);
+          return cell;
+        }
+
+      };
+
+      GridRow.extend(EventEmitter);
+
+      GridRow.properties({
+        grid: {},
+        cells: {
+          collection: true,
+          itemAdded: function(cell) {
+            return cell.row = this;
+          },
+          itemRemoved: function(cell) {
+            if (cell.row === this) {
+              return cell.row = null;
+            }
+          }
+        },
+        rowPosition: {
+          calcul: function(invalidator) {
+            var grid;
+            grid = invalidator.prop('grid');
+            if (grid) {
+              return invalidator.prop('rows', grid).indexOf(this);
+            }
+          }
+        },
+        height: {
+          calcul: function(invalidator) {
+            return 1 / invalidator.prop('rows', invalidator.prop('grid')).length;
+          }
+        },
+        top: {
+          calcul: function(invalidator) {
+            return invalidator.prop('height') * invalidator.prop('rowPosition');
+          }
+        },
+        bottom: {
+          calcul: function(invalidator) {
+            return invalidator.prop('height') * (invalidator.prop('rowPosition') + 1);
+          }
+        }
+      });
+
+      return GridRow;
+
+    }).call(this);
+    return GridRow;
+  });
+
+  (function(definition) {
+    Parallelio.Grid = definition();
+    return Parallelio.Grid.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, EventEmitter, Grid, GridCell, GridRow;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
+    GridCell = dependencies.hasOwnProperty("GridCell") ? dependencies.GridCell : Parallelio.GridCell;
+    GridRow = dependencies.hasOwnProperty("GridRow") ? dependencies.GridRow : Parallelio.GridRow;
+    Grid = (function() {
+      class Grid extends Element {
+        addCell(cell = null) {
+          var row, spot;
+          if (!cell) {
+            cell = new GridCell();
+          }
+          spot = this.getFreeSpot();
+          row = this.rows.get(spot.row);
+          if (!row) {
+            row = this.addRow();
+          }
+          row.addCell(cell);
+          return cell;
+        }
+
+        addRow(row = null) {
+          if (!row) {
+            row = new GridRow();
+          }
+          this.rows.push(row);
+          return row;
+        }
+
+        getFreeSpot() {
+          var spot;
+          spot = null;
+          this.rows.some((row) => {
+            if (row.cells.length < this.maxColumns) {
+              return spot = {
+                row: row.rowPosition,
+                column: row.cells.length
+              };
+            }
+          });
+          if (!spot) {
+            if (this.maxColumns > this.rows.length) {
+              spot = {
+                row: this.rows.length,
+                column: 0
+              };
+            } else {
+              spot = {
+                row: 0,
+                column: this.maxColumns + 1
+              };
+            }
+          }
+          return spot;
+        }
+
+      };
+
+      Grid.extend(EventEmitter);
+
+      Grid.properties({
+        rows: {
+          collection: true,
+          itemAdded: function(row) {
+            return row.grid = this;
+          },
+          itemRemoved: function(row) {
+            if (row.grid === this) {
+              return row.grid = null;
+            }
+          }
+        },
+        maxColumns: {
+          calcul: function(invalidator) {
+            var rows;
+            rows = invalidator.prop('rows');
+            return rows.reduce(function(max, row) {
+              return Math.max(max, invalidator.prop('cells', row).length);
+            }, 0);
+          }
+        }
+      });
+
+      return Grid;
+
+    }).call(this);
+    return Grid;
+  });
+
 }).call(this);

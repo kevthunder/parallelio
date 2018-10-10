@@ -33,6 +33,7 @@
     "spark-wrapper": "github:kevthunder/spark-wrapper"
   },
   "dependencies": {
+    "parallelio-grids": "github:kevthunder/parallelio-grids",
     "parallelio-pathfinder": "github:kevthunder/parallelio-pathfinder",
     "parallelio-strings": "github:kevthunder/parallelio-strings",
     "parallelio-tiles": "github:kevthunder/parallelio-tiles",
