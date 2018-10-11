@@ -14,6 +14,8 @@ class Game extends Element
           new View().tap ->
             @grid = new Grid
         )
+    views:
+      collections: true
   start: ->
   add: (elem) ->
     elem.game = this
