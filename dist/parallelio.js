@@ -3679,7 +3679,7 @@
             if (this.views.length > 0) {
               return this.views.get(0);
             } else {
-              return this.add(new View());
+              return this.add(new this.defaultViewClass());
             }
           }
         },
@@ -3687,6 +3687,8 @@
           collection: true
         }
       });
+
+      Game.prototype.defaultViewClass = View;
 
       return Game;
 

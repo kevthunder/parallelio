@@ -12,9 +12,10 @@ class Game extends Element
         if @views.length > 0
           @views.get(0)
         else
-          @add(new View())
+          @add(new @defaultViewClass())
     views:
       collection: true
+  defaultViewClass: View
   start: ->
   add: (elem) ->
     elem.game = this
