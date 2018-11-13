@@ -1,7 +1,6 @@
 Element = require('spark-starter').Element
 Timing = require('parallelio-timing')
-Grid = require('parallelio-grid')
-View = require('.View')
+View = require('./View')
 
 class Game extends Element
   @properties
@@ -10,12 +9,12 @@ class Game extends Element
         new Timing()
     mainView:
       calcul: ->
-        @add(
-          new View().tap ->
-            @grid = new Grid
-        )
+        if @views.length > 0
+          @views.get(0)
+        else
+          @add(new View())
     views:
-      collections: true
+      collection: true
   start: ->
   add: (elem) ->
     elem.game = this

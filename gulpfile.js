@@ -74,6 +74,10 @@ gulp.task('build', build = gulp.series('coffee', 'concatCoffee', 'compress', fun
     done();
 }));
 
+gulp.task('watch', gulp.series('build', function() {
+  return gulp.watch(['./src/**/*.coffee'], gulp.series('coffee', 'concatCoffee', 'compress'));
+}));
+
 gulp.task('test', gulp.series('build','coffeeTest', function() {
   return gulp.src('./test/tests.js')
     .pipe(mocha());

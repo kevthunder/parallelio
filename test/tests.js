@@ -9,6 +9,12 @@
 
   require('parallelio-wiring/test/tests.js');
 
+  require('parallelio-grids/test/tests.js');
+
+  require('./game');
+
+  require('./view');
+
   require('./door');
 
   require('./automatic_door');
