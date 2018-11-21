@@ -13,7 +13,7 @@ var run = require('run-sequence');
 var autoCommit = require('spark-auto-commit');
 
 gulp.task('coffee', function() {
-  return gulp.src(['./src/*.coffee'])
+  return gulp.src(['./src/**/*.coffee'])
     .pipe(coffee({bare: true}))
     .pipe(wrapper({namespace:'Parallelio'}))
     .pipe(wrapper.loader({namespace:'Parallelio'}))
@@ -35,7 +35,7 @@ gulp.task('concat', gulp.series('concatStrings', function() {
       .pipe(wrapper.composeModule({namespace:'Parallelio',module:'parallelio-wiring'},'src/*.coffee')),
     gulp.src([
       './tmp/_strings.coffee',
-      './src/*.coffee'
+      './src/**/*.coffee'
     ])
   ])
     .pipe(wrapper.compose({namespace:'Parallelio'}))
@@ -44,7 +44,7 @@ gulp.task('concat', gulp.series('concatStrings', function() {
 }));
 
 gulp.task('concatCoffee', gulp.series('concat', function() {
-  return gulp.src(['./tmp/*.coffee', '!./tmp/_*.coffee'])
+  return gulp.src(['./tmp/**/*.coffee', '!./tmp/_*.coffee'])
     .pipe(coffee())
     .pipe(gulp.dest('./dist/'));
 }));
@@ -57,7 +57,7 @@ gulp.task('compress', gulp.series('concatCoffee', function () {
 }));
 
 gulp.task('coffeeTest', function() {
-  return gulp.src('./test/src/*.coffee')
+  return gulp.src('./test/src/**/*.coffee')
     .pipe(coffee())
     .pipe(gulp.dest('./test/'));
 });

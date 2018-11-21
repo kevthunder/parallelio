@@ -2148,10 +2148,10 @@
     Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     PathWalk = (function() {
       class PathWalk extends Element {
-        constructor(walker, path1, options) {
+        constructor(walker, path, options) {
           super();
           this.walker = walker;
-          this.path = path1;
+          this.path = path;
           this.setProperties(options);
         }
 
@@ -2573,6 +2573,91 @@
   });
 
   (function(definition) {
+    Parallelio.Action = definition();
+    return Parallelio.Action.definition = definition;
+  })(function(dependencies = {}) {
+    var Action, Element;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Action = (function() {
+      class Action extends Element {
+        constructor(options) {
+          super();
+          this.setProperties(options);
+        }
+
+        copyWith(options) {
+          return new this.constructor(Object.assign({
+            base: this
+          }, this.getManualDataProperties(), options));
+        }
+
+        start() {
+          return this.execute();
+        }
+
+        isReady() {
+          return true;
+        }
+
+      };
+
+      Action.properties({
+        actor: {}
+      });
+
+      return Action;
+
+    }).call(this);
+    return Action;
+  });
+
+  (function(definition) {
+    Parallelio.TargetAction = definition();
+    return Parallelio.TargetAction.definition = definition;
+  })(function(dependencies = {}) {
+    var Action, TargetAction;
+    Action = dependencies.hasOwnProperty("Action") ? dependencies.Action : Parallelio.Action;
+    TargetAction = (function() {
+      class TargetAction extends Action {
+        withTarget(target) {
+          if (this.target !== target) {
+            return this.copyWith({
+              target: target
+            });
+          } else {
+            return this;
+          }
+        }
+
+        canTarget(target) {
+          var instance;
+          instance = this.withTarget(target);
+          if (instance.validTarget()) {
+            return instance;
+          }
+        }
+
+        validTarget() {
+          return this.actor != null;
+        }
+
+        isReady() {
+          return super.isReady() && this.validTarget();
+        }
+
+      };
+
+      TargetAction.properties({
+        target: {}
+      });
+
+      return TargetAction;
+
+    }).call(this);
+    return TargetAction;
+  });
+
+  (function(definition) {
     Parallelio.Tiled = definition();
     return Parallelio.Tiled.definition = definition;
   })(function(dependencies = {}) {
@@ -2642,7 +2727,7 @@
       Door.properties({
         tile: {
           change: function(old, overrided) {
-            overrided();
+            overrided(old);
             return this.updateTileMembers(old);
           }
         },
@@ -2667,11 +2752,12 @@
     Parallelio.Character = definition();
     return Parallelio.Character.definition = definition;
   })(function(dependencies = {}) {
-    var Character, Damageable, PathFinder, PathWalk, Tiled;
+    var Character, Damageable, PathFinder, PathWalk, TargetAction, Tiled;
     Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
     PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
     PathWalk = dependencies.hasOwnProperty("PathWalk") ? dependencies.PathWalk : Parallelio.PathWalk;
     Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
+    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
     Character = (function() {
       class Character extends Tiled {
         constructor(name1) {
@@ -2690,17 +2776,17 @@
         }
 
         walkTo(tile) {
-          var path;
-          if (this.walk != null) {
-            this.walk.end();
-          }
-          path = new PathFinder(this.tile.container, this.tile, tile, {
-            validTile: function(tile) {
-              return tile.walkable;
-            }
+          var action;
+          action = new this.constructor.WalkAction({
+            actor: this,
+            target: tile
           });
-          this.walk = new PathWalk(this, path);
-          return this.walk.start();
+          action.execute();
+          return action;
+        }
+
+        isSelectableBy(player) {
+          return true;
         }
 
       };
@@ -2714,10 +2800,58 @@
               return this.setDefaults();
             }
           }
+        },
+        offsetX: {
+          default: 0.5
+        },
+        offsetY: {
+          default: 0.5
+        },
+        defaultAction: {
+          calcul: function() {
+            return new this.constructor.WalkAction({
+              actor: this
+            });
+          }
         }
       });
 
       return Character;
+
+    }).call(this);
+    Character.WalkAction = (function() {
+      class WalkAction extends TargetAction {
+        execute() {
+          if (this.actor.walk != null) {
+            this.actor.walk.end();
+          }
+          this.actor.walk = new PathWalk(this.actor, this.pathFinder, {
+            timing: game.timing
+          });
+          return this.actor.walk.start();
+        }
+
+        validTarget() {
+          //todo: this will be slow for invalid targets
+          this.pathFinder.calcul();
+          return this.pathFinder.solution != null;
+        }
+
+      };
+
+      WalkAction.properties({
+        pathFinder: {
+          calcul: function() {
+            return new PathFinder(this.actor.tile.container, this.actor.tile, this.target, {
+              validTile: function(tile) {
+                return tile.walkable;
+              }
+            });
+          }
+        }
+      });
+
+      return WalkAction;
 
     }).call(this);
     return Character;
@@ -3394,6 +3528,99 @@
   });
 
   (function(definition) {
+    Parallelio.Player = definition();
+    return Parallelio.Player.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, Player;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Player = (function() {
+      class Player extends Element {
+        constructor(options) {
+          super();
+          this.setProperties(options);
+        }
+
+        setDefaults() {
+          var first;
+          first = this.game.players.length === 0;
+          this.game.players.add(this);
+          if (first && !this.controller && this.game.defaultPlayerControllerClass) {
+            return this.controller = new this.game.defaultPlayerControllerClass();
+          }
+        }
+
+        canTargetActionOn(elem) {
+          var action, ref3;
+          action = this.selectedAction || ((ref3 = this.selected) != null ? ref3.defaultAction : void 0);
+          return (action != null) && typeof action.canTarget === "function" && action.canTarget(elem);
+        }
+
+        canSelect(elem) {
+          return typeof elem.isSelectableBy === "function" && elem.isSelectableBy(this);
+        }
+
+        canFocusOn(elem) {
+          if (typeof elem.IsFocusableBy === "function") {
+            return elem.IsFocusableBy(this);
+          } else if (typeof elem.IsSelectableBy === "function") {
+            return elem.IsSelectableBy(this);
+          }
+        }
+
+        setActionTarget(elem) {
+          var action, ref3;
+          action = this.selectedAction || ((ref3 = this.selected) != null ? ref3.defaultAction : void 0);
+          action = action.withTarget(elem);
+          if (action.isReady()) {
+            action.start();
+            return this.selectedAction = null;
+          } else {
+            return this.selectedAction = action;
+          }
+        }
+
+      };
+
+      Player.properties({
+        name: {
+          default: 'Player'
+        },
+        focused: {},
+        selected: {
+          change: function(old) {
+            var ref3;
+            if (old != null ? old.getProperty('selected') : void 0) {
+              old.selected = false;
+            }
+            if ((ref3 = this.selected) != null ? ref3.getProperty('selected') : void 0) {
+              return this.selected.selected = this;
+            }
+          }
+        },
+        selectedAction: {},
+        controller: {
+          change: function(old) {
+            if (this.controller) {
+              return this.controller.player = this;
+            }
+          }
+        },
+        game: {
+          change: function(old) {
+            if (this.game) {
+              return this.setDefaults();
+            }
+          }
+        }
+      });
+
+      return Player;
+
+    }).call(this);
+    return Player;
+  });
+
+  (function(definition) {
     Parallelio.Spark.EventEmitter = definition();
     return Parallelio.Spark.EventEmitter.definition = definition;
   })(function() {
@@ -3744,13 +3971,16 @@
     Parallelio.Game = definition();
     return Parallelio.Game.definition = definition;
   })(function(dependencies = {}) {
-    var Element, Game, Timing, View;
+    var Element, Game, Player, Timing, View;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     View = dependencies.hasOwnProperty("View") ? dependencies.View : Parallelio.View;
+    Player = dependencies.hasOwnProperty("Player") ? dependencies.Player : Parallelio.Player;
     Game = (function() {
       class Game extends Element {
-        start() {}
+        start() {
+          return this.currentPlayer;
+        }
 
         add(elem) {
           elem.game = this;
@@ -3776,10 +4006,24 @@
         },
         views: {
           collection: true
+        },
+        currentPlayer: {
+          calcul: function() {
+            if (this.players.length > 0) {
+              return this.players.get(0);
+            } else {
+              return this.add(new this.defaultPlayerClass());
+            }
+          }
+        },
+        players: {
+          collection: true
         }
       });
 
       Game.prototype.defaultViewClass = View;
+
+      Game.prototype.defaultPlayerClass = Player;
 
       return Game;
 
