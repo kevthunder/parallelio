@@ -919,6 +919,10 @@
           return this._array[i];
         }
 
+        getRandom() {
+          return this._array[Math.floor(Math.random() * this._array.length)];
+        }
+
         set(i, val) {
           var old;
           if (this._array[i] !== val) {
@@ -2675,6 +2679,16 @@
           this.name = name1;
         }
 
+        setDefaults() {
+          var candidates;
+          if (!this.tile && (this.game.mainTileContainer != null)) {
+            candidates = this.game.mainTileContainer.tiles.filter(function(tile) {
+              return tile.walkable !== false;
+            });
+            return this.tile = candidates[Math.floor(Math.random() * candidates.length)];
+          }
+        }
+
         walkTo(tile) {
           var path;
           if (this.walk != null) {
@@ -2692,6 +2706,16 @@
       };
 
       Character.extend(Damageable);
+
+      Character.properties({
+        game: {
+          change: function(old) {
+            if (this.game) {
+              return this.setDefaults();
+            }
+          }
+        }
+      });
 
       return Character;
 
