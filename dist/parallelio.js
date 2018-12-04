@@ -2677,7 +2677,7 @@
           var candidate, pos, remaining;
           remaining = tiles.slice();
           while (remaining.length > 0) {
-            pos = remaining[Math.floor(Math.random() * remaining.length)];
+            pos = Math.floor(Math.random() * remaining.length);
             candidate = remaining.splice(pos, 1)[0];
             if (this.canGoOnTile(candidate)) {
               return candidate;
@@ -2795,6 +2795,10 @@
           if (!this.tile && (this.game.mainTileContainer != null)) {
             return this.putOnRandomTile(this.game.mainTileContainer.tiles);
           }
+        }
+
+        canGoOnTile(tile) {
+          return tile.walkable !== false;
         }
 
         walkTo(tile) {

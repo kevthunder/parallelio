@@ -30,6 +30,9 @@ class Character extends Tiled
     if !@tile && @game.mainTileContainer?
       @putOnRandomTile(@game.mainTileContainer.tiles)
 
+  canGoOnTile: (tile)->
+    tile.walkable != false
+
   walkTo: (tile) ->
     action = new @constructor.WalkAction
       actor: this
