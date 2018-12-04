@@ -28,9 +28,7 @@ class Character extends Tiled
 
   setDefaults: ->
     if !@tile && @game.mainTileContainer?
-      candidates = @game.mainTileContainer.tiles.filter (tile)->
-        tile.walkable != false
-      @tile = candidates[Math.floor(Math.random()*candidates.length)]
+      @putOnRandomTile(@game.mainTileContainer.tiles)
 
   walkTo: (tile) ->
     action = new @constructor.WalkAction

@@ -2664,7 +2664,33 @@
     var Element, Tiled;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     Tiled = (function() {
-      class Tiled extends Element {};
+      class Tiled extends Element {
+        putOnRandomTile(tiles) {
+          var found;
+          found = this.getRandomValidTile(tiles);
+          if (found) {
+            return this.tile = found;
+          }
+        }
+
+        getRandomValidTile(tiles) {
+          var candidate, pos, remaining;
+          remaining = tiles.slice();
+          while (remaining.length > 0) {
+            pos = remaining[Math.floor(Math.random() * remaining.length)];
+            candidate = remaining.splice(pos, 1)[0];
+            if (this.canGoOnTile(candidate)) {
+              return candidate;
+            }
+          }
+          return null;
+        }
+
+        canGoOnTile(tile) {
+          return true;
+        }
+
+      };
 
       Tiled.properties({
         tile: {
@@ -2766,12 +2792,8 @@
         }
 
         setDefaults() {
-          var candidates;
           if (!this.tile && (this.game.mainTileContainer != null)) {
-            candidates = this.game.mainTileContainer.tiles.filter(function(tile) {
-              return tile.walkable !== false;
-            });
-            return this.tile = candidates[Math.floor(Math.random() * candidates.length)];
+            return this.putOnRandomTile(this.game.mainTileContainer.tiles);
           }
         }
 
