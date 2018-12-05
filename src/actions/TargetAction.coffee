@@ -13,6 +13,6 @@ class TargetAction extends Action
     if instance.validTarget()
       instance
   validTarget: ()->
-    @actor?
+    @target?
   isReady: ->
     super() && @validTarget()

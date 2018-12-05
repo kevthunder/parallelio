@@ -905,7 +905,11 @@
               return a === b;
             };
           }
-          old = this.copy(old.slice());
+          if (old != null) {
+            old = this.copy(old.slice());
+          } else {
+            old = [];
+          }
           return this.count() !== old.length || (ordered ? this.some(function(val, i) {
             return !compareFunction(old.get(i), val);
           }) : this.some(function(a) {
@@ -2585,6 +2589,16 @@
           this.setProperties(options);
         }
 
+        withActor(actor) {
+          if (this.actor !== actor) {
+            return this.copyWith({
+              actor: actor
+            });
+          } else {
+            return this;
+          }
+        }
+
         copyWith(options) {
           return new this.constructor(Object.assign({
             base: this
@@ -2595,8 +2609,12 @@
           return this.execute();
         }
 
+        validActor() {
+          return this.actor != null;
+        }
+
         isReady() {
-          return true;
+          return validActor();
         }
 
       };
@@ -2638,7 +2656,7 @@
         }
 
         validTarget() {
-          return this.actor != null;
+          return this.target != null;
         }
 
         isReady() {
@@ -4055,6 +4073,43 @@
 
     }).call(this);
     return Game;
+  });
+
+  (function(definition) {
+    Parallelio.Obstacle = definition();
+    return Parallelio.Obstacle.definition = definition;
+  })(function(dependencies = {}) {
+    var Obstacle, Tiled;
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Obstacle = (function() {
+      class Obstacle extends Tiled {
+        updateWalkables(old) {
+          var ref3, ref4;
+          if (old != null) {
+            if ((ref3 = old.walkableMembers) != null) {
+              ref3.removeRef('walkable', this);
+            }
+          }
+          if (this.tile) {
+            return (ref4 = this.tile.walkableMembers) != null ? ref4.setValueRef(false, 'walkable', this) : void 0;
+          }
+        }
+
+      };
+
+      Obstacle.properties({
+        tile: {
+          change: function(old, overrided) {
+            overrided(old);
+            return this.updateWalkables(old);
+          }
+        }
+      });
+
+      return Obstacle;
+
+    }).call(this);
+    return Obstacle;
   });
 
   (function(definition) {
@@ -5501,6 +5556,163 @@
 
     }).call(this);
     return Wire;
+  });
+
+  (function(definition) {
+    Parallelio.ActionProvider = definition();
+    return Parallelio.ActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, Element;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    ActionProvider = (function() {
+      class ActionProvider extends Element {};
+
+      ActionProvider.properties({
+        providedActions: {
+          collection: true
+        }
+      });
+
+      return ActionProvider;
+
+    }).call(this);
+    return ActionProvider;
+  });
+
+  (function(definition) {
+    Parallelio.SimpleActionProvider = definition();
+    return Parallelio.SimpleActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, SimpleActionProvider;
+    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
+    SimpleActionProvider = (function() {
+      class SimpleActionProvider extends ActionProvider {};
+
+      SimpleActionProvider.properties({
+        providedActions: {
+          calcul: function() {
+            var actions;
+            actions = this.actions || this.constructor.actions;
+            if (typeof actions === "object") {
+              actions = Object.keys(actions).map(function(key) {
+                return actions[key];
+              });
+            }
+            return actions.map((action) => {
+              return new action({
+                target: this
+              });
+            });
+          }
+        }
+      });
+
+      return SimpleActionProvider;
+
+    }).call(this);
+    return SimpleActionProvider;
+  });
+
+  (function(definition) {
+    Parallelio.TiledActionProvider = definition();
+    return Parallelio.TiledActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, Mixable, TiledActionProvider;
+    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
+    Mixable = dependencies.hasOwnProperty("Mixable") ? dependencies.Mixable : Parallelio.Spark.Mixable;
+    TiledActionProvider = (function() {
+      class TiledActionProvider extends ActionProvider {
+        validActionTile(tile) {
+          return tile != null;
+        }
+
+        prepareActionTile(tile) {
+          if (!tile.getPropertyInstance('providedActions')) {
+            return Mixable.Extension.make(ActionProvider.prototype, tile);
+          }
+        }
+
+      };
+
+      TiledActionProvider.properties({
+        tile: {
+          change: function(old, overrided) {
+            overrided(old);
+            return this.forwardedActions;
+          }
+        },
+        actionTiles: {
+          collection: true,
+          calcul: function(invalidator) {
+            var myTile;
+            myTile = invalidator.prop('tile');
+            if (myTile) {
+              return this.actionTilesCoord.map((coord) => {
+                return myTile.getRelativeTile(coord.x, coord.y);
+              }).filter((tile) => {
+                return this.validActionTile(tile);
+              });
+            } else {
+              return [];
+            }
+          }
+        },
+        forwardedActions: {
+          collection: {
+            compare: function(a, b) {
+              return a.action === b.action && a.location === b.location;
+            }
+          },
+          calcul: function(invalidator) {
+            var actionTiles, actions;
+            actionTiles = invalidator.prop('actionTiles');
+            actions = invalidator.prop('providedActions');
+            return actionTiles.reduce((res, tile) => {
+              return res.concat(actions.map(function(act) {
+                return {
+                  action: act,
+                  location: tile
+                };
+              }));
+            }, []);
+          },
+          itemAdded: function(forwarded) {
+            this.prepareActionTile(forwarded.location);
+            return forwarded.location.providedActions.add(forwarded.action);
+          },
+          itemRemoved: function(forwarded) {
+            return forwarded.location.providedActions.remove(forwarded.action);
+          }
+        }
+      });
+
+      TiledActionProvider.prototype.actionTilesCoord = [
+        {
+          x: 0,
+          y: -1
+        },
+        {
+          x: -1,
+          y: 0
+        },
+        {
+          x: 0,
+          y: 0
+        },
+        {
+          x: +1,
+          y: 0
+        },
+        {
+          x: 0,
+          y: +1
+        }
+      ];
+
+      return TiledActionProvider;
+
+    }).call(this);
+    return TiledActionProvider;
   });
 
 }).call(this);
