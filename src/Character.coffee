@@ -26,6 +26,15 @@ class Character extends Tiled
         new @constructor.WalkAction
           actor: this
 
+    availableActions:
+      collection: true
+      calcul: (invalidator)->
+        tile = invalidator.prop("tile")
+        if tile
+          invalidator.prop("providedActions",tile)
+        else
+          []
+
   setDefaults: ->
     if !@tile && @game.mainTileContainer?
       @putOnRandomTile(@game.mainTileContainer.tiles)

@@ -18,4 +18,4 @@ class Action extends Element
   validActor: ()->
     @actor?
   isReady: ->
-    validActor()
+    @validActor()
