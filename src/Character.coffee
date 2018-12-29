@@ -71,6 +71,5 @@ class Character.WalkAction extends TargetAction
     @actor.walk.start()
 
   validTarget: ()->
-    #todo: this will be slow for invalid targets
     @pathFinder.calcul()
     @pathFinder.solution?

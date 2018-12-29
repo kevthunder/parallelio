@@ -1263,6 +1263,17 @@
           }
         }
 
+        propPath(path, target = this.obj) {
+          var prop, val;
+          path = path.split('.');
+          val = target;
+          while ((val != null) && path.length > 0) {
+            prop = path.shift();
+            val = this.prop(prop, val);
+          }
+          return val;
+        }
+
         propInitiated(prop, target = this.obj) {
           var initiated;
           initiated = target.getPropertyInstance(prop).initiated;
@@ -2152,10 +2163,10 @@
     Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     PathWalk = (function() {
       class PathWalk extends Element {
-        constructor(walker, path, options) {
+        constructor(walker, path1, options) {
           super();
           this.walker = walker;
-          this.path = path;
+          this.path = path1;
           this.setProperties(options);
         }
 
@@ -2302,8 +2313,10 @@
             return true;
           } else if (!this.started) {
             this.started = true;
-            this.addNextSteps();
-            return true;
+            if (this.tileIsValid(this.to)) {
+              this.addNextSteps();
+              return true;
+            }
           }
         }
 
@@ -2349,7 +2362,7 @@
           if (this.validTileCallback != null) {
             return this.validTileCallback(tile);
           } else {
-            return !tile.emulated || (tile.tile !== 0 && tile.tile !== false);
+            return (tile != null) && (!tile.emulated || (tile.tile !== 0 && tile.tile !== false));
           }
         }
 
@@ -2888,8 +2901,6 @@
         }
 
         validTarget() {
-          
-          //todo: this will be slow for invalid targets  
           this.pathFinder.calcul();
           return this.pathFinder.solution != null;
         }
@@ -5173,27 +5184,6 @@
   });
 
   (function(definition) {
-    Parallelio.ActionProvider = definition();
-    return Parallelio.ActionProvider.definition = definition;
-  })(function(dependencies = {}) {
-    var ActionProvider, Element;
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    ActionProvider = (function() {
-      class ActionProvider extends Element {};
-
-      ActionProvider.properties({
-        providedActions: {
-          collection: true
-        }
-      });
-
-      return ActionProvider;
-
-    }).call(this);
-    return ActionProvider;
-  });
-
-  (function(definition) {
     Parallelio.SignalOperation = definition();
     return Parallelio.SignalOperation.definition = definition;
   })(function(dependencies = {}) {
@@ -5593,6 +5583,27 @@
 
     }).call(this);
     return Wire;
+  });
+
+  (function(definition) {
+    Parallelio.ActionProvider = definition();
+    return Parallelio.ActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, Element;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    ActionProvider = (function() {
+      class ActionProvider extends Element {};
+
+      ActionProvider.properties({
+        providedActions: {
+          collection: true
+        }
+      });
+
+      return ActionProvider;
+
+    }).call(this);
+    return ActionProvider;
   });
 
   (function(definition) {
