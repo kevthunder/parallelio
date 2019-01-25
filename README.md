@@ -1,6 +1,8 @@
 # Parallelio
 
-Game engine behind Parallelium
+Grid-base Game engine
+
+See examples and follow the developpement here : https://codepen.io/collection/njOLaL/
 
 ## Installation
 
