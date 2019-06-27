@@ -25,7 +25,7 @@ class AutomaticDoor extends Door
     @open
 
   isActivatorPresent:(invalidate)->
-    @getReactiveTiles().some (tile) =>
+    @getReactiveTiles(invalidate).some (tile) =>
       children = if invalidate then invalidate.prop('children',tile) else tile.children
       children.some (child) =>
         @canBeActivatedBy(child)
@@ -33,16 +33,20 @@ class AutomaticDoor extends Door
   canBeActivatedBy:(elem)->
     elem instanceof Character
 
-  getReactiveTiles: ->
-    if @direction == Door.directions.horizontal
+  getReactiveTiles: (invalidate)->
+    tile = if invalidate then invalidate.prop('tile') else @tile
+    unless tile
+      return []
+    direction = if invalidate then invalidate.prop('direction') else @direction
+    if direction == Door.directions.horizontal
       [
-        @tile
-        @tile.getRelativeTile(0, 1)
-        @tile.getRelativeTile(0, -1)
+        tile
+        tile.getRelativeTile(0, 1)
+        tile.getRelativeTile(0, -1)
       ].filter (t) -> t?
     else
       [
-        @tile
-        @tile.getRelativeTile(1, 0)
-        @tile.getRelativeTile(-1, 0)
+        tile
+        tile.getRelativeTile(1, 0)
+        tile.getRelativeTile(-1, 0)
       ].filter (t) -> t?

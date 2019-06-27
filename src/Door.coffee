@@ -5,8 +5,7 @@ class Door extends Tiled
     super()
   @properties
     tile:
-      change: (old,overrided) ->
-        overrided(old)
+      change: (old) ->
         @updateTileMembers(old)
     open:
       default: false
