@@ -1,25 +1,13 @@
 Element = require('spark-starter').Element
 TileContainer = require('parallelio-tiles').TileContainer
 Tile = require('parallelio-tiles').Tile
+Direction = require('parallelio-tiles').Direction
 Door = require('./Door')
 
 class RoomGenerator extends Element
   constructor: (options) ->
     super()
     @setProperties(options)
-    @directions = [
-      {x:1, y:0}
-      {x:-1, y:0}
-      {x:0, y:1}
-      {x:0, y:-1}
-    ]
-    @corners = [
-      {x:1, y:1}
-      {x:-1, y:-1}
-      {x:-1, y:1}
-      {x:1, y:-1}
-    ]
-    @allDirections = @directions.concat(@corners)
   @properties
     rng:
       default: Math.random
@@ -46,17 +34,17 @@ class RoomGenerator extends Element
     doorFactory: 
       calcul: ->
         @floorFactory
-  init: ->
+  initTiles: ->
     @finalTiles = null
     @rooms = []
     @free = @tileContainer.allTiles().filter (tile) =>
-      for direction in @allDirections
+      for direction in Direction.all
         next = @tileContainer.getTile(tile.x + direction.x, tile.y + direction.y)
         unless next?
           return false
       true
   calcul: ->
-    @init()
+    @initTiles()
     i = 0
     while @step() or @newRoom()
       i++
@@ -81,7 +69,7 @@ class RoomGenerator extends Element
       @volume = Math.floor(@rng() * (@maxVolume-@minVolume)) + @minVolume
       @room = new RoomGenerator.Room()
   randomDirections: ->
-    o = @directions.slice()
+    o = Direction.adjacents.slice()
     j = undefined
     x = undefined
     i = o.length
@@ -124,10 +112,10 @@ class RoomGenerator extends Element
     success
   allocateWalls: (room) ->
     for tile in room.tiles
-      for direction in @allDirections
+      for direction in Direction.all
         next = @tileContainer.getTile(tile.x + direction.x, tile.y + direction.y)
         if next? and next.room != room
-          unless direction in @corners
+          unless direction in Direction.corners
             otherSide = @tileContainer.getTile(tile.x + direction.x * 2, tile.y + direction.y * 2)
             nextRoom = if otherSide?.room? then otherSide.room else null
             room.addWall(next, nextRoom)
