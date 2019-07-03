@@ -16,5 +16,6 @@ require './weapon'
 require './projectile'
 require './room_generator'
 require './path_walk'
+require './character'
 
 require './concat'

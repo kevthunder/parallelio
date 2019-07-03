@@ -1,8 +1,10 @@
 Element = require('spark-starter').Element
 Timing = require('parallelio-timing')
+EventEmitter = require('spark-starter').EventEmitter
 
 
 class PathWalk extends Element
+  @include EventEmitter.prototype
   constructor: (@walker, @path, options) ->
     super()
     @setProperties(options)
@@ -23,7 +25,7 @@ class PathWalk extends Element
       @path.calcul()
     if @path.solution
       @pathTimeout = @timing.setTimeout =>
-        @end()
+        @endReached()
       , @totalTime
       @pathTimeout.updater.addCallback(@callback('update'))
   stop: ->
@@ -33,8 +35,14 @@ class PathWalk extends Element
     @walker.tile = pos.tile
     @walker.offsetX = pos.offsetX
     @walker.offsetY = pos.offsetY
+  endReached: ->
+    @update()
+    @trigger('endReached')
+    @trigger('end')
+    @destroy()
   end: ->
     @update()
+    @trigger('end')
     @destroy()
   destroy: ->
     @pathTimeout.destroy()

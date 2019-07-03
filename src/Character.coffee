@@ -1,8 +1,6 @@
 Tiled = require('parallelio-tiles').Tiled
-PathFinder = require('parallelio-pathfinder')
-PathWalk = require('./PathWalk')
 Damageable = require('./Damageable')
-TargetAction = require('./actions/TargetAction')
+WalkAction = require('./actions/WalkAction')
 
 class Character extends Tiled
   @extend Damageable
@@ -23,7 +21,7 @@ class Character extends Tiled
 
     defaultAction:
       calcul: ->
-        new @constructor.WalkAction
+        new WalkAction
           actor: this
 
     availableActions:
@@ -43,7 +41,7 @@ class Character extends Tiled
     tile?.walkable != false
 
   walkTo: (tile) ->
-    action = new @constructor.WalkAction
+    action = new WalkAction
       actor: this
       target: tile
 
@@ -52,24 +50,3 @@ class Character extends Tiled
 
   isSelectableBy: (player)->
     true
-
-class Character.WalkAction extends TargetAction
-  @properties
-    pathFinder:
-      calcul: ->
-        new PathFinder(@actor.tile.container, @actor.tile, @target, {
-          validTile: (tile) ->
-            tile.walkable
-        })
-
-  execute: -> 
-    if @actor.walk?
-      @actor.walk.end()
-    @actor.walk = new PathWalk(@actor, @pathFinder, {
-      timing:game.timing
-    })
-    @actor.walk.start()
-
-  validTarget: ()->
-    @pathFinder.calcul()
-    @pathFinder.solution?

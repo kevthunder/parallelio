@@ -9,7 +9,7 @@ class Damageable extends Element
     health:
       default: 1000
       change: ->
-        if @health == 0
+        if @health <= 0
           @whenNoHealth()
   damage: (val) ->
     @health = Math.max(0, @health - val)
