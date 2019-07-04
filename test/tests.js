@@ -23,13 +23,19 @@
 
   require('./damage_propagation');
 
-  require('./weapon');
+  require('./shipWeapon');
 
   require('./projectile');
 
   require('./room_generator');
 
   require('./path_walk');
+
+  require('./personalWeapon');
+
+  require('./character');
+
+  require('./attackAction');
 
   require('./concat');
 

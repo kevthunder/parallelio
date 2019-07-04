@@ -6,6 +6,7 @@ var coffee = require('gulp-coffee');
 var uglify = require('gulp-uglify-es').default;
 var concat = require('gulp-concat');
 var mocha = require('gulp-mocha');
+var clean = require('gulp-clean');
 var merge = require('merge2');
 var concatStrings = require('parallelio-strings/gulp/concatStrings');
 var wrapper = require('spark-wrapper');
@@ -68,8 +69,13 @@ gulp.task('update', function() {
   });
 });
 
+gulp.task('clean', function() {
+  return gulp.src(['./lib','./dist'], {read: false, allowEmpty:true})
+  .pipe(clean());
+});
+
 var build;
-gulp.task('build', build = gulp.series('coffee', 'concatCoffee', 'compress', function (done) {
+gulp.task('build', build = gulp.series('clean', 'coffee', 'concatCoffee', 'compress', function (done) {
     console.log('Build Complete');
     done();
 }));
@@ -78,7 +84,12 @@ gulp.task('watch', gulp.series('build', function() {
   return gulp.watch(['./src/**/*.coffee'], gulp.series('coffee', 'concatCoffee', 'compress'));
 }));
 
-gulp.task('test', gulp.series('build','coffeeTest', function() {
+gulp.task('cleanTests', function() {
+  return gulp.src(['./test/**/*.js'], {read: false, allowEmpty:true})
+  .pipe(clean());
+});
+
+gulp.task('test', gulp.series('cleanTests', 'build','coffeeTest', function() {
   return gulp.src('./test/tests.js')
     .pipe(mocha());
 }));

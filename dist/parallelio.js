@@ -34,19 +34,33 @@
       };
 
       Mixable.Extension = {
+        makeOnce: function(source, target) {
+          var ref3;
+          if (!((ref3 = target.extensions) != null ? ref3.includes(source) : void 0)) {
+            return this.make(source, target);
+          }
+        },
         make: function(source, target) {
-          var k, len, prop, ref3;
+          var k, len, originalFinalProperties, prop, ref3;
           ref3 = this.getExtensionProperties(source, target);
           for (k = 0, len = ref3.length; k < len; k++) {
             prop = ref3[k];
             Object.defineProperty(target, prop.name, prop);
+          }
+          if (source.getFinalProperties && target.getFinalProperties) {
+            originalFinalProperties = target.getFinalProperties;
+            target.getFinalProperties = function() {
+              return source.getFinalProperties().concat(originalFinalProperties.call(this));
+            };
+          } else {
+            target.getFinalProperties = source.getFinalProperties || target.getFinalProperties;
           }
           target.extensions = (target.extensions || []).concat([source]);
           if (typeof source.extended === 'function') {
             return source.extended(target);
           }
         },
-        alwaysFinal: ['extended', 'extensions', '__super__', 'constructor'],
+        alwaysFinal: ['extended', 'extensions', '__super__', 'constructor', 'getFinalProperties'],
         getExtensionProperties: function(source, target) {
           var alwaysFinal, props, targetChain;
           alwaysFinal = this.alwaysFinal;
@@ -95,6 +109,72 @@
 
     }).call(this);
     return Mixable;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.EventEmitter = definition();
+    return Parallelio.Spark.EventEmitter.definition = definition;
+  })(function() {
+    var EventEmitter;
+    EventEmitter = (function() {
+      class EventEmitter {
+        getAllEvents() {
+          return this._events || (this._events = {});
+        }
+
+        getListeners(e) {
+          var events;
+          events = this.getAllEvents();
+          return events[e] || (events[e] = []);
+        }
+
+        hasListener(e, listener) {
+          return this.getListeners(e).includes(listener);
+        }
+
+        addListener(e, listener) {
+          if (!this.hasListener(e, listener)) {
+            this.getListeners(e).push(listener);
+            return this.listenerAdded(e, listener);
+          }
+        }
+
+        listenerAdded(e, listener) {}
+
+        removeListener(e, listener) {
+          var index, listeners;
+          listeners = this.getListeners(e);
+          index = listeners.indexOf(listener);
+          if (index !== -1) {
+            listeners.splice(index, 1);
+            return this.listenerRemoved(e, listener);
+          }
+        }
+
+        listenerRemoved(e, listener) {}
+
+        emitEvent(e, ...args) {
+          var listeners;
+          listeners = this.getListeners(e).slice();
+          return listeners.forEach(function(listener) {
+            return listener(...args);
+          });
+        }
+
+      };
+
+      EventEmitter.prototype.emit = EventEmitter.prototype.emitEvent;
+
+      EventEmitter.prototype.trigger = EventEmitter.prototype.emitEvent;
+
+      EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+      EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
+      return EventEmitter;
+
+    }).call(this);
+    return EventEmitter;
   });
 
   (function(definition) {
@@ -187,198 +267,14 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.BasicProperty = definition();
-    return Parallelio.Spark.BasicProperty.definition = definition;
-  })(function(dependencies = {}) {
-    var BasicProperty, Mixable;
-    Mixable = dependencies.hasOwnProperty("Mixable") ? dependencies.Mixable : Parallelio.Spark.Mixable;
-    BasicProperty = class BasicProperty extends Mixable {
-      constructor(property1, obj3) {
-        super();
-        this.property = property1;
-        this.obj = obj3;
-        this.init();
-      }
-
-      init() {
-        this.value = this.ingest(this.default);
-        return this.calculated = false;
-      }
-
-      get() {
-        this.calculated = true;
-        return this.output();
-      }
-
-      set(val) {
-        return this.setAndCheckChanges(val);
-      }
-
-      callbackSet(val) {
-        this.callOptionFunct("set", val);
-        return this;
-      }
-
-      setAndCheckChanges(val) {
-        var old;
-        val = this.ingest(val);
-        this.revalidated();
-        if (this.checkChanges(val, this.value)) {
-          old = this.value;
-          this.value = val;
-          this.manual = true;
-          this.changed(old);
-        }
-        return this;
-      }
-
-      checkChanges(val, old) {
-        return val !== old;
-      }
-
-      destroy() {}
-
-      callOptionFunct(funct, ...args) {
-        if (typeof funct === 'string') {
-          funct = this.property.options[funct];
-        }
-        if (typeof funct.overrided === 'function') {
-          args.push((...args) => {
-            return this.callOptionFunct(funct.overrided, ...args);
-          });
-        }
-        return funct.apply(this.obj, args);
-      }
-
-      revalidated() {
-        this.calculated = true;
-        return this.initiated = true;
-      }
-
-      ingest(val) {
-        if (typeof this.property.options.ingest === 'function') {
-          return val = this.callOptionFunct("ingest", val);
-        } else {
-          return val;
-        }
-      }
-
-      output() {
-        if (typeof this.property.options.output === 'function') {
-          return this.callOptionFunct("output", this.value);
-        } else {
-          return this.value;
-        }
-      }
-
-      changed(old) {
-        this.callChangedFunctions(old);
-        if (typeof this.obj.emitEvent === 'function') {
-          this.obj.emitEvent(this.updateEventName, [old]);
-          this.obj.emitEvent(this.changeEventName, [old]);
-        }
-        return this;
-      }
-
-      callChangedFunctions(old) {
-        if (typeof this.property.options.change === 'function') {
-          return this.callOptionFunct("change", old);
-        }
-      }
-
-      hasChangedFunctions() {
-        return typeof this.property.options.change === 'function';
-      }
-
-      hasChangedEvents() {
-        return typeof this.obj.getListeners === 'function' && this.obj.getListeners(this.changeEventName).length > 0;
-      }
-
-      static compose(prop) {
-        if (prop.instanceType == null) {
-          prop.instanceType = class extends BasicProperty {};
-        }
-        if (typeof prop.options.set === 'function') {
-          prop.instanceType.prototype.set = this.prototype.callbackSet;
-        } else {
-          prop.instanceType.prototype.set = this.prototype.setAndCheckChanges;
-        }
-        prop.instanceType.prototype.default = prop.options.default;
-        prop.instanceType.prototype.initiated = typeof prop.options.default !== 'undefined';
-        return this.setEventNames(prop);
-      }
-
-      static setEventNames(prop) {
-        prop.instanceType.prototype.changeEventName = prop.options.changeEventName || prop.name + 'Changed';
-        prop.instanceType.prototype.updateEventName = prop.options.updateEventName || prop.name + 'Updated';
-        return prop.instanceType.prototype.invalidateEventName = prop.options.invalidateEventName || prop.name + 'Invalidated';
-      }
-
-      static bind(target, prop) {
-        var maj, opt;
-        maj = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
-        opt = {
-          configurable: true,
-          get: function() {
-            return prop.getInstance(this).get();
-          }
-        };
-        if (prop.options.set !== false) {
-          opt.set = function(val) {
-            return prop.getInstance(this).set(val);
-          };
-        }
-        Object.defineProperty(target, prop.name, opt);
-        target['get' + maj] = function() {
-          return prop.getInstance(this).get();
-        };
-        if (prop.options.set !== false) {
-          target['set' + maj] = function(val) {
-            prop.getInstance(this).set(val);
-            return this;
-          };
-        }
-        return target['invalidate' + maj] = function() {
-          prop.getInstance(this).invalidate();
-          return this;
-        };
-      }
-
-    };
-    return BasicProperty;
-  });
-
-  (function(definition) {
-    Parallelio.Spark.Binder = definition();
-    return Parallelio.Spark.Binder.definition = definition;
+    Parallelio.Spark.Referred = definition();
+    return Parallelio.Spark.Referred.definition = definition;
   })(function() {
-    var Binder;
-    Binder = (function() {
-      class Binder {
-        bind() {
-          if (!this.binded && (this.callback != null) && (this.target != null)) {
-            this.doBind();
-          }
-          return this.binded = true;
-        }
-
-        doBind() {
-          throw new Error('Not implemented');
-        }
-
-        unbind() {
-          if (this.binded && (this.callback != null) && (this.target != null)) {
-            this.doUnbind();
-          }
-          return this.binded = false;
-        }
-
-        doUnbind() {
-          throw new Error('Not implemented');
-        }
-
-        equals(binder) {
-          return this.constructor.compareRefered(binder, this);
+    var Referred;
+    Referred = (function() {
+      class Referred {
+        compareRefered(refered) {
+          return this.constructor.compareRefered(refered, this);
         }
 
         getRef() {}
@@ -397,15 +293,461 @@
 
       };
 
-      Object.defineProperty(Binder.prototype, 'ref', {
+      Object.defineProperty(Referred.prototype, 'ref', {
         get: function() {
           return this.getRef();
         }
       });
 
-      return Binder;
+      return Referred;
 
     }).call(this);
+    return Referred;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Collection = definition();
+    return Parallelio.Spark.Collection.definition = definition;
+  })(function() {
+    var Collection;
+    Collection = (function() {
+      class Collection {
+        constructor(arr) {
+          if (arr != null) {
+            if (typeof arr.toArray === 'function') {
+              this._array = arr.toArray();
+            } else if (Array.isArray(arr)) {
+              this._array = arr;
+            } else {
+              this._array = [arr];
+            }
+          } else {
+            this._array = [];
+          }
+        }
+
+        changed() {}
+
+        checkChanges(old, ordered = true, compareFunction = null) {
+          if (compareFunction == null) {
+            compareFunction = function(a, b) {
+              return a === b;
+            };
+          }
+          if (old != null) {
+            old = this.copy(old.slice());
+          } else {
+            old = [];
+          }
+          return this.count() !== old.length || (ordered ? this.some(function(val, i) {
+            return !compareFunction(old.get(i), val);
+          }) : this.some(function(a) {
+            return !old.pluck(function(b) {
+              return compareFunction(a, b);
+            });
+          }));
+        }
+
+        get(i) {
+          return this._array[i];
+        }
+
+        getRandom() {
+          return this._array[Math.floor(Math.random() * this._array.length)];
+        }
+
+        set(i, val) {
+          var old;
+          if (this._array[i] !== val) {
+            old = this.toArray();
+            this._array[i] = val;
+            this.changed(old);
+          }
+          return val;
+        }
+
+        add(val) {
+          if (!this._array.includes(val)) {
+            return this.push(val);
+          }
+        }
+
+        remove(val) {
+          var index, old;
+          index = this._array.indexOf(val);
+          if (index !== -1) {
+            old = this.toArray();
+            this._array.splice(index, 1);
+            return this.changed(old);
+          }
+        }
+
+        pluck(fn) {
+          var found, index, old;
+          index = this._array.findIndex(fn);
+          if (index > -1) {
+            old = this.toArray();
+            found = this._array[index];
+            this._array.splice(index, 1);
+            this.changed(old);
+            return found;
+          } else {
+            return null;
+          }
+        }
+
+        toArray() {
+          return this._array.slice();
+        }
+
+        count() {
+          return this._array.length;
+        }
+
+        static newSubClass(fn, arr) {
+          var SubClass;
+          if (typeof fn === 'object') {
+            SubClass = class extends this {};
+            Object.assign(SubClass.prototype, fn);
+            return new SubClass(arr);
+          } else {
+            return new this(arr);
+          }
+        }
+
+        copy(arr) {
+          var coll;
+          if (arr == null) {
+            arr = this.toArray();
+          }
+          coll = new this.constructor(arr);
+          return coll;
+        }
+
+        equals(arr) {
+          return (this.count() === (typeof arr.count === 'function' ? arr.count() : arr.length)) && this.every(function(val, i) {
+            return arr[i] === val;
+          });
+        }
+
+        getAddedFrom(arr) {
+          return this._array.filter(function(item) {
+            return !arr.includes(item);
+          });
+        }
+
+        getRemovedFrom(arr) {
+          return arr.filter((item) => {
+            return !this.includes(item);
+          });
+        }
+
+      };
+
+      Collection.readFunctions = ['every', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'join', 'lastIndexOf', 'map', 'reduce', 'reduceRight', 'some', 'toString'];
+
+      Collection.readListFunctions = ['concat', 'filter', 'slice'];
+
+      Collection.writefunctions = ['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'];
+
+      Collection.readFunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function(...arg) {
+          return this._array[funct](...arg);
+        };
+      });
+
+      Collection.readListFunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function(...arg) {
+          return this.copy(this._array[funct](...arg));
+        };
+      });
+
+      Collection.writefunctions.forEach(function(funct) {
+        return Collection.prototype[funct] = function(...arg) {
+          var old, res;
+          old = this.toArray();
+          res = this._array[funct](...arg);
+          this.changed(old);
+          return res;
+        };
+      });
+
+      return Collection;
+
+    }).call(this);
+    Object.defineProperty(Collection.prototype, 'length', {
+      get: function() {
+        return this.count();
+      }
+    });
+    if (typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) {
+      Collection.prototype[Symbol.iterator] = function() {
+        return this._array[Symbol.iterator]();
+      };
+    }
+    return Collection;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Overrider = definition();
+    return Parallelio.Spark.Overrider.definition = definition;
+  })(function() {
+    var Overrider;
+    Overrider = (function() {
+      // todo : 
+      //  simplified form : @withoutName method
+      class Overrider {
+        static overrides(overrides) {
+          return this.Override.applyMany(this.prototype, this.name, overrides);
+        }
+
+        getFinalProperties() {
+          if (this._overrides != null) {
+            return ['_overrides'].concat(Object.keys(this._overrides));
+          } else {
+            return [];
+          }
+        }
+
+        extended(target) {
+          if (this._overrides != null) {
+            this.constructor.Override.applyMany(target, this.constructor.name, this._overrides);
+          }
+          if (this.constructor === Overrider) {
+            return target.extended = this.extended;
+          }
+        }
+
+      };
+
+      Overrider.Override = {
+        makeMany: function(target, namespace, overrides) {
+          var fn, key, override, results;
+          results = [];
+          for (key in overrides) {
+            fn = overrides[key];
+            results.push(override = this.make(target, namespace, key, fn));
+          }
+          return results;
+        },
+        applyMany: function(target, namespace, overrides) {
+          var key, override, results;
+          results = [];
+          for (key in overrides) {
+            override = overrides[key];
+            if (typeof override === "function") {
+              override = this.make(target, namespace, key, override);
+            }
+            results.push(this.apply(target, namespace, override));
+          }
+          return results;
+        },
+        make: function(target, namespace, fnName, fn) {
+          var override;
+          override = {
+            fn: {
+              current: fn
+            },
+            name: fnName
+          };
+          override.fn['with' + namespace] = fn;
+          return override;
+        },
+        emptyFn: function() {},
+        apply: function(target, namespace, override) {
+          var fnName, overrides, ref3, ref4, without;
+          fnName = override.name;
+          overrides = target._overrides != null ? Object.assign({}, target._overrides) : {};
+          without = ((ref3 = target._overrides) != null ? (ref4 = ref3[fnName]) != null ? ref4.fn.current : void 0 : void 0) || target[fnName];
+          override = Object.assign({}, override);
+          if (overrides[fnName] != null) {
+            override.fn = Object.assign({}, overrides[fnName].fn, override.fn);
+          } else {
+            override.fn = Object.assign({}, override.fn);
+          }
+          override.fn['without' + namespace] = without || this.emptyFn;
+          if (without == null) {
+            override.missingWithout = 'without' + namespace;
+          } else if (override.missingWithout) {
+            override.fn[override.missingWithout] = without;
+          }
+          Object.defineProperty(target, fnName, {
+            configurable: true,
+            get: function() {
+              var finalFn, fn, key, ref5;
+              finalFn = override.fn.current.bind(this);
+              ref5 = override.fn;
+              for (key in ref5) {
+                fn = ref5[key];
+                finalFn[key] = fn.bind(this);
+              }
+              if (this.constructor.prototype !== this) {
+                Object.defineProperty(this, fnName, {
+                  value: finalFn
+                });
+              }
+              return finalFn;
+            }
+          });
+          overrides[fnName] = override;
+          return target._overrides = overrides;
+        }
+      };
+
+      return Overrider;
+
+    }).call(this);
+    return Overrider;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Loader = definition();
+    return Parallelio.Spark.Loader.definition = definition;
+  })(function(dependencies = {}) {
+    var Loader, Overrider;
+    Overrider = dependencies.hasOwnProperty("Overrider") ? dependencies.Overrider : Parallelio.Spark.Overrider;
+    Loader = (function() {
+      class Loader extends Overrider {
+        constructor() {
+          super();
+          this.initPreloaded();
+        }
+
+        initPreloaded() {
+          var defList;
+          defList = this.preloaded;
+          this.preloaded = [];
+          return this.load(defList);
+        }
+
+        load(defList) {
+          var loaded, toLoad;
+          toLoad = [];
+          loaded = defList.map((def) => {
+            var instance;
+            if (def.instance == null) {
+              def = Object.assign({
+                loader: this
+              }, def);
+              instance = Loader.load(def);
+              def = Object.assign({
+                instance: instance
+              }, def);
+              if (def.initByLoader && (instance.init != null)) {
+                toLoad.push(instance);
+              }
+            }
+            return def;
+          });
+          this.preloaded = this.preloaded.concat(loaded);
+          return toLoad.forEach(function(instance) {
+            return instance.init();
+          });
+        }
+
+        preload(def) {
+          if (!Array.isArray(def)) {
+            def = [def];
+          }
+          return this.preloaded = this.preloaded.concat(def);
+        }
+
+        destroyLoaded() {
+          return this.preloaded.forEach(function(def) {
+            var ref3;
+            return (ref3 = def.instance) != null ? typeof ref3.destroy === "function" ? ref3.destroy() : void 0 : void 0;
+          });
+        }
+
+        static loadMany(def) {
+          return def.map((d) => {
+            return this.load(d);
+          });
+        }
+
+        static load(def) {
+          if (typeof def.type.copyWith === "function") {
+            return def.type.copyWith(def);
+          } else {
+            return new def.type(def);
+          }
+        }
+
+        static preload(def) {
+          return this.prototype.preload(def);
+        }
+
+      };
+
+      Loader.prototype.preloaded = [];
+
+      Loader.overrides({
+        init: function() {
+          this.init.withoutLoader();
+          return this.initPreloaded();
+        },
+        destroy: function() {
+          this.destroy.withoutLoader();
+          return this.destroyLoaded();
+        }
+      });
+
+      return Loader;
+
+    }).call(this);
+    return Loader;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.Binder = definition();
+    return Parallelio.Spark.Binder.definition = definition;
+  })(function(dependencies = {}) {
+    var Binder, Referred;
+    Referred = dependencies.hasOwnProperty("Referred") ? dependencies.Referred : Parallelio.Spark.Referred;
+    Binder = class Binder extends Referred {
+      toggleBind(val = !this.binded) {
+        if (val) {
+          return this.bind();
+        } else {
+          return this.unbind();
+        }
+      }
+
+      bind() {
+        if (!this.binded && this.canBind()) {
+          this.doBind();
+        }
+        return this.binded = true;
+      }
+
+      canBind() {
+        return (this.callback != null) && (this.target != null);
+      }
+
+      doBind() {
+        throw new Error('Not implemented');
+      }
+
+      unbind() {
+        if (this.binded && this.canBind()) {
+          this.doUnbind();
+        }
+        return this.binded = false;
+      }
+
+      doUnbind() {
+        throw new Error('Not implemented');
+      }
+
+      equals(binder) {
+        return this.compareRefered(binder);
+      }
+
+      destroy() {
+        return this.unbind();
+      }
+
+    };
     return Binder;
   });
 
@@ -416,10 +758,19 @@
     var Binder, Updater;
     Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
     Updater = class Updater {
-      constructor() {
+      constructor(options) {
+        var ref3;
         this.callbacks = [];
         this.next = [];
         this.updating = false;
+        if ((options != null ? options.callback : void 0) != null) {
+          this.addCallback(options.callback);
+        }
+        if ((options != null ? (ref3 = options.callbacks) != null ? ref3.forEach : void 0 : void 0) != null) {
+          options.callbacks.forEach((callback) => {
+            return this.addCallback(callback);
+          });
+        }
       }
 
       update() {
@@ -428,11 +779,15 @@
         this.next = this.callbacks.slice();
         while (this.callbacks.length > 0) {
           callback = this.callbacks.shift();
-          callback();
+          this.runCallback(callback);
         }
         this.callbacks = this.next;
         this.updating = false;
         return this;
+      }
+
+      runCallback(callback) {
+        return callback();
       }
 
       addCallback(callback) {
@@ -767,296 +1122,112 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.Overrider = definition();
-    return Parallelio.Spark.Overrider.definition = definition;
-  })(function() {
-    var Overrider;
-    Overrider = (function() {
-      class Overrider {
-        static overrides(overrides) {
-          return this.Override.applyMany(this.prototype, this.name, overrides);
-        }
-
-        getFinalProperties() {
-          if (this._overrides != null) {
-            return ['_overrides'].concat(Object.keys(this._overrides));
-          } else {
-            return [];
-          }
-        }
-
-        extended(target) {
-          if (this._overrides != null) {
-            this.constructor.Override.applyMany(target, this.constructor.name, this._overrides);
-          }
-          if (this.constructor === Overrider) {
-            return target.extended = this.extended;
-          }
-        }
-
-      };
-
-      Overrider.Override = {
-        makeMany: function(target, namespace, overrides) {
-          var fn, key, override, results;
-          results = [];
-          for (key in overrides) {
-            fn = overrides[key];
-            results.push(override = this.make(target, namespace, key, fn));
-          }
-          return results;
-        },
-        applyMany: function(target, namespace, overrides) {
-          var key, override, results;
-          results = [];
-          for (key in overrides) {
-            override = overrides[key];
-            if (typeof override === "function") {
-              override = this.make(target, namespace, key, override);
-            }
-            results.push(this.apply(target, namespace, override));
-          }
-          return results;
-        },
-        make: function(target, namespace, fnName, fn) {
-          var override;
-          override = {
-            fn: {
-              current: fn
-            },
-            name: fnName
-          };
-          override.fn['with' + namespace] = fn;
-          return override;
-        },
-        emptyFn: function() {},
-        apply: function(target, namespace, override) {
-          var fnName, overrides, ref3, ref4, without;
-          fnName = override.name;
-          overrides = target._overrides != null ? Object.assign({}, target._overrides) : {};
-          without = ((ref3 = target._overrides) != null ? (ref4 = ref3[fnName]) != null ? ref4.fn.current : void 0 : void 0) || target[fnName];
-          override = Object.assign({}, override);
-          if (overrides[fnName] != null) {
-            override.fn = Object.assign({}, overrides[fnName].fn, override.fn);
-          } else {
-            override.fn = Object.assign({}, override.fn);
-          }
-          override.fn['without' + namespace] = without || this.emptyFn;
-          if (without == null) {
-            override.missingWithout = 'without' + namespace;
-          } else if (override.missingWithout) {
-            override.fn[override.missingWithout] = without;
-          }
-          Object.defineProperty(target, fnName, {
-            configurable: true,
-            get: function() {
-              var finalFn, fn, key, ref5;
-              finalFn = override.fn.current.bind(this);
-              ref5 = override.fn;
-              for (key in ref5) {
-                fn = ref5[key];
-                finalFn[key] = fn.bind(this);
-              }
-              if (this.constructor.prototype !== this) {
-                Object.defineProperty(this, fnName, {
-                  value: finalFn
-                });
-              }
-              return finalFn;
-            }
-          });
-          overrides[fnName] = override;
-          return target._overrides = overrides;
-        }
-      };
-
-      return Overrider;
-
-    }).call(this);
-    return Overrider;
-  });
-
-  (function(definition) {
-    Parallelio.Spark.Collection = definition();
-    return Parallelio.Spark.Collection.definition = definition;
-  })(function() {
-    var Collection;
-    Collection = (function() {
-      class Collection {
-        constructor(arr) {
-          if (arr != null) {
-            if (typeof arr.toArray === 'function') {
-              this._array = arr.toArray();
-            } else if (Array.isArray(arr)) {
-              this._array = arr;
-            } else {
-              this._array = [arr];
-            }
-          } else {
-            this._array = [];
-          }
-        }
-
-        changed() {}
-
-        checkChanges(old, ordered = true, compareFunction = null) {
-          if (compareFunction == null) {
-            compareFunction = function(a, b) {
-              return a === b;
-            };
-          }
-          if (old != null) {
-            old = this.copy(old.slice());
-          } else {
-            old = [];
-          }
-          return this.count() !== old.length || (ordered ? this.some(function(val, i) {
-            return !compareFunction(old.get(i), val);
-          }) : this.some(function(a) {
-            return !old.pluck(function(b) {
-              return compareFunction(a, b);
-            });
-          }));
-        }
-
-        get(i) {
-          return this._array[i];
-        }
-
-        getRandom() {
-          return this._array[Math.floor(Math.random() * this._array.length)];
-        }
-
-        set(i, val) {
-          var old;
-          if (this._array[i] !== val) {
-            old = this.toArray();
-            this._array[i] = val;
-            this.changed(old);
-          }
-          return val;
-        }
-
-        add(val) {
-          if (!this._array.includes(val)) {
-            return this.push(val);
-          }
-        }
-
-        remove(val) {
-          var index, old;
-          index = this._array.indexOf(val);
-          if (index !== -1) {
-            old = this.toArray();
-            this._array.splice(index, 1);
-            return this.changed(old);
-          }
-        }
-
-        pluck(fn) {
-          var found, index, old;
-          index = this._array.findIndex(fn);
-          if (index > -1) {
-            old = this.toArray();
-            found = this._array[index];
-            this._array.splice(index, 1);
-            this.changed(old);
-            return found;
-          } else {
-            return null;
-          }
-        }
-
-        toArray() {
-          return this._array.slice();
-        }
-
-        count() {
-          return this._array.length;
-        }
-
-        static newSubClass(fn, arr) {
-          var SubClass;
-          if (typeof fn === 'object') {
-            SubClass = class extends this {};
-            Object.assign(SubClass.prototype, fn);
-            return new SubClass(arr);
-          } else {
-            return new this(arr);
-          }
-        }
-
-        copy(arr) {
-          var coll;
-          if (arr == null) {
-            arr = this.toArray();
-          }
-          coll = new this.constructor(arr);
-          return coll;
-        }
-
-        equals(arr) {
-          return (this.count() === (typeof arr.count === 'function' ? arr.count() : arr.length)) && this.every(function(val, i) {
-            return arr[i] === val;
-          });
-        }
-
-        getAddedFrom(arr) {
-          return this._array.filter(function(item) {
-            return !arr.includes(item);
-          });
-        }
-
-        getRemovedFrom(arr) {
-          return arr.filter((item) => {
-            return !this.includes(item);
-          });
-        }
-
-      };
-
-      Collection.readFunctions = ['every', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'join', 'lastIndexOf', 'map', 'reduce', 'reduceRight', 'some', 'toString'];
-
-      Collection.readListFunctions = ['concat', 'filter', 'slice'];
-
-      Collection.writefunctions = ['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'];
-
-      Collection.readFunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function(...arg) {
-          return this._array[funct](...arg);
+    Parallelio.Spark.PropertyWatcher = definition();
+    return Parallelio.Spark.PropertyWatcher.definition = definition;
+  })(function(dependencies = {}) {
+    var Binder, PropertyWatcher;
+    Binder = dependencies.hasOwnProperty("Binder") ? dependencies.Binder : Parallelio.Spark.Binder;
+    PropertyWatcher = class PropertyWatcher extends Binder {
+      constructor(options1) {
+        var ref3;
+        super();
+        this.options = options1;
+        this.invalidateCallback = () => {
+          return this.invalidate();
         };
-      });
-
-      Collection.readListFunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function(...arg) {
-          return this.copy(this._array[funct](...arg));
+        this.updateCallback = (old) => {
+          return this.update(old);
         };
-      });
-
-      Collection.writefunctions.forEach(function(funct) {
-        return Collection.prototype[funct] = function(...arg) {
-          var old, res;
-          old = this.toArray();
-          res = this._array[funct](...arg);
-          this.changed(old);
-          return res;
-        };
-      });
-
-      return Collection;
-
-    }).call(this);
-    Object.defineProperty(Collection.prototype, 'length', {
-      get: function() {
-        return this.count();
+        if (this.options != null) {
+          this.loadOptions(this.options);
+        }
+        if (!(((ref3 = this.options) != null ? ref3.initByLoader : void 0) && (this.options.loader != null))) {
+          this.init();
+        }
       }
-    });
-    if (typeof Symbol !== "undefined" && Symbol !== null ? Symbol.iterator : void 0) {
-      Collection.prototype[Symbol.iterator] = function() {
-        return this._array[Symbol.iterator]();
-      };
-    }
-    return Collection;
+
+      loadOptions(options) {
+        this.scope = options.scope;
+        if (options.loaderAsScope && (options.loader != null)) {
+          this.scope = options.loader;
+        }
+        this.property = options.property;
+        this.callback = options.callback;
+        return this.autoBind = options.autoBind;
+      }
+
+      copyWith(opt) {
+        return new this.__proto__.constructor(Object.assign({}, this.options, opt));
+      }
+
+      init() {
+        if (this.autoBind) {
+          return this.checkBind();
+        }
+      }
+
+      getProperty() {
+        if (typeof this.property === "string") {
+          this.property = this.scope.getPropertyInstance(this.property);
+        }
+        return this.property;
+      }
+
+      checkBind() {
+        return this.toggleBind(this.shouldBind());
+      }
+
+      shouldBind() {
+        return true;
+      }
+
+      canBind() {
+        return this.getProperty() != null;
+      }
+
+      doBind() {
+        this.update();
+        this.getProperty().on('invalidated', this.invalidateCallback);
+        return this.getProperty().on('updated', this.updateCallback);
+      }
+
+      doUnbind() {
+        this.getProperty().off('invalidated', this.invalidateCallback);
+        return this.getProperty().off('updated', this.updateCallback);
+      }
+
+      getRef() {
+        if (typeof this.property === "string") {
+          return {
+            property: this.property,
+            target: this.scope,
+            callback: this.callback
+          };
+        } else {
+          return {
+            property: this.property.property.name,
+            target: this.property.obj,
+            callback: this.callback
+          };
+        }
+      }
+
+      invalidate() {
+        return this.getProperty().get();
+      }
+
+      update(old) {
+        var value;
+        value = this.getProperty().get();
+        return this.handleChange(value, old);
+      }
+
+      handleChange(value, old) {
+        return this.callback.call(this.scope, old);
+      }
+
+    };
+    return PropertyWatcher;
   });
 
   (function(definition) {
@@ -1147,15 +1318,15 @@
     };
     Invalidator = (function() {
       class Invalidator extends Binder {
-        constructor(property1, obj3 = null) {
+        constructor(invalidated, scope = null) {
           super();
-          this.property = property1;
-          this.obj = obj3;
+          this.invalidated = invalidated;
+          this.scope = scope;
           this.invalidationEvents = [];
           this.recycled = [];
           this.unknowns = [];
           this.strict = this.constructor.strict;
-          this.invalidated = false;
+          this.invalid = false;
           this.invalidateCallback = () => {
             this.invalidate();
             return null;
@@ -1165,26 +1336,27 @@
 
         invalidate() {
           var functName;
-          this.invalidated = true;
-          if (typeof this.property === "function") {
-            return this.property();
+          this.invalid = true;
+          if (typeof this.invalidated === "function") {
+            return this.invalidated();
           } else if (typeof this.callback === "function") {
             return this.callback();
-          } else if ((this.property != null) && typeof this.property.invalidate === "function") {
-            return this.property.invalidate();
-          } else if (typeof this.property === "string") {
-            functName = 'invalidate' + this.property.charAt(0).toUpperCase() + this.property.slice(1);
-            if (typeof this.obj[functName] === "function") {
-              return this.obj[functName]();
+          } else if ((this.invalidated != null) && typeof this.invalidated.invalidate === "function") {
+            return this.invalidated.invalidate();
+          } else if (typeof this.invalidated === "string") {
+            functName = 'invalidate' + this.invalidated.charAt(0).toUpperCase() + this.invalidated.slice(1);
+            if (typeof this.scope[functName] === "function") {
+              return this.scope[functName]();
             } else {
-              return this.obj[this.property] = null;
+              return this.scope[this.invalidated] = null;
             }
           }
         }
 
         unknown() {
-          if (typeof this.property.unknown === "function") {
-            return this.property.unknown();
+          var ref3;
+          if (typeof ((ref3 = this.invalidated) != null ? ref3.unknown : void 0) === "function") {
+            return this.invalidated.unknown();
           } else {
             return this.invalidate();
           }
@@ -1207,63 +1379,64 @@
           }
         }
 
-        getUnknownCallback(prop, target) {
+        getUnknownCallback(prop) {
           var callback;
           callback = () => {
             return this.addUnknown(function() {
-              return target[prop];
-            }, prop, target);
+              return prop.get();
+            }, prop);
           };
           callback.ref = {
-            prop: prop,
-            target: target
+            prop: prop
           };
           return callback;
         }
 
-        addUnknown(fn, prop, target) {
-          if (!this.findUnknown(prop, target)) {
+        addUnknown(fn, prop) {
+          if (!this.findUnknown(prop)) {
             fn.ref = {
-              "prop": prop,
-              "target": target
+              "prop": prop
             };
             this.unknowns.push(fn);
             return this.unknown();
           }
         }
 
-        findUnknown(prop, target) {
-          if ((prop != null) || (target != null)) {
+        findUnknown(prop) {
+          if ((prop != null) || (typeof target !== "undefined" && target !== null)) {
             return this.unknowns.find(function(unknown) {
-              return unknown.ref.prop === prop && unknown.ref.target === target;
+              return unknown.ref.prop === prop;
             });
           }
         }
 
-        event(event, target = this.obj) {
+        event(event, target = this.scope) {
           if (this.checkEmitter(target)) {
             return this.addEventBind(event, target);
           }
         }
 
-        value(val, event, target = this.obj) {
+        value(val, event, target = this.scope) {
           this.event(event, target);
           return val;
         }
 
-        prop(prop, target = this.obj) {
-          if (typeof prop !== 'string') {
-            throw new Error('Property name must be a string');
+        prop(prop, target = this.scope) {
+          var propInstance;
+          if (typeof prop === 'string') {
+            if ((target.getPropertyInstance != null) && (propInstance = target.getPropertyInstance(prop))) {
+              prop = propInstance;
+            } else {
+              return target[prop];
+            }
+          } else if (!this.checkPropInstance(prop)) {
+            throw new Error('Property must be a PropertyInstance or a string');
           }
-          if (this.checkEmitter(target)) {
-            this.addEventBind(prop + 'Invalidated', target, this.getUnknownCallback(prop, target));
-            return this.value(target[prop], prop + 'Updated', target);
-          } else {
-            return target[prop];
-          }
+          this.addEventBind('invalidated', prop, this.getUnknownCallback(prop));
+          return this.value(prop.get(), 'updated', prop);
         }
 
-        propPath(path, target = this.obj) {
+        propPath(path, target = this.scope) {
           var prop, val;
           path = path.split('.');
           val = target;
@@ -1274,11 +1447,16 @@
           return val;
         }
 
-        propInitiated(prop, target = this.obj) {
+        propInitiated(prop, target = this.scope) {
           var initiated;
-          initiated = target.getPropertyInstance(prop).initiated;
-          if (!initiated && this.checkEmitter(target)) {
-            this.event(prop + 'Updated', target);
+          if (typeof prop === 'string' && (target.getPropertyInstance != null)) {
+            prop = target.getPropertyInstance(prop);
+          } else if (!this.checkPropInstance(prop)) {
+            throw new Error('Property must be a PropertyInstance or a string');
+          }
+          initiated = prop.initiated;
+          if (!initiated) {
+            this.event('updated', prop);
           }
           return initiated;
         }
@@ -1299,7 +1477,7 @@
           return res;
         }
 
-        validateUnknowns(prop, target = this.obj) {
+        validateUnknowns() {
           var unknowns;
           unknowns = this.unknowns;
           this.unknowns = [];
@@ -1313,7 +1491,7 @@
         }
 
         bind() {
-          this.invalidated = false;
+          this.invalid = false;
           return this.invalidationEvents.forEach(function(eventBind) {
             return eventBind.bind();
           });
@@ -1323,12 +1501,7 @@
           var done, res;
           this.recycled = this.invalidationEvents;
           this.invalidationEvents = [];
-          done = () => {
-            this.recycled.forEach(function(eventBind) {
-              return eventBind.unbind();
-            });
-            return this.recycled = [];
-          };
+          done = this.endRecycle.bind(this);
           if (typeof callback === "function") {
             if (callback.length > 1) {
               return callback(this, done);
@@ -1342,8 +1515,19 @@
           }
         }
 
+        endRecycle() {
+          this.recycled.forEach(function(eventBind) {
+            return eventBind.unbind();
+          });
+          return this.recycled = [];
+        }
+
         checkEmitter(emitter) {
           return EventBind.checkEmitter(emitter, this.strict);
+        }
+
+        checkPropInstance(prop) {
+          return typeof prop.get === "function" && this.checkEmitter(prop);
         }
 
         unbind() {
@@ -1363,6 +1547,246 @@
   });
 
   (function(definition) {
+    Parallelio.Spark.CollectionPropertyWatcher = definition();
+    return Parallelio.Spark.CollectionPropertyWatcher.definition = definition;
+  })(function(dependencies = {}) {
+    var CollectionPropertyWatcher, PropertyWatcher;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
+    CollectionPropertyWatcher = class CollectionPropertyWatcher extends PropertyWatcher {
+      loadOptions(options) {
+        super.loadOptions(options);
+        this.onAdded = options.onAdded;
+        return this.onRemoved = options.onRemoved;
+      }
+
+      handleChange(value, old) {
+        old = value.copy(old || []);
+        if (typeof this.callback === 'function') {
+          this.callback.call(this.scope, old);
+        }
+        if (typeof this.onAdded === 'function') {
+          value.forEach((item, i) => {
+            if (!old.includes(item)) {
+              return this.onAdded.call(this.scope, item);
+            }
+          });
+        }
+        if (typeof this.onRemoved === 'function') {
+          return old.forEach((item, i) => {
+            if (!value.includes(item)) {
+              return this.onRemoved.call(this.scope, item);
+            }
+          });
+        }
+      }
+
+    };
+    return CollectionPropertyWatcher;
+  });
+
+  (function(definition) {
+    Parallelio.Spark.BasicProperty = definition();
+    return Parallelio.Spark.BasicProperty.definition = definition;
+  })(function(dependencies = {}) {
+    var BasicProperty, EventEmitter, Loader, Mixable, PropertyWatcher, Referred;
+    Mixable = dependencies.hasOwnProperty("Mixable") ? dependencies.Mixable : Parallelio.Spark.Mixable;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
+    Loader = dependencies.hasOwnProperty("Loader") ? dependencies.Loader : Parallelio.Spark.Loader;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
+    Referred = dependencies.hasOwnProperty("Referred") ? dependencies.Referred : Parallelio.Spark.Referred;
+    BasicProperty = (function() {
+      class BasicProperty extends Mixable {
+        constructor(property1, obj3) {
+          super();
+          this.property = property1;
+          this.obj = obj3;
+        }
+
+        init() {
+          var preload;
+          this.value = this.ingest(this.default);
+          this.calculated = false;
+          this.initiated = false;
+          preload = this.constructor.getPreload(this.obj, this.property, this);
+          if (preload.length > 0) {
+            return Loader.loadMany(preload);
+          }
+        }
+
+        get() {
+          this.calculated = true;
+          if (!this.initiated) {
+            this.initiated = true;
+            this.emitEvent('updated');
+          }
+          return this.output();
+        }
+
+        set(val) {
+          return this.setAndCheckChanges(val);
+        }
+
+        callbackSet(val) {
+          this.callOptionFunct("set", val);
+          return this;
+        }
+
+        setAndCheckChanges(val) {
+          var old;
+          val = this.ingest(val);
+          this.revalidated();
+          if (this.checkChanges(val, this.value)) {
+            old = this.value;
+            this.value = val;
+            this.manual = true;
+            this.changed(old);
+          }
+          return this;
+        }
+
+        checkChanges(val, old) {
+          return val !== old;
+        }
+
+        destroy() {}
+
+        callOptionFunct(funct, ...args) {
+          if (typeof funct === 'string') {
+            funct = this.property.options[funct];
+          }
+          if (typeof funct.overrided === 'function') {
+            args.push((...args) => {
+              return this.callOptionFunct(funct.overrided, ...args);
+            });
+          }
+          return funct.apply(this.obj, args);
+        }
+
+        revalidated() {
+          this.calculated = true;
+          return this.initiated = true;
+        }
+
+        ingest(val) {
+          if (typeof this.property.options.ingest === 'function') {
+            return val = this.callOptionFunct("ingest", val);
+          } else {
+            return val;
+          }
+        }
+
+        output() {
+          if (typeof this.property.options.output === 'function') {
+            return this.callOptionFunct("output", this.value);
+          } else {
+            return this.value;
+          }
+        }
+
+        changed(old) {
+          this.emitEvent('updated', old);
+          this.emitEvent('changed', old);
+          return this;
+        }
+
+        static compose(prop) {
+          if (prop.instanceType == null) {
+            prop.instanceType = class extends BasicProperty {};
+          }
+          if (typeof prop.options.set === 'function') {
+            prop.instanceType.prototype.set = this.prototype.callbackSet;
+          } else {
+            prop.instanceType.prototype.set = this.prototype.setAndCheckChanges;
+          }
+          return prop.instanceType.prototype.default = prop.options.default;
+        }
+
+        static bind(target, prop) {
+          var maj, opt, preload;
+          maj = prop.name.charAt(0).toUpperCase() + prop.name.slice(1);
+          opt = {
+            configurable: true,
+            get: function() {
+              return prop.getInstance(this).get();
+            }
+          };
+          if (prop.options.set !== false) {
+            opt.set = function(val) {
+              return prop.getInstance(this).set(val);
+            };
+          }
+          Object.defineProperty(target, prop.name, opt);
+          target['get' + maj] = function() {
+            return prop.getInstance(this).get();
+          };
+          if (prop.options.set !== false) {
+            target['set' + maj] = function(val) {
+              prop.getInstance(this).set(val);
+              return this;
+            };
+          }
+          target['invalidate' + maj] = function() {
+            prop.getInstance(this).invalidate();
+            return this;
+          };
+          preload = this.getPreload(target, prop);
+          if (preload.length > 0) {
+            Mixable.Extension.makeOnce(Loader.prototype, target);
+            return target.preload(preload);
+          }
+        }
+
+        static getPreload(target, prop, instance) {
+          var preload, ref3, ref4, toLoad;
+          preload = [];
+          if (typeof prop.options.change === "function") {
+            toLoad = {
+              type: PropertyWatcher,
+              loaderAsScope: true,
+              property: instance || prop.name,
+              initByLoader: true,
+              autoBind: true,
+              callback: prop.options.change,
+              ref: {
+                prop: prop.name,
+                callback: prop.options.change,
+                context: 'change'
+              }
+            };
+          }
+          if (typeof ((ref3 = prop.options.change) != null ? ref3.copyWith : void 0) === "function") {
+            toLoad = {
+              type: prop.options.change,
+              loaderAsScope: true,
+              property: instance || prop.name,
+              initByLoader: true,
+              autoBind: true,
+              ref: {
+                prop: prop.name,
+                type: prop.options.change,
+                context: 'change'
+              }
+            };
+          }
+          if ((toLoad != null) && !((ref4 = target.preloaded) != null ? ref4.find(function(loaded) {
+            return Referred.compareRef(toLoad.ref, loaded.ref) && !instance || (loaded.instance != null);
+          }) : void 0)) {
+            preload.push(toLoad);
+          }
+          return preload;
+        }
+
+      };
+
+      BasicProperty.extend(EventEmitter);
+
+      return BasicProperty;
+
+    }).call(this);
+    return BasicProperty;
+  });
+
+  (function(definition) {
     Parallelio.Spark.DynamicProperty = definition();
     return Parallelio.Spark.DynamicProperty.definition = definition;
   })(function(dependencies = {}) {
@@ -1378,7 +1802,7 @@
       }
 
       invalidate() {
-        if (this.calculated || this.active === false) {
+        if (this.calculated) {
           this.calculated = false;
           this._invalidateNotice();
         }
@@ -1386,23 +1810,12 @@
       }
 
       _invalidateNotice() {
-        if (this.isImmediate()) {
-          this.get();
-          return false;
-        } else {
-          if (typeof this.obj.emitEvent === 'function') {
-            this.obj.emitEvent(this.invalidateEventName);
-          }
-          return true;
-        }
-      }
-
-      isImmediate() {
-        return this.property.options.immediate !== false && (this.property.options.immediate === true || (typeof this.property.options.immediate === 'function' ? this.callOptionFunct("immediate") : this.hasChangedEvents() || this.hasChangedFunctions()));
+        this.emitEvent('invalidated');
+        return true;
       }
 
       static compose(prop) {
-        if (typeof prop.options.get === 'function' || typeof prop.options.calcul === 'function' || typeof prop.options.active === 'function') {
+        if (typeof prop.options.get === 'function' || typeof prop.options.calcul === 'function') {
           if (prop.instanceType == null) {
             prop.instanceType = class extends DynamicProperty {};
           }
@@ -1417,100 +1830,14 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.ActivableProperty = definition();
-    return Parallelio.Spark.ActivableProperty.definition = definition;
-  })(function(dependencies = {}) {
-    var ActivableProperty, BasicProperty, Invalidator, Overrider;
-    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
-    BasicProperty = dependencies.hasOwnProperty("BasicProperty") ? dependencies.BasicProperty : Parallelio.Spark.BasicProperty;
-    Overrider = dependencies.hasOwnProperty("Overrider") ? dependencies.Overrider : Parallelio.Spark.Overrider;
-    ActivableProperty = (function() {
-      class ActivableProperty extends BasicProperty {
-        isActive() {
-          return true;
-        }
-
-        manualActive() {
-          return this.active;
-        }
-
-        callbackActive() {
-          var invalidator;
-          invalidator = this.activeInvalidator || new Invalidator(this, this.obj);
-          invalidator.recycle((invalidator, done) => {
-            this.active = this.callOptionFunct(this.activeFunct, invalidator);
-            done();
-            if (this.active || invalidator.isEmpty()) {
-              invalidator.unbind();
-              return this.activeInvalidator = null;
-            } else {
-              this.invalidator = invalidator;
-              this.activeInvalidator = invalidator;
-              return invalidator.bind();
-            }
-          });
-          return this.active;
-        }
-
-        static compose(prop) {
-          if (typeof prop.options.active !== "undefined") {
-            prop.instanceType.extend(ActivableProperty);
-            if (typeof prop.options.active === "boolean") {
-              prop.instanceType.prototype.active = prop.options.active;
-              return prop.instanceType.prototype.isActive = this.prototype.manualActive;
-            } else if (typeof prop.options.active === 'function') {
-              prop.instanceType.prototype.activeFunct = prop.options.active;
-              return prop.instanceType.prototype.isActive = this.prototype.callbackActive;
-            }
-          }
-        }
-
-      };
-
-      ActivableProperty.extend(Overrider);
-
-      ActivableProperty.overrides({
-        get: function() {
-          var out;
-          if (this.isActive()) {
-            out = this.get.withoutActivableProperty();
-            if (this.pendingChanges) {
-              this.changed(this.pendingOld);
-            }
-            return out;
-          } else {
-            this.initiated = true;
-            return void 0;
-          }
-        },
-        changed: function(old) {
-          if (this.isActive()) {
-            this.pendingChanges = false;
-            this.pendingOld = void 0;
-            this.changed.withoutActivableProperty(old);
-          } else {
-            this.pendingChanges = true;
-            if (typeof this.pendingOld === 'undefined') {
-              this.pendingOld = old;
-            }
-          }
-          return this;
-        }
-      });
-
-      return ActivableProperty;
-
-    }).call(this);
-    return ActivableProperty;
-  });
-
-  (function(definition) {
     Parallelio.Spark.CollectionProperty = definition();
     return Parallelio.Spark.CollectionProperty.definition = definition;
   })(function(dependencies = {}) {
-    var Collection, CollectionProperty, DynamicProperty;
+    var Collection, CollectionProperty, CollectionPropertyWatcher, DynamicProperty, Referred;
     DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
     Collection = dependencies.hasOwnProperty("Collection") ? dependencies.Collection : Parallelio.Spark.Collection;
+    Referred = dependencies.hasOwnProperty("Referred") ? dependencies.Referred : Parallelio.Spark.Referred;
+    CollectionPropertyWatcher = dependencies.hasOwnProperty("CollectionPropertyWatcher") ? dependencies.CollectionPropertyWatcher : Parallelio.Spark.CollectionPropertyWatcher;
     CollectionProperty = (function() {
       class CollectionProperty extends DynamicProperty {
         ingest(val) {
@@ -1550,28 +1877,6 @@
           return col;
         }
 
-        callChangedFunctions(old) {
-          if (typeof this.property.options.itemAdded === 'function') {
-            this.value.forEach((item, i) => {
-              if (!old.includes(item)) {
-                return this.callOptionFunct("itemAdded", item, i);
-              }
-            });
-          }
-          if (typeof this.property.options.itemRemoved === 'function') {
-            old.forEach((item, i) => {
-              if (!this.value.includes(item)) {
-                return this.callOptionFunct("itemRemoved", item, i);
-              }
-            });
-          }
-          return super.callChangedFunctions(old);
-        }
-
-        hasChangedFunctions() {
-          return super.hasChangedFunctions() || typeof this.property.options.itemAdded === 'function' || typeof this.property.options.itemRemoved === 'function';
-        }
-
         static compose(prop) {
           if (prop.options.collection != null) {
             prop.instanceType = class extends CollectionProperty {};
@@ -1580,6 +1885,34 @@
               return prop.instanceType.prototype.checkChanges = this.prototype.checkChangedItems;
             }
           }
+        }
+
+        static getPreload(target, prop, instance) {
+          var preload, ref, ref3;
+          preload = [];
+          if (typeof prop.options.change === "function" || typeof prop.options.itemAdded === 'function' || typeof prop.options.itemRemoved === 'function') {
+            ref = {
+              prop: prop.name,
+              context: 'change'
+            };
+            if (!((ref3 = target.preloaded) != null ? ref3.find(function(loaded) {
+              return Referred.compareRef(ref, loaded.ref) && (loaded.instance != null);
+            }) : void 0)) {
+              preload.push({
+                type: CollectionPropertyWatcher,
+                loaderAsScope: true,
+                scope: target,
+                property: instance || prop.name,
+                initByLoader: true,
+                autoBind: true,
+                callback: prop.options.change,
+                onAdded: prop.options.itemAdded,
+                onRemoved: prop.options.itemRemoved,
+                ref: ref
+              });
+            }
+          }
+          return preload;
         }
 
       };
@@ -1638,9 +1971,11 @@
             if (this.checkChanges(this.value, old)) {
               if (initiated) {
                 this.changed(old);
-              } else if (typeof this.obj.emitEvent === 'function') {
-                this.obj.emitEvent(this.updateEventName, [old]);
+              } else {
+                this.emitEvent('updated', old);
               }
+            } else if (!initiated) {
+              this.emitEvent('updated', old);
             }
           }
           return this.output();
@@ -1654,96 +1989,6 @@
   });
 
   (function(definition) {
-    Parallelio.Spark.UpdatedProperty = definition();
-    return Parallelio.Spark.UpdatedProperty.definition = definition;
-  })(function(dependencies = {}) {
-    var DynamicProperty, Invalidator, Overrider, UpdatedProperty;
-    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
-    DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
-    Overrider = dependencies.hasOwnProperty("Overrider") ? dependencies.Overrider : Parallelio.Spark.Overrider;
-    UpdatedProperty = (function() {
-      class UpdatedProperty extends DynamicProperty {
-        initRevalidate() {
-          this.revalidateCallback = () => {
-            this.updating = true;
-            this.get();
-            this.getUpdater().unbind();
-            if (this.pendingChanges) {
-              this.changed(this.pendingOld);
-            }
-            return this.updating = false;
-          };
-          return this.revalidateCallback.owner = this;
-        }
-
-        getUpdater() {
-          if (typeof this.updater === 'undefined') {
-            if (this.property.options.updater != null) {
-              this.updater = this.property.options.updater;
-              if (typeof this.updater.getBinder === 'function') {
-                this.updater = this.updater.getBinder();
-              }
-              if (typeof this.updater.bind !== 'function' || typeof this.updater.unbind !== 'function') {
-                this.updater = null;
-              } else {
-                this.updater.callback = this.revalidateCallback;
-              }
-            } else {
-              this.updater = null;
-            }
-          }
-          return this.updater;
-        }
-
-        static compose(prop) {
-          if (prop.options.updater != null) {
-            return prop.instanceType.extend(UpdatedProperty);
-          }
-        }
-
-      };
-
-      UpdatedProperty.extend(Overrider);
-
-      UpdatedProperty.overrides({
-        init: function() {
-          this.init.withoutUpdatedProperty();
-          return this.initRevalidate();
-        },
-        _invalidateNotice: function() {
-          var res;
-          res = this._invalidateNotice.withoutUpdatedProperty();
-          if (res) {
-            this.getUpdater().bind();
-          }
-          return res;
-        },
-        isImmediate: function() {
-          return false;
-        },
-        changed: function(old) {
-          if (this.updating) {
-            this.pendingChanges = false;
-            this.pendingOld = void 0;
-            this.changed.withoutUpdatedProperty(old);
-          } else {
-            this.pendingChanges = true;
-            if (typeof this.pendingOld === 'undefined') {
-              this.pendingOld = old;
-            }
-            this.getUpdater().bind();
-          }
-          return this;
-        }
-      });
-
-      return UpdatedProperty;
-
-    }).call(this);
-    return UpdatedProperty;
-  });
-
-  (function(definition) {
     Parallelio.Spark.ComposedProperty = definition();
     return Parallelio.Spark.ComposedProperty.definition = definition;
   })(function(dependencies = {}) {
@@ -1754,8 +1999,8 @@
     ComposedProperty = (function() {
       class ComposedProperty extends CalculatedProperty {
         init() {
-          super.init();
-          return this.initComposed();
+          this.initComposed();
+          return super.init();
         }
 
         initComposed() {
@@ -1960,7 +2205,8 @@
         invalidate: function() {
           if (this.calculated || this.active === false) {
             this.calculated = false;
-            if (this._invalidateNotice() && !this.calculated && (this.invalidator != null)) {
+            this._invalidateNotice();
+            if (!this.calculated && (this.invalidator != null)) {
               this.invalidator.unbind();
             }
           }
@@ -1978,15 +2224,13 @@
     Parallelio.Spark.Property = definition();
     return Parallelio.Spark.Property.definition = definition;
   })(function(dependencies = {}) {
-    var ActivableProperty, BasicProperty, CalculatedProperty, CollectionProperty, ComposedProperty, DynamicProperty, InvalidatedProperty, Mixable, Property, PropertyOwner, UpdatedProperty;
+    var BasicProperty, CalculatedProperty, CollectionProperty, ComposedProperty, DynamicProperty, InvalidatedProperty, Mixable, Property, PropertyOwner;
     BasicProperty = dependencies.hasOwnProperty("BasicProperty") ? dependencies.BasicProperty : Parallelio.Spark.BasicProperty;
     CollectionProperty = dependencies.hasOwnProperty("CollectionProperty") ? dependencies.CollectionProperty : Parallelio.Spark.CollectionProperty;
     ComposedProperty = dependencies.hasOwnProperty("ComposedProperty") ? dependencies.ComposedProperty : Parallelio.Spark.ComposedProperty;
     DynamicProperty = dependencies.hasOwnProperty("DynamicProperty") ? dependencies.DynamicProperty : Parallelio.Spark.DynamicProperty;
     CalculatedProperty = dependencies.hasOwnProperty("CalculatedProperty") ? dependencies.CalculatedProperty : Parallelio.Spark.CalculatedProperty;
     InvalidatedProperty = dependencies.hasOwnProperty("InvalidatedProperty") ? dependencies.InvalidatedProperty : Parallelio.Spark.InvalidatedProperty;
-    ActivableProperty = dependencies.hasOwnProperty("ActivableProperty") ? dependencies.ActivableProperty : Parallelio.Spark.ActivableProperty;
-    UpdatedProperty = dependencies.hasOwnProperty("UpdatedProperty") ? dependencies.UpdatedProperty : Parallelio.Spark.UpdatedProperty;
     PropertyOwner = dependencies.hasOwnProperty("PropertyOwner") ? dependencies.PropertyOwner : Parallelio.Spark.PropertyOwner;
     Mixable = dependencies.hasOwnProperty("Mixable") ? dependencies.Mixable : Parallelio.Spark.Mixable;
     Property = (function() {
@@ -2056,6 +2300,7 @@
           if (!this.isInstantiated(obj)) {
             Type = this.getInstanceType();
             obj[varName] = new Type(this, obj);
+            obj[varName].init();
           }
           return obj[varName];
         }
@@ -2071,7 +2316,7 @@
 
       };
 
-      Property.prototype.composers = [ComposedProperty, CollectionProperty, DynamicProperty, BasicProperty, UpdatedProperty, CalculatedProperty, InvalidatedProperty, ActivableProperty];
+      Property.prototype.composers = [ComposedProperty, CollectionProperty, DynamicProperty, BasicProperty, CalculatedProperty, InvalidatedProperty];
 
       return Property;
 
@@ -2087,6 +2332,13 @@
     Property = dependencies.hasOwnProperty("Property") ? dependencies.Property : Parallelio.Spark.Property;
     Mixable = dependencies.hasOwnProperty("Mixable") ? dependencies.Mixable : Parallelio.Spark.Mixable;
     Element = class Element extends Mixable {
+      constructor() {
+        super();
+        this.init();
+      }
+
+      init() {}
+
       tap(name) {
         var args;
         args = Array.prototype.slice.call(arguments);
@@ -2158,9 +2410,10 @@
     Parallelio.PathWalk = definition();
     return Parallelio.PathWalk.definition = definition;
   })(function(dependencies = {}) {
-    var Element, PathWalk, Timing;
+    var Element, EventEmitter, PathWalk, Timing;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
     PathWalk = (function() {
       class PathWalk extends Element {
         constructor(walker, path1, options) {
@@ -2176,7 +2429,7 @@
           }
           if (this.path.solution) {
             this.pathTimeout = this.timing.setTimeout(() => {
-              return this.end();
+              return this.endReached();
             }, this.totalTime);
             return this.pathTimeout.updater.addCallback(this.callback('update'));
           }
@@ -2194,8 +2447,16 @@
           return this.walker.offsetY = pos.offsetY;
         }
 
+        endReached() {
+          this.update();
+          this.trigger('endReached');
+          this.trigger('end');
+          return this.destroy();
+        }
+
         end() {
           this.update();
+          this.trigger('end');
           return this.destroy();
         }
 
@@ -2205,6 +2466,8 @@
         }
 
       };
+
+      PathWalk.include(EventEmitter.prototype);
 
       PathWalk.properties({
         speed: {
@@ -2234,42 +2497,119 @@
   });
 
   (function(definition) {
-    Parallelio.Damageable = definition();
-    return Parallelio.Damageable.definition = definition;
+    Parallelio.Tiled = definition();
+    return Parallelio.Tiled.definition = definition;
   })(function(dependencies = {}) {
-    var Damageable, Element;
+    var Element, Tiled;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Damageable = (function() {
-      class Damageable extends Element {
-        damage(val) {
-          return this.health = Math.max(0, this.health - val);
+    Tiled = (function() {
+      class Tiled extends Element {
+        putOnRandomTile(tiles) {
+          var found;
+          found = this.getRandomValidTile(tiles);
+          if (found) {
+            return this.tile = found;
+          }
         }
 
-        whenNoHealth() {}
+        getRandomValidTile(tiles) {
+          var candidate, pos, remaining;
+          remaining = tiles.slice();
+          while (remaining.length > 0) {
+            pos = Math.floor(Math.random() * remaining.length);
+            candidate = remaining.splice(pos, 1)[0];
+            if (this.canGoOnTile(candidate)) {
+              return candidate;
+            }
+          }
+          return null;
+        }
+
+        canGoOnTile(tile) {
+          return true;
+        }
 
       };
 
-      Damageable.properties({
-        damageable: {
-          default: true
-        },
-        maxHealth: {
-          default: 1000
-        },
-        health: {
-          default: 1000,
-          change: function() {
-            if (this.health === 0) {
-              return this.whenNoHealth();
+      Tiled.properties({
+        tile: {
+          change: function(old) {
+            if (old != null) {
+              old.removeChild(this);
+            }
+            if (this.tile) {
+              return this.tile.addChild(this);
             }
           }
+        },
+        offsetX: {
+          default: 0
+        },
+        offsetY: {
+          default: 0
         }
       });
 
-      return Damageable;
+      return Tiled;
 
     }).call(this);
-    return Damageable;
+    return Tiled;
+  });
+
+  (function(definition) {
+    Parallelio.Door = definition();
+    return Parallelio.Door.definition = definition;
+  })(function(dependencies = {}) {
+    var Door, Tiled;
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Door = (function() {
+      class Door extends Tiled {
+        constructor(direction1 = Door.directions.horizontal) {
+          super();
+          this.direction = direction1;
+        }
+
+        updateTileMembers(old) {
+          var ref3, ref4, ref5, ref6;
+          if (old != null) {
+            if ((ref3 = old.walkableMembers) != null) {
+              ref3.removeRef('open', this);
+            }
+            if ((ref4 = old.transparentMembers) != null) {
+              ref4.removeRef('open', this);
+            }
+          }
+          if (this.tile) {
+            if ((ref5 = this.tile.walkableMembers) != null) {
+              ref5.addPropertyRef('open', this);
+            }
+            return (ref6 = this.tile.transparentMembers) != null ? ref6.addPropertyRef('open', this) : void 0;
+          }
+        }
+
+      };
+
+      Door.properties({
+        tile: {
+          change: function(old) {
+            return this.updateTileMembers(old);
+          }
+        },
+        open: {
+          default: false
+        },
+        direction: {}
+      });
+
+      Door.directions = {
+        horizontal: 'horizontal',
+        vertical: 'vertical'
+      };
+
+      return Door;
+
+    }).call(this);
+    return Door;
   });
 
   (function(definition) {
@@ -2288,6 +2628,9 @@
           this.reset();
           if (options.validTile != null) {
             this.validTileCallback = options.validTile;
+          }
+          if (options.arrived != null) {
+            this.arrivedCallback = options.arrived;
           }
         }
 
@@ -2422,6 +2765,14 @@
           return tileA === tileB || ((tileA.emulated || tileB.emulated) && tileA.x === tileB.x && tileA.y === tileB.y);
         }
 
+        arrivedAtDestination(step) {
+          if (this.arrivedCallback != null) {
+            return this.arrivedCallback(step.nextTile, this);
+          } else {
+            return this.tileEqual(step.nextTile, this.to);
+          }
+        }
+
         addStep(step) {
           if (this.paths[step.getExit().x] == null) {
             this.paths[step.getExit().x] = {};
@@ -2432,7 +2783,7 @@
             }
             this.paths[step.getExit().x][step.getExit().y] = step;
             this.queue.splice(this.getStepRank(step), 0, step);
-            if (this.tileEqual(step.nextTile, this.to) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
+            if (this.arrivedAtDestination(step) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
               return this.solution = new PathFinder.Step(this, step, step.nextTile, null);
             }
           }
@@ -2689,132 +3040,101 @@
   });
 
   (function(definition) {
-    Parallelio.Tiled = definition();
-    return Parallelio.Tiled.definition = definition;
+    Parallelio.WalkAction = definition();
+    return Parallelio.WalkAction.definition = definition;
   })(function(dependencies = {}) {
-    var Element, Tiled;
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    Tiled = (function() {
-      class Tiled extends Element {
-        putOnRandomTile(tiles) {
-          var found;
-          found = this.getRandomValidTile(tiles);
-          if (found) {
-            return this.tile = found;
+    var PathFinder, PathWalk, TargetAction, WalkAction;
+    PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
+    PathWalk = dependencies.hasOwnProperty("PathWalk") ? dependencies.PathWalk : Parallelio.PathWalk;
+    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
+    WalkAction = (function() {
+      class WalkAction extends TargetAction {
+        execute() {
+          if (this.actor.walk != null) {
+            this.actor.walk.end();
           }
+          this.actor.walk = new PathWalk(this.actor, this.pathFinder, {
+            timing: game.timing
+          });
+          return this.actor.walk.start();
         }
 
-        getRandomValidTile(tiles) {
-          var candidate, pos, remaining;
-          remaining = tiles.slice();
-          while (remaining.length > 0) {
-            pos = Math.floor(Math.random() * remaining.length);
-            candidate = remaining.splice(pos, 1)[0];
-            if (this.canGoOnTile(candidate)) {
-              return candidate;
-            }
-          }
-          return null;
-        }
-
-        canGoOnTile(tile) {
-          return true;
+        validTarget() {
+          this.pathFinder.calcul();
+          return this.pathFinder.solution != null;
         }
 
       };
 
-      Tiled.properties({
-        tile: {
-          change: function(old) {
-            if (old != null) {
-              old.removeChild(this);
-            }
-            if (this.tile) {
-              return this.tile.addChild(this);
-            }
+      WalkAction.properties({
+        pathFinder: {
+          calcul: function() {
+            return new PathFinder(this.actor.tile.container, this.actor.tile, this.target, {
+              validTile: (tile) => {
+                if (typeof this.actor.canGoOnTile === "function") {
+                  return this.actor.canGoOnTile(tile);
+                } else {
+                  return tile.walkable;
+                }
+              }
+            });
           }
-        },
-        offsetX: {
-          default: 0
-        },
-        offsetY: {
-          default: 0
         }
       });
 
-      return Tiled;
+      return WalkAction;
 
     }).call(this);
-    return Tiled;
+    return WalkAction;
   });
 
   (function(definition) {
-    Parallelio.Door = definition();
-    return Parallelio.Door.definition = definition;
+    Parallelio.Damageable = definition();
+    return Parallelio.Damageable.definition = definition;
   })(function(dependencies = {}) {
-    var Door, Tiled;
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Door = (function() {
-      class Door extends Tiled {
-        constructor(direction1 = Door.directions.horizontal) {
-          super();
-          this.direction = direction1;
+    var Damageable, Element;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    Damageable = (function() {
+      class Damageable extends Element {
+        damage(val) {
+          return this.health = Math.max(0, this.health - val);
         }
 
-        updateTileMembers(old) {
-          var ref3, ref4, ref5, ref6;
-          if (old != null) {
-            if ((ref3 = old.walkableMembers) != null) {
-              ref3.removeRef('open', this);
-            }
-            if ((ref4 = old.transparentMembers) != null) {
-              ref4.removeRef('open', this);
-            }
-          }
-          if (this.tile) {
-            if ((ref5 = this.tile.walkableMembers) != null) {
-              ref5.addPropertyRef('open', this);
-            }
-            return (ref6 = this.tile.transparentMembers) != null ? ref6.addPropertyRef('open', this) : void 0;
-          }
-        }
+        whenNoHealth() {}
 
       };
 
-      Door.properties({
-        tile: {
-          change: function(old, overrided) {
-            overrided(old);
-            return this.updateTileMembers(old);
+      Damageable.properties({
+        damageable: {
+          default: true
+        },
+        maxHealth: {
+          default: 1000
+        },
+        health: {
+          default: 1000,
+          change: function() {
+            if (this.health <= 0) {
+              return this.whenNoHealth();
+            }
           }
-        },
-        open: {
-          default: false
-        },
-        direction: {}
+        }
       });
 
-      Door.directions = {
-        horizontal: 'horizontal',
-        vertical: 'vertical'
-      };
-
-      return Door;
+      return Damageable;
 
     }).call(this);
-    return Door;
+    return Damageable;
   });
 
   (function(definition) {
     Parallelio.Character = definition();
     return Parallelio.Character.definition = definition;
   })(function(dependencies = {}) {
-    var Character, Damageable, PathFinder, PathWalk, TargetAction, Tiled;
+    var Character, Damageable, Tiled, WalkAction;
     Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
-    PathWalk = dependencies.hasOwnProperty("PathWalk") ? dependencies.PathWalk : Parallelio.PathWalk;
     Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
-    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
+    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
     Character = (function() {
       class Character extends Tiled {
         constructor(name1) {
@@ -2829,12 +3149,12 @@
         }
 
         canGoOnTile(tile) {
-          return tile.walkable !== false;
+          return (tile != null ? tile.walkable : void 0) !== false;
         }
 
         walkTo(tile) {
           var action;
-          action = new this.constructor.WalkAction({
+          action = new WalkAction({
             actor: this,
             target: tile
           });
@@ -2866,7 +3186,7 @@
         },
         defaultAction: {
           calcul: function() {
-            return new this.constructor.WalkAction({
+            return new WalkAction({
               actor: this
             });
           }
@@ -2886,40 +3206,6 @@
       });
 
       return Character;
-
-    }).call(this);
-    Character.WalkAction = (function() {
-      class WalkAction extends TargetAction {
-        execute() {
-          if (this.actor.walk != null) {
-            this.actor.walk.end();
-          }
-          this.actor.walk = new PathWalk(this.actor, this.pathFinder, {
-            timing: game.timing
-          });
-          return this.actor.walk.start();
-        }
-
-        validTarget() {
-          this.pathFinder.calcul();
-          return this.pathFinder.solution != null;
-        }
-
-      };
-
-      WalkAction.properties({
-        pathFinder: {
-          calcul: function() {
-            return new PathFinder(this.actor.tile.container, this.actor.tile, this.target, {
-              validTile: function(tile) {
-                return tile.walkable;
-              }
-            });
-          }
-        }
-      });
-
-      return WalkAction;
 
     }).call(this);
     return Character;
@@ -2958,7 +3244,7 @@
         }
 
         isActivatorPresent(invalidate) {
-          return this.getReactiveTiles().some((tile) => {
+          return this.getReactiveTiles(invalidate).some((tile) => {
             var children;
             children = invalidate ? invalidate.prop('children', tile) : tile.children;
             return children.some((child) => {
@@ -2971,13 +3257,19 @@
           return elem instanceof Character;
         }
 
-        getReactiveTiles() {
-          if (this.direction === Door.directions.horizontal) {
-            return [this.tile, this.tile.getRelativeTile(0, 1), this.tile.getRelativeTile(0, -1)].filter(function(t) {
+        getReactiveTiles(invalidate) {
+          var direction, tile;
+          tile = invalidate ? invalidate.prop('tile') : this.tile;
+          if (!tile) {
+            return [];
+          }
+          direction = invalidate ? invalidate.prop('direction') : this.direction;
+          if (direction === Door.directions.horizontal) {
+            return [tile, tile.getRelativeTile(0, 1), tile.getRelativeTile(0, -1)].filter(function(t) {
               return t != null;
             });
           } else {
-            return [this.tile, this.tile.getRelativeTile(1, 0), this.tile.getRelativeTile(-1, 0)].filter(function(t) {
+            return [tile, tile.getRelativeTile(1, 0), tile.getRelativeTile(-1, 0)].filter(function(t) {
               return t != null;
             });
           }
@@ -3546,14 +3838,16 @@
         },
         container: {
           change: function() {
-            return this.adjacentTiles.forEach(function(tile) {
-              return tile.invalidateAdjacentTiles();
-            });
+            if (this.container != null) {
+              return this.adjacentTiles.forEach(function(tile) {
+                return tile.invalidateAdjacentTiles();
+              });
+            }
           }
         },
         adjacentTiles: {
           calcul: function(invalidation) {
-            if (this.container != null) {
+            if (invalidation.prop('container')) {
               return Direction.adjacents.map((d) => {
                 return this.getRelativeTile(d.x, d.y);
               }).filter((t) => {
@@ -3593,138 +3887,6 @@
 
     }).call(this);
     return Floor;
-  });
-
-  (function(definition) {
-    Parallelio.Spark.EventEmitter = definition();
-    return Parallelio.Spark.EventEmitter.definition = definition;
-  })(function() {
-    var EventEmitter;
-    EventEmitter = (function() {
-      class EventEmitter {
-        getAllEvents() {
-          return this._events || (this._events = {});
-        }
-
-        getListeners(e) {
-          var events;
-          events = this.getAllEvents();
-          return events[e] || (events[e] = []);
-        }
-
-        hasListener(e, listener) {
-          return this.getListeners(e).includes(listener);
-        }
-
-        addListener(e, listener) {
-          if (!this.hasListener(e, listener)) {
-            this.getListeners(e).push(listener);
-            return this.listenerAdded(e, listener);
-          }
-        }
-
-        listenerAdded(e, listener) {}
-
-        removeListener(e, listener) {
-          var index, listeners;
-          listeners = this.getListeners(e);
-          index = listeners.indexOf(listener);
-          if (index !== -1) {
-            listeners.splice(index, 1);
-            return this.listenerRemoved(e, listener);
-          }
-        }
-
-        listenerRemoved(e, listener) {}
-
-        emitEvent(e, ...args) {
-          var listeners;
-          listeners = this.getListeners(e).slice();
-          return listeners.forEach(function(listener) {
-            return listener(...args);
-          });
-        }
-
-      };
-
-      EventEmitter.prototype.emit = EventEmitter.prototype.emitEvent;
-
-      EventEmitter.prototype.trigger = EventEmitter.prototype.emitEvent;
-
-      EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-      EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
-
-      return EventEmitter;
-
-    }).call(this);
-    return EventEmitter;
-  });
-
-  (function(definition) {
-    Parallelio.GridCell = definition();
-    return Parallelio.GridCell.definition = definition;
-  })(function(dependencies = {}) {
-    var Element, EventEmitter, GridCell;
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
-    GridCell = (function() {
-      class GridCell extends Element {};
-
-      GridCell.extend(EventEmitter);
-
-      GridCell.properties({
-        grid: {
-          calcul: function(invalidator) {
-            return invalidator.prop('grid', invalidator.prop('row'));
-          }
-        },
-        row: {},
-        columnPosition: {
-          calcul: function(invalidator) {
-            var row;
-            row = invalidator.prop('row');
-            if (row) {
-              return invalidator.prop('cells', row).indexOf(this);
-            }
-          }
-        },
-        width: {
-          calcul: function(invalidator) {
-            return 1 / invalidator.prop('cells', invalidator.prop('row')).length;
-          }
-        },
-        left: {
-          calcul: function(invalidator) {
-            return invalidator.prop('width') * invalidator.prop('columnPosition');
-          }
-        },
-        right: {
-          calcul: function(invalidator) {
-            return invalidator.prop('width') * (invalidator.prop('columnPosition') + 1);
-          }
-        },
-        height: {
-          calcul: function(invalidator) {
-            return invalidator.prop('height', invalidator.prop('row'));
-          }
-        },
-        top: {
-          calcul: function(invalidator) {
-            return invalidator.prop('top', invalidator.prop('row'));
-          }
-        },
-        bottom: {
-          calcul: function(invalidator) {
-            return invalidator.prop('bottom', invalidator.prop('row'));
-          }
-        }
-      });
-
-      return GridCell;
-
-    }).call(this);
-    return GridCell;
   });
 
   (function(definition) {
@@ -3821,6 +3983,72 @@
 
     }).call(this);
     return Player;
+  });
+
+  (function(definition) {
+    Parallelio.GridCell = definition();
+    return Parallelio.GridCell.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, EventEmitter, GridCell;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
+    GridCell = (function() {
+      class GridCell extends Element {};
+
+      GridCell.extend(EventEmitter);
+
+      GridCell.properties({
+        grid: {
+          calcul: function(invalidator) {
+            return invalidator.prop('grid', invalidator.prop('row'));
+          }
+        },
+        row: {},
+        columnPosition: {
+          calcul: function(invalidator) {
+            var row;
+            row = invalidator.prop('row');
+            if (row) {
+              return invalidator.prop('cells', row).indexOf(this);
+            }
+          }
+        },
+        width: {
+          calcul: function(invalidator) {
+            return 1 / invalidator.prop('cells', invalidator.prop('row')).length;
+          }
+        },
+        left: {
+          calcul: function(invalidator) {
+            return invalidator.prop('width') * invalidator.prop('columnPosition');
+          }
+        },
+        right: {
+          calcul: function(invalidator) {
+            return invalidator.prop('width') * (invalidator.prop('columnPosition') + 1);
+          }
+        },
+        height: {
+          calcul: function(invalidator) {
+            return invalidator.prop('height', invalidator.prop('row'));
+          }
+        },
+        top: {
+          calcul: function(invalidator) {
+            return invalidator.prop('top', invalidator.prop('row'));
+          }
+        },
+        bottom: {
+          calcul: function(invalidator) {
+            return invalidator.prop('bottom', invalidator.prop('row'));
+          }
+        }
+      });
+
+      return GridCell;
+
+    }).call(this);
+    return GridCell;
   });
 
   (function(definition) {
@@ -4137,6 +4365,82 @@
 
     }).call(this);
     return Obstacle;
+  });
+
+  (function(definition) {
+    Parallelio.PersonalWeapon = definition();
+    return Parallelio.PersonalWeapon.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, LineOfSight, PersonalWeapon;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
+    PersonalWeapon = (function() {
+      class PersonalWeapon extends Element {
+        constructor(options) {
+          super();
+          this.setProperties(options);
+        }
+
+        canUseOn(target) {
+          return this.canUseFrom(this.user.tile, target);
+        }
+
+        canUseFrom(tile, target) {
+          if (this.range === 1) {
+            return this.inMeleeRange(tile, target);
+          } else {
+            return this.inRange(tile, target) && this.hasLineOfSight(tile, target);
+          }
+        }
+
+        inRange(tile, target) {
+          var ref3;
+          return ((ref3 = tile.dist(target.tile)) != null ? ref3.length : void 0) <= this.range;
+        }
+
+        inMeleeRange(tile, target) {
+          return Math.abs(this.target.tile.x - this.actor.tile.x) + Math.abs(this.target.tile.y - this.actor.tile.y) === 1;
+        }
+
+        hasLineOfSight(tile, target) {
+          var los;
+          los = new LineOfSight(target.tile.container, tile.x + 0.5, tile.y + 0.5, target.tile.x + 0.5, target.tile.y + 0.5);
+          los.traversableCallback = function(tile) {
+            return tile.walkable;
+          };
+          return los.getSuccess();
+        }
+
+        useOn(target) {
+          return target.damage(this.power);
+        }
+
+      };
+
+      PersonalWeapon.properties({
+        rechargeTime: {
+          default: 1000
+        },
+        power: {
+          default: 10
+        },
+        dps: {
+          calcul: function(invalidator) {
+            return invalidator.prop('power') / invalidator.prop('rechargeTime') * 1000;
+          }
+        },
+        range: {
+          default: 10
+        },
+        user: {
+          default: null
+        }
+      });
+
+      return PersonalWeapon;
+
+    }).call(this);
+    return PersonalWeapon;
   });
 
   (function(definition) {
@@ -4506,61 +4810,25 @@
     Parallelio.RoomGenerator = definition();
     return Parallelio.RoomGenerator.definition = definition;
   })(function(dependencies = {}) {
-    var Door, Element, RoomGenerator, Tile, TileContainer;
+    var Direction, Door, Element, RoomGenerator, Tile, TileContainer;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
     Tile = dependencies.hasOwnProperty("Tile") ? dependencies.Tile : Parallelio.Tile;
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
     Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
     RoomGenerator = (function() {
       class RoomGenerator extends Element {
         constructor(options) {
           super();
           this.setProperties(options);
-          this.directions = [
-            {
-              x: 1,
-              y: 0
-            },
-            {
-              x: -1,
-              y: 0
-            },
-            {
-              x: 0,
-              y: 1
-            },
-            {
-              x: 0,
-              y: -1
-            }
-          ];
-          this.corners = [
-            {
-              x: 1,
-              y: 1
-            },
-            {
-              x: -1,
-              y: -1
-            },
-            {
-              x: -1,
-              y: 1
-            },
-            {
-              x: 1,
-              y: -1
-            }
-          ];
-          this.allDirections = this.directions.concat(this.corners);
         }
 
-        init() {
+        initTiles() {
           this.finalTiles = null;
           this.rooms = [];
           return this.free = this.tileContainer.allTiles().filter((tile) => {
             var direction, k, len, next, ref3;
-            ref3 = this.allDirections;
+            ref3 = Direction.all;
             for (k = 0, len = ref3.length; k < len; k++) {
               direction = ref3[k];
               next = this.tileContainer.getTile(tile.x + direction.x, tile.y + direction.y);
@@ -4574,7 +4842,7 @@
 
         calcul() {
           var i;
-          this.init();
+          this.initTiles();
           i = 0;
           while (this.step() || this.newRoom()) {
             i++;
@@ -4618,7 +4886,7 @@
 
         randomDirections() {
           var i, j, o, x;
-          o = this.directions.slice();
+          o = Direction.adjacents.slice();
           j = void 0;
           x = void 0;
           i = o.length;
@@ -4689,13 +4957,13 @@
             tile = ref3[k];
             results.push((function() {
               var l, len1, ref4, results1;
-              ref4 = this.allDirections;
+              ref4 = Direction.all;
               results1 = [];
               for (l = 0, len1 = ref4.length; l < len1; l++) {
                 direction = ref4[l];
                 next = this.tileContainer.getTile(tile.x + direction.x, tile.y + direction.y);
                 if ((next != null) && next.room !== room) {
-                  if (indexOf.call(this.corners, direction) < 0) {
+                  if (indexOf.call(Direction.corners, direction) < 0) {
                     otherSide = this.tileContainer.getTile(tile.x + direction.x * 2, tile.y + direction.y * 2);
                     nextRoom = (otherSide != null ? otherSide.room : void 0) != null ? otherSide.room : null;
                     room.addWall(next, nextRoom);
@@ -4906,6 +5174,117 @@
   });
 
   (function(definition) {
+    Parallelio.ShipWeapon = definition();
+    return Parallelio.ShipWeapon.definition = definition;
+  })(function(dependencies = {}) {
+    var Damageable, Projectile, ShipWeapon, Tiled, Timing;
+    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
+    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
+    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
+    ShipWeapon = (function() {
+      class ShipWeapon extends Tiled {
+        constructor(options) {
+          super();
+          this.setProperties(options);
+        }
+
+        fire() {
+          var projectile;
+          if (this.canFire) {
+            projectile = new Projectile({
+              origin: this,
+              target: this.target,
+              power: this.power,
+              blastRange: this.blastRange,
+              propagationType: this.propagationType,
+              speed: this.projectileSpeed,
+              timing: this.timing
+            });
+            projectile.launch();
+            this.charged = false;
+            this.recharge();
+            return projectile;
+          }
+        }
+
+        recharge() {
+          this.charging = true;
+          return this.chargeTimeout = this.timing.setTimeout(() => {
+            this.charging = false;
+            return this.recharged();
+          }, this.rechargeTime);
+        }
+
+        recharged() {
+          this.charged = true;
+          if (this.autoFire) {
+            return this.fire();
+          }
+        }
+
+      };
+
+      ShipWeapon.extend(Damageable);
+
+      ShipWeapon.properties({
+        rechargeTime: {
+          default: 1000
+        },
+        power: {
+          default: 10
+        },
+        blastRange: {
+          default: 1
+        },
+        propagationType: {
+          default: null
+        },
+        projectileSpeed: {
+          default: 10
+        },
+        target: {
+          default: null,
+          change: function() {
+            if (this.autoFire) {
+              return this.fire();
+            }
+          }
+        },
+        charged: {
+          default: true
+        },
+        charging: {
+          default: true
+        },
+        enabled: {
+          default: true
+        },
+        autoFire: {
+          default: true
+        },
+        criticalHealth: {
+          default: 0.3
+        },
+        canFire: {
+          get: function() {
+            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
+          }
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
+        }
+      });
+
+      return ShipWeapon;
+
+    }).call(this);
+    return ShipWeapon;
+  });
+
+  (function(definition) {
     Parallelio.Star = definition();
     return Parallelio.Star.definition = definition;
   })(function(dependencies = {}) {
@@ -5073,114 +5452,157 @@
   });
 
   (function(definition) {
-    Parallelio.Weapon = definition();
-    return Parallelio.Weapon.definition = definition;
+    Parallelio.ActionProvider = definition();
+    return Parallelio.ActionProvider.definition = definition;
   })(function(dependencies = {}) {
-    var Damageable, Projectile, Tiled, Timing, Weapon;
-    Tiled = dependencies.hasOwnProperty("Tiled") ? dependencies.Tiled : Parallelio.Tiled;
-    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
-    Damageable = dependencies.hasOwnProperty("Damageable") ? dependencies.Damageable : Parallelio.Damageable;
-    Projectile = dependencies.hasOwnProperty("Projectile") ? dependencies.Projectile : Parallelio.Projectile;
-    Weapon = (function() {
-      class Weapon extends Tiled {
-        constructor(options) {
-          super();
-          this.setProperties(options);
+    var ActionProvider, Element;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    ActionProvider = (function() {
+      class ActionProvider extends Element {};
+
+      ActionProvider.properties({
+        providedActions: {
+          collection: true
+        }
+      });
+
+      return ActionProvider;
+
+    }).call(this);
+    return ActionProvider;
+  });
+
+  (function(definition) {
+    Parallelio.AttackAction = definition();
+    return Parallelio.AttackAction.definition = definition;
+  })(function(dependencies = {}) {
+    var AttackAction, PathFinder, PathWalk, TargetAction;
+    PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
+    PathWalk = dependencies.hasOwnProperty("PathWalk") ? dependencies.PathWalk : Parallelio.PathWalk;
+    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
+    AttackAction = (function() {
+      class AttackAction extends TargetAction {
+        validTarget() {
+          return this.targetIsAttackable() && (this.canUseWeapon() || this.canWalkToTarget());
         }
 
-        fire() {
-          var projectile;
-          if (this.canFire) {
-            projectile = new Projectile({
-              origin: this,
-              target: this.target,
-              power: this.power,
-              blastRange: this.blastRange,
-              propagationType: this.propagationType,
-              speed: this.projectileSpeed,
-              timing: this.timing
-            });
-            projectile.launch();
-            this.charged = false;
-            this.recharge();
-            return projectile;
+        targetIsAttackable() {
+          return this.target.damageable && this.target.health >= 0;
+        }
+
+        canMelee() {
+          return Math.abs(this.target.tile.x - this.actor.tile.x) + Math.abs(this.target.tile.y - this.actor.tile.y) === 1;
+        }
+
+        canUseWeapon() {
+          return this.bestUsableWeapon != null;
+        }
+
+        canUseWeaponAt(tile) {
+          var ref3;
+          return ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) && this.actor.weapons.find((weapon) => {
+            return weapon.canUseFrom(tile, this.target);
+          });
+        }
+
+        canWalkToTarget() {
+          this.pathFinder.calcul();
+          return this.pathFinder.solution != null;
+        }
+
+        execute() {
+          if (this.actor.walk != null) {
+            this.actor.walk.end();
           }
-        }
-
-        recharge() {
-          this.charging = true;
-          return this.chargeTimeout = this.timing.setTimeout(() => {
-            this.charging = false;
-            return this.recharged();
-          }, this.rechargeTime);
-        }
-
-        recharged() {
-          this.charged = true;
-          if (this.autoFire) {
-            return this.fire();
+          if (this.bestUsableWeapon != null) {
+            return this.bestUsableWeapon.useOn(this.target);
+          } else {
+            this.actor.walk = new PathWalk(this.actor, this.pathFinder);
+            this.actor.walk.on('endReached', () => {
+              if (this.isReady) {
+                return this.start();
+              }
+            });
+            return this.actor.walk.start();
           }
         }
 
       };
 
-      Weapon.extend(Damageable);
-
-      Weapon.properties({
-        rechargeTime: {
-          default: 1000
-        },
-        power: {
-          default: 10
-        },
-        blastRange: {
-          default: 1
-        },
-        propagationType: {
-          default: null
-        },
-        projectileSpeed: {
-          default: 10
-        },
-        target: {
-          default: null,
-          change: function() {
-            if (this.autoFire) {
-              return this.fire();
-            }
-          }
-        },
-        charged: {
-          default: true
-        },
-        charging: {
-          default: true
-        },
-        enabled: {
-          default: true
-        },
-        autoFire: {
-          default: true
-        },
-        criticalHealth: {
-          default: 0.3
-        },
-        canFire: {
-          get: function() {
-            return this.target && this.enabled && this.charged && this.health / this.maxHealth >= this.criticalHealth;
-          }
-        },
-        timing: {
+      AttackAction.properties({
+        pathFinder: {
           calcul: function() {
-            return new Timing();
+            return new PathFinder(this.actor.tile.container, this.actor.tile, this.target, {
+              validTile: (tile) => {
+                if (typeof this.actor.canGoOnTile === "function") {
+                  return this.actor.canGoOnTile(tile);
+                } else {
+                  return tile.walkable;
+                }
+              },
+              arrived: (tile) => {
+                return this.canUseWeaponAt(tile);
+              }
+            });
+          }
+        },
+        bestUsableWeapon: {
+          calcul: function(invalidator) {
+            var ref3, usableWeapons;
+            invalidator.propPath('actor.tile');
+            if ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) {
+              usableWeapons = this.actor.weapons.filter((weapon) => {
+                return weapon.canUseOn(this.target);
+              });
+              usableWeapons.sort((a, b) => {
+                return b.dps - a.dps;
+              });
+              return usableWeapons[0];
+            } else {
+              return null;
+            }
           }
         }
       });
 
-      return Weapon;
+      return AttackAction;
 
     }).call(this);
-    return Weapon;
+    return AttackAction;
+  });
+
+  (function(definition) {
+    Parallelio.SimpleActionProvider = definition();
+    return Parallelio.SimpleActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, SimpleActionProvider;
+    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
+    SimpleActionProvider = (function() {
+      class SimpleActionProvider extends ActionProvider {};
+
+      SimpleActionProvider.properties({
+        providedActions: {
+          calcul: function() {
+            var actions;
+            actions = this.actions || this.constructor.actions;
+            if (typeof actions === "object") {
+              actions = Object.keys(actions).map(function(key) {
+                return actions[key];
+              });
+            }
+            return actions.map((action) => {
+              return new action({
+                target: this
+              });
+            });
+          }
+        }
+      });
+
+      return SimpleActionProvider;
+
+    }).call(this);
+    return SimpleActionProvider;
   });
 
   (function(definition) {
@@ -5243,9 +5665,10 @@
     Parallelio.Connected = definition();
     return Parallelio.Connected.definition = definition;
   })(function(dependencies = {}) {
-    var Connected, Element, SignalOperation;
+    var CollectionPropertyWatcher, Connected, Element, SignalOperation;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     SignalOperation = dependencies.hasOwnProperty("SignalOperation") ? dependencies.SignalOperation : Parallelio.SignalOperation;
+    CollectionPropertyWatcher = dependencies.hasOwnProperty("CollectionPropertyWatcher") ? dependencies.CollectionPropertyWatcher : Parallelio.Spark.CollectionPropertyWatcher;
     Connected = (function() {
       class Connected extends Element {
         canConnectTo(target) {
@@ -5341,15 +5764,36 @@
           }
         }
 
+        checkForwardWatcher() {
+          if (!this.forwardWatcher) {
+            this.forwardWatcher = new CollectionPropertyWatcher({
+              scope: this,
+              property: 'outputs',
+              onAdded: function(output, i) {
+                return this.forwardedSignals.forEach((signal) => {
+                  return this.forwardSignalTo(signal, output);
+                });
+              },
+              onRemoved: function(output, i) {
+                return this.forwardedSignals.forEach((signal) => {
+                  return this.stopForwardedSignalTo(signal, output);
+                });
+              }
+            });
+            return this.forwardWatcher.bind();
+          }
+        }
+
         forwardSignal(signal, op) {
           var next;
           this.forwardedSignals.add(signal);
           next = this.prepForwardedSignal(signal);
-          return this.outputs.forEach(function(conn) {
+          this.outputs.forEach(function(conn) {
             if (signal.last !== conn) {
               return conn.addSignal(next, op);
             }
           });
+          return this.checkForwardWatcher();
         }
 
         forwardAllSignalsTo(conn, op) {
@@ -5405,17 +5849,7 @@
           collection: true
         },
         outputs: {
-          collection: true,
-          itemAdded: function(output, i) {
-            return this.forwardedSignals.forEach((signal) => {
-              return this.forwardSignalTo(signal, output);
-            });
-          },
-          itemRemoved: function(output, i) {
-            return this.forwardedSignals.forEach((signal) => {
-              return this.stopForwardedSignalTo(signal, output);
-            });
-          }
+          collection: true
         },
         forwardedSignals: {
           collection: true
@@ -5586,58 +6020,104 @@
   });
 
   (function(definition) {
-    Parallelio.ActionProvider = definition();
-    return Parallelio.ActionProvider.definition = definition;
+    Parallelio.Spark.ActivablePropertyWatcher = definition();
+    return Parallelio.Spark.ActivablePropertyWatcher.definition = definition;
   })(function(dependencies = {}) {
-    var ActionProvider, Element;
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    ActionProvider = (function() {
-      class ActionProvider extends Element {};
+    var ActivablePropertyWatcher, Invalidator, PropertyWatcher;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
+    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
+    ActivablePropertyWatcher = class ActivablePropertyWatcher extends PropertyWatcher {
+      loadOptions(options) {
+        super.loadOptions(options);
+        return this.active = options.active;
+      }
 
-      ActionProvider.properties({
-        providedActions: {
-          collection: true
+      shouldBind() {
+        var active;
+        if (this.active != null) {
+          if (this.invalidator == null) {
+            this.invalidator = new Invalidator(this, this.scope);
+            this.invalidator.callback = () => {
+              return this.checkBind();
+            };
+          }
+          this.invalidator.recycle();
+          active = this.active(this.invalidator);
+          this.invalidator.endRecycle();
+          this.invalidator.bind();
+          return active;
+        } else {
+          return true;
         }
-      });
+      }
 
-      return ActionProvider;
-
-    }).call(this);
-    return ActionProvider;
+    };
+    return ActivablePropertyWatcher;
   });
 
   (function(definition) {
-    Parallelio.SimpleActionProvider = definition();
-    return Parallelio.SimpleActionProvider.definition = definition;
+    Parallelio.Spark.Invalidated = definition();
+    return Parallelio.Spark.Invalidated.definition = definition;
   })(function(dependencies = {}) {
-    var ActionProvider, SimpleActionProvider;
-    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
-    SimpleActionProvider = (function() {
-      class SimpleActionProvider extends ActionProvider {};
-
-      SimpleActionProvider.properties({
-        providedActions: {
-          calcul: function() {
-            var actions;
-            actions = this.actions || this.constructor.actions;
-            if (typeof actions === "object") {
-              actions = Object.keys(actions).map(function(key) {
-                return actions[key];
-              });
-            }
-            return actions.map((action) => {
-              return new action({
-                target: this
-              });
-            });
-          }
+    var Invalidated, Invalidator;
+    Invalidator = dependencies.hasOwnProperty("Invalidator") ? dependencies.Invalidator : Parallelio.Spark.Invalidator;
+    Invalidated = class Invalidated {
+      constructor(options) {
+        if (options != null) {
+          this.loadOptions(options);
         }
-      });
+        if (!((options != null ? options.initByLoader : void 0) && (options.loader != null))) {
+          this.init();
+        }
+      }
 
-      return SimpleActionProvider;
+      loadOptions(options) {
+        this.scope = options.scope;
+        if (options.loaderAsScope && (options.loader != null)) {
+          this.scope = options.loader;
+        }
+        return this.callback = options.callback;
+      }
 
-    }).call(this);
-    return SimpleActionProvider;
+      init() {
+        return this.update();
+      }
+
+      unknown() {
+        return this.invalidator.validateUnknowns();
+      }
+
+      invalidate() {
+        return this.update();
+      }
+
+      update() {
+        if (this.invalidator == null) {
+          this.invalidator = new Invalidator(this, this.scope);
+        }
+        this.invalidator.recycle();
+        this.handleUpdate(this.invalidator);
+        this.invalidator.endRecycle();
+        this.invalidator.bind();
+        return this;
+      }
+
+      handleUpdate(invalidator) {
+        if (this.scope != null) {
+          return this.callback.call(this.scope, invalidator);
+        } else {
+          return this.callback(invalidator);
+        }
+      }
+
+      destroy() {
+        if (this.invalidator) {
+          return this.invalidator.unbind();
+        }
+      }
+
+    };
+    return Invalidated;
   });
 
   (function(definition) {

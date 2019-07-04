@@ -1,18 +1,18 @@
 assert = require('chai').assert
-Weapon = require('../lib/Weapon')
+ShipWeapon = require('../lib/ShipWeapon')
 Projectile = require('../lib/Projectile')
 Tile = require('parallelio-tiles').Tile
 Timing = require('parallelio-timing')
 Invalidator = require('spark-starter').Invalidator
 
-describe 'Weapon', ->
+describe 'ShipWeapon', ->
   beforeEach ->
     Invalidator.strict = false
   afterEach ->
     Invalidator.strict = true
   it 'fire projectile', ->
     timing = new Timing(false)
-    weapon = new Weapon({
+    weapon = new ShipWeapon({
       autoFire:false,
       autoFire:false,
       tile:new Tile(),
@@ -26,7 +26,7 @@ describe 'Weapon', ->
     assert.isFalse weapon.charged
   it 'cannot fire when heavily damaged', ->
     timing = new Timing(false)
-    weapon = new Weapon({
+    weapon = new ShipWeapon({
       autoFire:false,
       autoFire:false,
       tile:new Tile(),

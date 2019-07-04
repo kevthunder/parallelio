@@ -1,9 +1,9 @@
 (function() {
-  var Invalidator, Projectile, Tile, Timing, Weapon, assert;
+  var Invalidator, Projectile, ShipWeapon, Tile, Timing, assert;
 
   assert = require('chai').assert;
 
-  Weapon = require('../lib/Weapon');
+  ShipWeapon = require('../lib/ShipWeapon');
 
   Projectile = require('../lib/Projectile');
 
@@ -13,7 +13,7 @@
 
   Invalidator = require('spark-starter').Invalidator;
 
-  describe('Weapon', function() {
+  describe('ShipWeapon', function() {
     beforeEach(function() {
       return Invalidator.strict = false;
     });
@@ -23,7 +23,7 @@
     it('fire projectile', function() {
       var projectile, timing, weapon;
       timing = new Timing(false);
-      weapon = new Weapon({
+      weapon = new ShipWeapon({
         autoFire: false,
         autoFire: false,
         tile: new Tile(),
@@ -39,7 +39,7 @@
     return it('cannot fire when heavily damaged', function() {
       var projectile, timing, weapon;
       timing = new Timing(false);
-      weapon = new Weapon({
+      weapon = new ShipWeapon({
         autoFire: false,
         autoFire: false,
         tile: new Tile(),
