@@ -20,6 +20,39 @@ describe 'LineOfSight', ->
     assert.equal los.getEndPoint().x, 1
     assert.equal los.getEndPoint().y, 2
 
+  it 'see edge (bottom-left)', ->
+    ctn = new TileContainer()
+    ctn.tap ->
+      f = (opt) ->
+        (new Tile(opt.x,opt.y)).tap ->
+          @transparent = true
+      @loadMatrix([
+        [f, f, f],
+        [f, f, f],
+        [f, f, f],
+      ])
+    los = new LineOfSight(ctn,0.5,0.5,0,3)
+    assert.isTrue los.getSuccess()
+    assert.equal los.getEndPoint().x, 0
+    assert.equal los.getEndPoint().y, 3
+
+  it 'see edge (top-right)', ->
+    ctn = new TileContainer()
+    ctn.tap ->
+      f = (opt) ->
+        (new Tile(opt.x,opt.y)).tap ->
+          @transparent = true
+      @loadMatrix([
+        [f, f, f],
+        [f, f, f],
+        [f, f, f],
+      ])
+    los = new LineOfSight(ctn,2.5,2.5,3,0)
+    assert.isTrue los.getSuccess()
+    assert.equal los.getEndPoint().x, 3
+    assert.equal los.getEndPoint().y, 0
+
+
   it 'see when obstacle (horizontal)', ->
     ctn = new TileContainer()
     ctn.tap ->

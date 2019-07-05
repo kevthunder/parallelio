@@ -21,6 +21,8 @@
 
   require('./line_of_sight');
 
+  require('./visionCalculator');
+
   require('./damage_propagation');
 
   require('./shipWeapon');

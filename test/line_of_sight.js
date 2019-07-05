@@ -27,6 +27,40 @@
       assert.equal(los.getEndPoint().x, 1);
       return assert.equal(los.getEndPoint().y, 2);
     });
+    it('see edge (bottom-left)', function() {
+      var ctn, los;
+      ctn = new TileContainer();
+      ctn.tap(function() {
+        var f;
+        f = function(opt) {
+          return (new Tile(opt.x, opt.y)).tap(function() {
+            return this.transparent = true;
+          });
+        };
+        return this.loadMatrix([[f, f, f], [f, f, f], [f, f, f]]);
+      });
+      los = new LineOfSight(ctn, 0.5, 0.5, 0, 3);
+      assert.isTrue(los.getSuccess());
+      assert.equal(los.getEndPoint().x, 0);
+      return assert.equal(los.getEndPoint().y, 3);
+    });
+    it('see edge (top-right)', function() {
+      var ctn, los;
+      ctn = new TileContainer();
+      ctn.tap(function() {
+        var f;
+        f = function(opt) {
+          return (new Tile(opt.x, opt.y)).tap(function() {
+            return this.transparent = true;
+          });
+        };
+        return this.loadMatrix([[f, f, f], [f, f, f], [f, f, f]]);
+      });
+      los = new LineOfSight(ctn, 2.5, 2.5, 3, 0);
+      assert.isTrue(los.getSuccess());
+      assert.equal(los.getEndPoint().x, 3);
+      return assert.equal(los.getEndPoint().y, 0);
+    });
     it('see when obstacle (horizontal)', function() {
       var ctn, los;
       ctn = new TileContainer();

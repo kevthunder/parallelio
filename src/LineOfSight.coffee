@@ -28,6 +28,14 @@ class LineOfSight
         true
   testTileAt: (x,y,entryX,entryY) ->
     @testTile(@tiles.getTile(Math.floor(x),Math.floor(y)),entryX,entryY)
+  reverseTracing: ->
+    tmpX = @x1
+    tmpY = @y1
+    @x1 = @x2
+    @y1 = @y2
+    @x2 = tmpX
+    @y2 = tmpY
+    @reversed = !@reversed
   calcul: ->
     ratio = (@x2-@x1)/(@y2-@y1)
     total = Math.abs(@x2-@x1)+Math.abs(@y2-@y1)
@@ -35,6 +43,9 @@ class LineOfSight
     positiveY = (@y2 - @y1) >= 0
     tileX = x = @x1
     tileY = y = @y1
+    if @reversed
+      tileX = if positiveX then x else Math.ceil(x)-1
+      tileY = if positiveY then y else Math.ceil(y)-1
     while total > Math.abs(x-@x1)+Math.abs(y-@y1) and @testTileAt(tileX, tileY, x, y)
       nextX = if positiveX then Math.floor(x)+1 else Math.ceil(x)-1
       nextY = if positiveY then Math.floor(y)+1 else Math.ceil(y)-1
@@ -56,6 +67,10 @@ class LineOfSight
     else
       @endPoint = {x: x, y: y, tile: @tiles.getTile(Math.floor(tileX),Math.floor(tileY))}
       @success = false
+  forceSuccess: ()->
+    @endPoint = {x: @x2, y: @y2, tile: @tiles.getTile(Math.floor(@x2),Math.floor(@y2))} 
+    @success = true
+    @calculated = true
   getSuccess: ->
     unless @calculated
       @calcul()

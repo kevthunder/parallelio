@@ -29,13 +29,16 @@ class PersonalWeapon extends Element
       @inRange(tile, target) and @hasLineOfSight(tile,target)
 
   inRange: (tile, target)->
-    tile.dist(target.tile)?.length <= @range
+    targetTile = target.tile || target
+    tile.dist(targetTile)?.length <= @range
 
   inMeleeRange: (tile,target)->
-    Math.abs(@target.tile.x - @actor.tile.x) + Math.abs(@target.tile.y - @actor.tile.y) == 1
+    targetTile = target.tile || target
+    Math.abs(targetTile.x - tile.x) + Math.abs(targetTile.y - tile.y) == 1
 
   hasLineOfSight: (tile,target)->
-    los = new LineOfSight(target.tile.container, tile.x+0.5, tile.y+0.5, target.tile.x+0.5, target.tile.y+0.5)
+    targetTile = target.tile || target
+    los = new LineOfSight(targetTile.container, tile.x+0.5, tile.y+0.5, targetTile.x+0.5, targetTile.y+0.5)
     los.traversableCallback = (tile) ->
       tile.walkable
     los.getSuccess()

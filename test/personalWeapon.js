@@ -37,23 +37,15 @@
       weapon = new PersonalWeapon({
         range: 3
       });
-      assert.isTrue(weapon.inRange(ctn.getTile(0, 0), {
-        tile: ctn.getTile(0, 2)
-      }));
-      return assert.isFalse(weapon.inRange(ctn.getTile(0, 0), {
-        tile: ctn.getTile(4, 0)
-      }));
+      assert.isTrue(weapon.inRange(ctn.getTile(0, 0), ctn.getTile(0, 2)));
+      return assert.isFalse(weapon.inRange(ctn.getTile(0, 0), ctn.getTile(4, 0)));
     });
     it('can if it has line of sight over a target', function() {
       var ctn, weapon;
       ctn = createStage();
       weapon = new PersonalWeapon();
-      assert.isTrue(weapon.hasLineOfSight(ctn.getTile(0, 0), {
-        tile: ctn.getTile(0, 2)
-      }));
-      return assert.isFalse(weapon.hasLineOfSight(ctn.getTile(0, 1), {
-        tile: ctn.getTile(4, 1)
-      }));
+      assert.isTrue(weapon.hasLineOfSight(ctn.getTile(0, 0), ctn.getTile(0, 2)));
+      return assert.isFalse(weapon.hasLineOfSight(ctn.getTile(0, 1), ctn.getTile(4, 1)));
     });
     return it('can damage a target', function() {
       var target, weapon;
