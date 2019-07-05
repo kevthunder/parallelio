@@ -25,7 +25,7 @@ class PathWalk extends Element
       @path.calcul()
     if @path.solution
       @pathTimeout = @timing.setTimeout =>
-        @endReached()
+        @finish()
       , @totalTime
       @pathTimeout.updater.addCallback(@callback('update'))
   stop: ->
@@ -35,13 +35,15 @@ class PathWalk extends Element
     @walker.tile = pos.tile
     @walker.offsetX = pos.offsetX
     @walker.offsetY = pos.offsetY
-  endReached: ->
+  finish: ->
     @update()
-    @trigger('endReached')
-    @trigger('end')
-    @destroy()
+    @trigger('finished')
+    @end()
+  interrupt: ->
+    @update()
+    @trigger('interrupted')
+    @end()
   end: ->
-    @update()
     @trigger('end')
     @destroy()
   destroy: ->

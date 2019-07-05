@@ -81,7 +81,7 @@
       assert.equal(char2.health, 1000);
       assert.exists(char1.walk);
       char1.walk.pathTimeout.setPrc(1);
-      char1.walk.endReached();
+      char1.walk.finish();
       assert.equal(char1.tile.x, 1);
       assert.equal(char1.tile.y, 0);
       assert.isTrue(action.canUseWeapon());

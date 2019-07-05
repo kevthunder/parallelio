@@ -16,10 +16,12 @@ class WalkAction extends TargetAction
 
   execute: -> 
     if @actor.walk?
-      @actor.walk.end()
-    @actor.walk = new PathWalk(@actor, @pathFinder, {
-      timing:game.timing
-    })
+      @actor.walk.interrupt()
+    @actor.walk = new PathWalk(@actor, @pathFinder)
+    @actor.walk.on 'finished', =>
+      @finish()
+    @actor.walk.on 'interrupted', =>
+      @interrupt()
     @actor.walk.start()
 
   validTarget: ()->

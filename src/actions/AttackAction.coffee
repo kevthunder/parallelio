@@ -1,20 +1,14 @@
-PathFinder = require('parallelio-pathfinder')
-PathWalk = require('../PathWalk')
+WalkAction = require('./WalkAction')
 TargetAction = require('./TargetAction')
 
 class AttackAction extends TargetAction
   @properties
-    pathFinder:
+    walkAction:
       calcul: ->
-        new PathFinder(@actor.tile.container, @actor.tile, @target, {
-          validTile: (tile) =>
-            if typeof @actor.canGoOnTile == "function"
-              @actor.canGoOnTile(tile)
-            else
-              tile.walkable
-          arrived: (tile) =>
-            @canUseWeaponAt(tile)
-        })
+        walkAction = new WalkAction(actor: @actor, target: @target, parent: @parent)
+        walkAction.pathFinder.arrivedCallback = (tile) =>
+          @canUseWeaponAt(tile)
+        walkAction
     bestUsableWeapon:
       calcul: (invalidator)->
         invalidator.propPath('actor.tile')
@@ -39,17 +33,18 @@ class AttackAction extends TargetAction
     @actor.weapons?.length and @actor.weapons.find (weapon)=>
       weapon.canUseFrom(tile, @target)
   canWalkToTarget: ->
-    @pathFinder.calcul()
-    @pathFinder.solution?
+    @walkAction.isReady()
 
   execute: ->
     if @actor.walk?
-      @actor.walk.end()
+      @actor.walk.interrupt()
     if @bestUsableWeapon?
       @bestUsableWeapon.useOn(@target)
+      @finish()
     else
-      @actor.walk = new PathWalk(@actor, @pathFinder)
-      @actor.walk.on 'endReached', =>
-        if @isReady
+      @walkAction.on 'finished', =>
+        if @isReady()
           @start()
-      @actor.walk.start()
+      @walkAction.on 'interrupted', =>
+        @interrupt()
+      @walkAction.execute()

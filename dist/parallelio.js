@@ -2429,7 +2429,7 @@
           }
           if (this.path.solution) {
             this.pathTimeout = this.timing.setTimeout(() => {
-              return this.endReached();
+              return this.finish();
             }, this.totalTime);
             return this.pathTimeout.updater.addCallback(this.callback('update'));
           }
@@ -2447,15 +2447,19 @@
           return this.walker.offsetY = pos.offsetY;
         }
 
-        endReached() {
+        finish() {
           this.update();
-          this.trigger('endReached');
-          this.trigger('end');
-          return this.destroy();
+          this.trigger('finished');
+          return this.end();
+        }
+
+        interrupt() {
+          this.update();
+          this.trigger('interrupted');
+          return this.end();
         }
 
         end() {
-          this.update();
           this.trigger('end');
           return this.destroy();
         }
@@ -2944,8 +2948,9 @@
     Parallelio.Action = definition();
     return Parallelio.Action.definition = definition;
   })(function(dependencies = {}) {
-    var Action, Element;
+    var Action, Element, EventEmitter;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    EventEmitter = dependencies.hasOwnProperty("EventEmitter") ? dependencies.EventEmitter : Parallelio.Spark.EventEmitter;
     Action = (function() {
       class Action extends Element {
         constructor(options) {
@@ -2981,7 +2986,28 @@
           return this.validActor();
         }
 
+        finish() {
+          this.trigger('finished');
+          return this.end();
+        }
+
+        interrupt() {
+          this.trigger('interrupted');
+          return this.end();
+        }
+
+        end() {
+          this.trigger('end');
+          return this.destroy();
+        }
+
+        destroy() {
+          return this.destroyProperties();
+        }
+
       };
+
+      Action.include(EventEmitter.prototype);
 
       Action.properties({
         actor: {}
@@ -3051,10 +3077,14 @@
       class WalkAction extends TargetAction {
         execute() {
           if (this.actor.walk != null) {
-            this.actor.walk.end();
+            this.actor.walk.interrupt();
           }
-          this.actor.walk = new PathWalk(this.actor, this.pathFinder, {
-            timing: game.timing
+          this.actor.walk = new PathWalk(this.actor, this.pathFinder);
+          this.actor.walk.on('finished', () => {
+            return this.finish();
+          });
+          this.actor.walk.on('interrupted', () => {
+            return this.interrupt();
           });
           return this.actor.walk.start();
         }
@@ -3300,6 +3330,165 @@
   });
 
   (function(definition) {
+    Parallelio.TileContainer = definition();
+    return Parallelio.TileContainer.definition = definition;
+  })(function(dependencies = {}) {
+    var Element, TileContainer;
+    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileContainer = (function() {
+      class TileContainer extends Element {
+        constructor() {
+          super();
+          this.init();
+        }
+
+        _addToBondaries(tile, boundaries) {
+          if ((boundaries.top == null) || tile.y < boundaries.top) {
+            boundaries.top = tile.y;
+          }
+          if ((boundaries.left == null) || tile.x < boundaries.left) {
+            boundaries.left = tile.x;
+          }
+          if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
+            boundaries.bottom = tile.y;
+          }
+          if ((boundaries.right == null) || tile.x > boundaries.right) {
+            return boundaries.right = tile.x;
+          }
+        }
+
+        init() {
+          this.coords = {};
+          return this.tiles = [];
+        }
+
+        addTile(tile) {
+          var ref3;
+          if (!this.tiles.includes(tile)) {
+            this.tiles.push(tile);
+            if (this.coords[tile.x] == null) {
+              this.coords[tile.x] = {};
+            }
+            this.coords[tile.x][tile.y] = tile;
+            tile.container = this;
+            if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
+              this._addToBondaries(tile, this._boundaries.value);
+            }
+          }
+          return this;
+        }
+
+        removeTile(tile) {
+          var index, ref3;
+          index = this.tiles.indexOf(tile);
+          if (index > -1) {
+            this.tiles.splice(index, 1);
+            delete this.coords[tile.x][tile.y];
+            tile.container = null;
+            if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
+              if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
+                return this.invalidateBoundaries();
+              }
+            }
+          }
+        }
+
+        removeTileAt(x, y) {
+          var tile;
+          if (tile = this.getTile(x, y)) {
+            return this.removeTile(tile);
+          }
+        }
+
+        getTile(x, y) {
+          var ref3;
+          if (((ref3 = this.coords[x]) != null ? ref3[y] : void 0) != null) {
+            return this.coords[x][y];
+          }
+        }
+
+        loadMatrix(matrix) {
+          var options, row, tile, x, y;
+          for (y in matrix) {
+            row = matrix[y];
+            for (x in row) {
+              tile = row[x];
+              options = {
+                x: parseInt(x),
+                y: parseInt(y)
+              };
+              if (typeof tile === "function") {
+                this.addTile(tile(options));
+              } else {
+                tile.x = options.x;
+                tile.y = options.y;
+                this.addTile(tile);
+              }
+            }
+          }
+          return this;
+        }
+
+        inRange(tile, range) {
+          var found, k, l, ref3, ref4, ref5, ref6, tiles, x, y;
+          tiles = [];
+          range--;
+          for (x = k = ref3 = tile.x - range, ref4 = tile.x + range; (ref3 <= ref4 ? k <= ref4 : k >= ref4); x = ref3 <= ref4 ? ++k : --k) {
+            for (y = l = ref5 = tile.y - range, ref6 = tile.y + range; (ref5 <= ref6 ? l <= ref6 : l >= ref6); y = ref5 <= ref6 ? ++l : --l) {
+              if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
+                tiles.push(found);
+              }
+            }
+          }
+          return tiles;
+        }
+
+        allTiles() {
+          return this.tiles.slice();
+        }
+
+        clearAll() {
+          var k, len, ref3, tile;
+          ref3 = this.tiles;
+          for (k = 0, len = ref3.length; k < len; k++) {
+            tile = ref3[k];
+            tile.container = null;
+          }
+          this.coords = {};
+          this.tiles = [];
+          return this;
+        }
+
+      };
+
+      TileContainer.properties({
+        boundaries: {
+          calcul: function() {
+            var boundaries;
+            boundaries = {
+              top: null,
+              left: null,
+              bottom: null,
+              right: null
+            };
+            this.tiles.forEach((tile) => {
+              return this._addToBondaries(tile, boundaries);
+            });
+            return boundaries;
+          },
+          output: function(val) {
+            return Object.assign({}, val);
+          }
+        }
+      });
+
+      return TileContainer;
+
+    }).call(this);
+    return TileContainer;
+  });
+
+  (function(definition) {
     Parallelio.Direction = definition();
     return Parallelio.Direction.definition = definition;
   })(function() {
@@ -3466,6 +3655,353 @@
 
     };
     return LineOfSight;
+  });
+
+  (function(definition) {
+    Parallelio.VisionCalculator = definition();
+    return Parallelio.VisionCalculator.definition = definition;
+  })(function(dependencies = {}) {
+    var Direction, LineOfSight, VisionCalculator;
+    LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
+    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
+    VisionCalculator = class VisionCalculator {
+      constructor(originTile1, offset1 = {
+          x: 0.5,
+          y: 0.5
+        }) {
+        this.originTile = originTile1;
+        this.offset = offset1;
+        this.pts = {};
+        this.visibility = {};
+        this.stack = [];
+        this.calculated = false;
+      }
+
+      calcul() {
+        this.init();
+        while (this.stack.length) {
+          this.step();
+        }
+        return this.calculated = true;
+      }
+
+      init() {
+        var firstBatch, initialPts;
+        this.pts = {};
+        this.visibility = {};
+        initialPts = [
+          {
+            x: 0,
+            y: 0
+          },
+          {
+            x: 1,
+            y: 0
+          },
+          {
+            x: 0,
+            y: 1
+          },
+          {
+            x: 1,
+            y: 1
+          }
+        ];
+        initialPts.forEach((pt) => {
+          return this.setPt(this.originTile.x + pt.x, this.originTile.y + pt.y, true);
+        });
+        firstBatch = [
+          {
+            x: -1,
+            y: -1
+          },
+          {
+            x: -1,
+            y: 0
+          },
+          {
+            x: -1,
+            y: 1
+          },
+          {
+            x: -1,
+            y: 2
+          },
+          {
+            x: 2,
+            y: -1
+          },
+          {
+            x: 2,
+            y: 0
+          },
+          {
+            x: 2,
+            y: 1
+          },
+          {
+            x: 2,
+            y: 2
+          },
+          {
+            x: 0,
+            y: -1
+          },
+          {
+            x: 1,
+            y: -1
+          },
+          {
+            x: 0,
+            y: 2
+          },
+          {
+            x: 1,
+            y: 2
+          }
+        ];
+        return this.stack = firstBatch.map((pt) => {
+          return {
+            x: this.originTile.x + pt.x,
+            y: this.originTile.y + pt.y
+          };
+        });
+      }
+
+      setPt(x, y, val) {
+        var adjancent;
+        this.pts[x + ':' + y] = val;
+        adjancent = [
+          {
+            x: 0,
+            y: 0
+          },
+          {
+            x: -1,
+            y: 0
+          },
+          {
+            x: 0,
+            y: -1
+          },
+          {
+            x: -1,
+            y: -1
+          }
+        ];
+        return adjancent.forEach((pt) => {
+          return this.addVisibility(x + pt.x, y + pt.y, val ? 1 / adjancent.length : 0);
+        });
+      }
+
+      getPt(x, y) {
+        return this.pts[x + ':' + y];
+      }
+
+      addVisibility(x, y, val) {
+        if (this.visibility[x] == null) {
+          this.visibility[x] = {};
+        }
+        if (this.visibility[x][y] != null) {
+          return this.visibility[x][y] += val;
+        } else {
+          return this.visibility[x][y] = val;
+        }
+      }
+
+      getVisibility(x, y) {
+        if ((this.visibility[x] == null) || (this.visibility[x][y] == null)) {
+          return 0;
+        } else {
+          return this.visibility[x][y];
+        }
+      }
+
+      canProcess(x, y) {
+        return !this.stack.some((pt) => {
+          return pt.x === x && pt.y === y;
+        }) && (this.getPt(x, y) == null);
+      }
+
+      step() {
+        var los, pt;
+        pt = this.stack.shift();
+        los = new LineOfSight(this.originTile.container, this.originTile.x + this.offset.x, this.originTile.y + this.offset.y, pt.x, pt.y);
+        los.reverseTracing();
+        los.traversableCallback = (tile, entryX, entryY) => {
+          if (tile != null) {
+            if (this.getVisibility(tile.x, tile.y) === 1) {
+              return los.forceSuccess();
+            } else {
+              return tile.transparent;
+            }
+          }
+        };
+        this.setPt(pt.x, pt.y, los.getSuccess());
+        if (los.getSuccess()) {
+          return Direction.all.forEach((direction) => {
+            var nextPt;
+            nextPt = {
+              x: pt.x + direction.x,
+              y: pt.y + direction.y
+            };
+            if (this.canProcess(nextPt.x, nextPt.y)) {
+              return this.stack.push(nextPt);
+            }
+          });
+        }
+      }
+
+      getBounds() {
+        var boundaries, col, ref3, val, x, y;
+        boundaries = {
+          top: null,
+          left: null,
+          bottom: null,
+          right: null
+        };
+        ref3 = this.visibility;
+        for (x in ref3) {
+          col = ref3[x];
+          for (y in col) {
+            val = col[y];
+            if ((boundaries.top == null) || y < boundaries.top) {
+              boundaries.top = y;
+            }
+            if ((boundaries.left == null) || x < boundaries.left) {
+              boundaries.left = x;
+            }
+            if ((boundaries.bottom == null) || y > boundaries.bottom) {
+              boundaries.bottom = y;
+            }
+            if ((boundaries.right == null) || x > boundaries.right) {
+              boundaries.right = x;
+            }
+          }
+        }
+        return boundaries;
+      }
+
+      toMap() {
+        var k, l, ref3, ref4, ref5, ref6, res, x, y;
+        res = Object.assign({
+          map: []
+        }, this.getBounds());
+        for (y = k = ref3 = res.top, ref4 = res.bottom - 1; (ref3 <= ref4 ? k <= ref4 : k >= ref4); y = ref3 <= ref4 ? ++k : --k) {
+          res.map[y - res.top] = [];
+          for (x = l = ref5 = res.left, ref6 = res.right - 1; (ref5 <= ref6 ? l <= ref6 : l >= ref6); x = ref5 <= ref6 ? ++l : --l) {
+            res.map[y - res.top][x - res.left] = this.getVisibility(x, y);
+          }
+        }
+        return res;
+      }
+
+    };
+    return VisionCalculator;
+  });
+
+  (function(definition) {
+    Parallelio.CharacterAI = definition();
+    return Parallelio.CharacterAI.definition = definition;
+  })(function(dependencies = {}) {
+    var CharacterAI, Door, TileContainer, VisionCalculator, WalkAction;
+    TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
+    VisionCalculator = dependencies.hasOwnProperty("VisionCalculator") ? dependencies.VisionCalculator : Parallelio.VisionCalculator;
+    Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
+    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
+    CharacterAI = class CharacterAI {
+      constructor(character) {
+        var visionMemory;
+        this.character = character;
+        this.nextActionCallback = () => {
+          return this.nextAction();
+        };
+        visionMemory = new TileContainer();
+      }
+
+      start() {
+        return this.nextAction();
+      }
+
+      nextAction() {
+        var ennemy, unexplored;
+        this.updateVisionMemory();
+        if (ennemy = this.getClosestEnemy()) {
+          return this.attackMoveTo(ennemy).on('end', nextActionCallback);
+        } else if (unexplored = this.getClosestUnexplored()) {
+          return this.walkTo(unexplored).on('end', nextActionCallback);
+        } else {
+          this.resetVisionMemory();
+          return this.walkTo(this.getClosestUnexplored()).on('end', nextActionCallback);
+        }
+      }
+
+      updateVisionMemory() {
+        var calculator, visionMemory;
+        calculator = new VisionCalculator(this.character.tile);
+        calculator.calcul();
+        return visionMemory = calculator.toContainer().merge(visionMemory, (a, b) => {
+          if (a != null) {
+            a = this.analyzeTile(a);
+          }
+          if ((a != null) && (b != null)) {
+            a.visibility = Math.max(a.visibility, b.visibility);
+            return a;
+          } else {
+            return a || b;
+          }
+        });
+      }
+
+      analyzeTile(tile) {
+        tile.ennemySpotted = a.tile.children.find((c) => {
+          return this.isEnnemy(c);
+        });
+        tile.explorable = this.isExplorable(tile);
+        return tile;
+      }
+
+      isEnnemy(elem) {
+        return false;
+      }
+
+      getClosestEnemy() {
+        return visionMemory.closest((t) => {
+          return t.ennemySpotted;
+        });
+      }
+
+      getClosestUnexplored() {
+        return visionMemory.closest((t) => {
+          return t.visibility < 1 && t.explorable;
+        });
+      }
+
+      isExplorable(tile) {
+        return t.walkable || a.tile.children.find((c) => {
+          return c instanceof Door;
+        });
+      }
+
+      attackMoveTo(tile) {
+        // todo
+        return this.walkTo(tile);
+      }
+
+      walkTo(tile) {
+        var action;
+        action = new WalkAction({
+          actor: this.character,
+          target: tile
+        });
+        if (action.isReady()) {
+          action.execute();
+          return action;
+        }
+      }
+
+    };
+    return CharacterAI;
   });
 
   (function(definition) {
@@ -4677,165 +5213,6 @@
   });
 
   (function(definition) {
-    Parallelio.TileContainer = definition();
-    return Parallelio.TileContainer.definition = definition;
-  })(function(dependencies = {}) {
-    var Element, TileContainer;
-    Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
-    TileContainer = (function() {
-      class TileContainer extends Element {
-        constructor() {
-          super();
-          this.init();
-        }
-
-        _addToBondaries(tile, boundaries) {
-          if ((boundaries.top == null) || tile.y < boundaries.top) {
-            boundaries.top = tile.y;
-          }
-          if ((boundaries.left == null) || tile.x < boundaries.left) {
-            boundaries.left = tile.x;
-          }
-          if ((boundaries.bottom == null) || tile.y > boundaries.bottom) {
-            boundaries.bottom = tile.y;
-          }
-          if ((boundaries.right == null) || tile.x > boundaries.right) {
-            return boundaries.right = tile.x;
-          }
-        }
-
-        init() {
-          this.coords = {};
-          return this.tiles = [];
-        }
-
-        addTile(tile) {
-          var ref3;
-          if (!this.tiles.includes(tile)) {
-            this.tiles.push(tile);
-            if (this.coords[tile.x] == null) {
-              this.coords[tile.x] = {};
-            }
-            this.coords[tile.x][tile.y] = tile;
-            tile.container = this;
-            if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
-              this._addToBondaries(tile, this._boundaries.value);
-            }
-          }
-          return this;
-        }
-
-        removeTile(tile) {
-          var index, ref3;
-          index = this.tiles.indexOf(tile);
-          if (index > -1) {
-            this.tiles.splice(index, 1);
-            delete this.coords[tile.x][tile.y];
-            tile.container = null;
-            if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
-              if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
-                return this.invalidateBoundaries();
-              }
-            }
-          }
-        }
-
-        removeTileAt(x, y) {
-          var tile;
-          if (tile = this.getTile(x, y)) {
-            return this.removeTile(tile);
-          }
-        }
-
-        getTile(x, y) {
-          var ref3;
-          if (((ref3 = this.coords[x]) != null ? ref3[y] : void 0) != null) {
-            return this.coords[x][y];
-          }
-        }
-
-        loadMatrix(matrix) {
-          var options, row, tile, x, y;
-          for (y in matrix) {
-            row = matrix[y];
-            for (x in row) {
-              tile = row[x];
-              options = {
-                x: parseInt(x),
-                y: parseInt(y)
-              };
-              if (typeof tile === "function") {
-                this.addTile(tile(options));
-              } else {
-                tile.x = options.x;
-                tile.y = options.y;
-                this.addTile(tile);
-              }
-            }
-          }
-          return this;
-        }
-
-        inRange(tile, range) {
-          var found, k, l, ref3, ref4, ref5, ref6, tiles, x, y;
-          tiles = [];
-          range--;
-          for (x = k = ref3 = tile.x - range, ref4 = tile.x + range; (ref3 <= ref4 ? k <= ref4 : k >= ref4); x = ref3 <= ref4 ? ++k : --k) {
-            for (y = l = ref5 = tile.y - range, ref6 = tile.y + range; (ref5 <= ref6 ? l <= ref6 : l >= ref6); y = ref5 <= ref6 ? ++l : --l) {
-              if (Math.sqrt((x - tile.x) * (x - tile.x) + (y - tile.y) * (y - tile.y)) <= range && ((found = this.getTile(x, y)) != null)) {
-                tiles.push(found);
-              }
-            }
-          }
-          return tiles;
-        }
-
-        allTiles() {
-          return this.tiles.slice();
-        }
-
-        clearAll() {
-          var k, len, ref3, tile;
-          ref3 = this.tiles;
-          for (k = 0, len = ref3.length; k < len; k++) {
-            tile = ref3[k];
-            tile.container = null;
-          }
-          this.coords = {};
-          this.tiles = [];
-          return this;
-        }
-
-      };
-
-      TileContainer.properties({
-        boundaries: {
-          calcul: function() {
-            var boundaries;
-            boundaries = {
-              top: null,
-              left: null,
-              bottom: null,
-              right: null
-            };
-            this.tiles.forEach((tile) => {
-              return this._addToBondaries(tile, boundaries);
-            });
-            return boundaries;
-          },
-          output: function(val) {
-            return Object.assign({}, val);
-          }
-        }
-      });
-
-      return TileContainer;
-
-    }).call(this);
-    return TileContainer;
-  });
-
-  (function(definition) {
     Parallelio.RoomGenerator = definition();
     return Parallelio.RoomGenerator.definition = definition;
   })(function(dependencies = {}) {
@@ -5481,249 +5858,6 @@
   });
 
   (function(definition) {
-    Parallelio.VisionCalculator = definition();
-    return Parallelio.VisionCalculator.definition = definition;
-  })(function(dependencies = {}) {
-    var Direction, LineOfSight, VisionCalculator;
-    LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
-    Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
-    VisionCalculator = class VisionCalculator {
-      constructor(originTile1, offset1 = {
-          x: 0.5,
-          y: 0.5
-        }) {
-        this.originTile = originTile1;
-        this.offset = offset1;
-        this.pts = {};
-        this.visibility = {};
-        this.stack = [];
-        this.calculated = false;
-      }
-
-      calcul() {
-        this.init();
-        while (this.stack.length) {
-          this.step();
-        }
-        return this.calculated = true;
-      }
-
-      init() {
-        var firstBatch, initialPts;
-        this.pts = {};
-        this.visibility = {};
-        initialPts = [
-          {
-            x: 0,
-            y: 0
-          },
-          {
-            x: 1,
-            y: 0
-          },
-          {
-            x: 0,
-            y: 1
-          },
-          {
-            x: 1,
-            y: 1
-          }
-        ];
-        initialPts.forEach((pt) => {
-          return this.setPt(this.originTile.x + pt.x, this.originTile.y + pt.y, true);
-        });
-        firstBatch = [
-          {
-            x: -1,
-            y: -1
-          },
-          {
-            x: -1,
-            y: 0
-          },
-          {
-            x: -1,
-            y: 1
-          },
-          {
-            x: -1,
-            y: 2
-          },
-          {
-            x: 2,
-            y: -1
-          },
-          {
-            x: 2,
-            y: 0
-          },
-          {
-            x: 2,
-            y: 1
-          },
-          {
-            x: 2,
-            y: 2
-          },
-          {
-            x: 0,
-            y: -1
-          },
-          {
-            x: 1,
-            y: -1
-          },
-          {
-            x: 0,
-            y: 2
-          },
-          {
-            x: 1,
-            y: 2
-          }
-        ];
-        return this.stack = firstBatch.map((pt) => {
-          return {
-            x: this.originTile.x + pt.x,
-            y: this.originTile.y + pt.y
-          };
-        });
-      }
-
-      setPt(x, y, val) {
-        var adjancent;
-        this.pts[x + ':' + y] = val;
-        adjancent = [
-          {
-            x: 0,
-            y: 0
-          },
-          {
-            x: -1,
-            y: 0
-          },
-          {
-            x: 0,
-            y: -1
-          },
-          {
-            x: -1,
-            y: -1
-          }
-        ];
-        return adjancent.forEach((pt) => {
-          return this.addVisibility(x + pt.x, y + pt.y, val ? 1 / adjancent.length : 0);
-        });
-      }
-
-      getPt(x, y) {
-        return this.pts[x + ':' + y];
-      }
-
-      addVisibility(x, y, val) {
-        if (this.visibility[x] == null) {
-          this.visibility[x] = {};
-        }
-        if (this.visibility[x][y] != null) {
-          return this.visibility[x][y] += val;
-        } else {
-          return this.visibility[x][y] = val;
-        }
-      }
-
-      getVisibility(x, y) {
-        if ((this.visibility[x] == null) || (this.visibility[x][y] == null)) {
-          return 0;
-        } else {
-          return this.visibility[x][y];
-        }
-      }
-
-      canProcess(x, y) {
-        return !this.stack.some((pt) => {
-          return pt.x === x && pt.y === y;
-        }) && (this.getPt(x, y) == null);
-      }
-
-      step() {
-        var los, pt;
-        pt = this.stack.shift();
-        los = new LineOfSight(this.originTile.container, this.originTile.x + this.offset.x, this.originTile.y + this.offset.y, pt.x, pt.y);
-        los.reverseTracing();
-        los.traversableCallback = (tile, entryX, entryY) => {
-          if (tile != null) {
-            if (this.getVisibility(tile.x, tile.y) === 1) {
-              return los.forceSuccess();
-            } else {
-              return tile.transparent;
-            }
-          }
-        };
-        this.setPt(pt.x, pt.y, los.getSuccess());
-        if (los.getSuccess()) {
-          return Direction.all.forEach((direction) => {
-            var nextPt;
-            nextPt = {
-              x: pt.x + direction.x,
-              y: pt.y + direction.y
-            };
-            if (this.canProcess(nextPt.x, nextPt.y)) {
-              return this.stack.push(nextPt);
-            }
-          });
-        }
-      }
-
-      getBounds() {
-        var boundaries, col, ref3, val, x, y;
-        boundaries = {
-          top: null,
-          left: null,
-          bottom: null,
-          right: null
-        };
-        ref3 = this.visibility;
-        for (x in ref3) {
-          col = ref3[x];
-          for (y in col) {
-            val = col[y];
-            if ((boundaries.top == null) || y < boundaries.top) {
-              boundaries.top = y;
-            }
-            if ((boundaries.left == null) || x < boundaries.left) {
-              boundaries.left = x;
-            }
-            if ((boundaries.bottom == null) || y > boundaries.bottom) {
-              boundaries.bottom = y;
-            }
-            if ((boundaries.right == null) || x > boundaries.right) {
-              boundaries.right = x;
-            }
-          }
-        }
-        return boundaries;
-      }
-
-      toMap() {
-        var k, l, ref3, ref4, ref5, ref6, res, x, y;
-        res = Object.assign({
-          map: []
-        }, this.getBounds());
-        for (y = k = ref3 = res.top, ref4 = res.bottom - 1; (ref3 <= ref4 ? k <= ref4 : k >= ref4); y = ref3 <= ref4 ? ++k : --k) {
-          res.map[y - res.top] = [];
-          for (x = l = ref5 = res.left, ref6 = res.right - 1; (ref5 <= ref6 ? l <= ref6 : l >= ref6); x = ref5 <= ref6 ? ++l : --l) {
-            res.map[y - res.top][x - res.left] = this.getVisibility(x, y);
-          }
-        }
-        return res;
-      }
-
-    };
-    return VisionCalculator;
-  });
-
-  (function(definition) {
     Parallelio.ActionProvider = definition();
     return Parallelio.ActionProvider.definition = definition;
   })(function(dependencies = {}) {
@@ -5748,9 +5882,8 @@
     Parallelio.AttackAction = definition();
     return Parallelio.AttackAction.definition = definition;
   })(function(dependencies = {}) {
-    var AttackAction, PathFinder, PathWalk, TargetAction;
-    PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
-    PathWalk = dependencies.hasOwnProperty("PathWalk") ? dependencies.PathWalk : Parallelio.PathWalk;
+    var AttackAction, TargetAction, WalkAction;
+    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
     TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
     AttackAction = (function() {
       class AttackAction extends TargetAction {
@@ -5778,44 +5911,44 @@
         }
 
         canWalkToTarget() {
-          this.pathFinder.calcul();
-          return this.pathFinder.solution != null;
+          return this.walkAction.isReady();
         }
 
         execute() {
           if (this.actor.walk != null) {
-            this.actor.walk.end();
+            this.actor.walk.interrupt();
           }
           if (this.bestUsableWeapon != null) {
-            return this.bestUsableWeapon.useOn(this.target);
+            this.bestUsableWeapon.useOn(this.target);
+            return this.finish();
           } else {
-            this.actor.walk = new PathWalk(this.actor, this.pathFinder);
-            this.actor.walk.on('endReached', () => {
-              if (this.isReady) {
+            this.walkAction.on('finished', () => {
+              if (this.isReady()) {
                 return this.start();
               }
             });
-            return this.actor.walk.start();
+            this.walkAction.on('interrupted', () => {
+              return this.interrupt();
+            });
+            return this.walkAction.execute();
           }
         }
 
       };
 
       AttackAction.properties({
-        pathFinder: {
+        walkAction: {
           calcul: function() {
-            return new PathFinder(this.actor.tile.container, this.actor.tile, this.target, {
-              validTile: (tile) => {
-                if (typeof this.actor.canGoOnTile === "function") {
-                  return this.actor.canGoOnTile(tile);
-                } else {
-                  return tile.walkable;
-                }
-              },
-              arrived: (tile) => {
-                return this.canUseWeaponAt(tile);
-              }
+            var walkAction;
+            walkAction = new WalkAction({
+              actor: this.actor,
+              target: this.target,
+              parent: this.parent
             });
+            walkAction.pathFinder.arrivedCallback = (tile) => {
+              return this.canUseWeaponAt(tile);
+            };
+            return walkAction;
           }
         },
         bestUsableWeapon: {

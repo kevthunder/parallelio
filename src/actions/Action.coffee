@@ -1,6 +1,8 @@
 Element = require('spark-starter').Element
+EventEmitter = require('spark-starter').EventEmitter
 
 class Action extends Element
+  @include EventEmitter.prototype
   constructor: (options) ->
     super()
     @setProperties(options)
@@ -19,3 +21,14 @@ class Action extends Element
     @actor?
   isReady: ->
     @validActor()
+  finish: ->
+    @trigger('finished')
+    @end()
+  interrupt: ->
+    @trigger('interrupted')
+    @end()
+  end: ->
+    @trigger('end')
+    @destroy()
+  destroy: ->
+    @destroyProperties()
