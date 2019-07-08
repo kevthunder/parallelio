@@ -2,6 +2,7 @@ TileContainer = require('parallelio-tiles').TileContainer
 VisionCalculator = require('./VisionCalculator')
 Door = require('./Door')
 WalkAction = require('./actions/WalkAction')
+AttackMoveAction = require('./actions/AttackMoveAction')
 
 class CharacterAI
   constructor: (@character)->
@@ -52,8 +53,10 @@ class CharacterAI
       c instanceof Door
 
   attackMoveTo: (tile)->
-    # todo
-    @walkTo(tile)
+    action = new AttackMoveAction(actor: @character, target: tile)
+    if action.isReady()
+      action.execute()
+      action
 
   walkTo: (tile)->
     action = new WalkAction(actor: @character, target: tile)
