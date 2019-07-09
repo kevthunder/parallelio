@@ -161,6 +161,10 @@
           });
         }
 
+        removeAllListeners() {
+          return this._events = {};
+        }
+
       };
 
       EventEmitter.prototype.emit = EventEmitter.prototype.emitEvent;
@@ -1252,6 +1256,12 @@
         };
       }
 
+      bindTo(target) {
+        this.unbind();
+        this.target = target;
+        return this.bind();
+      }
+
       doBind() {
         if (typeof this.target.addEventListener === 'function') {
           return this.target.addEventListener(this.event, this.callback);
@@ -1648,7 +1658,16 @@
           return val !== old;
         }
 
-        destroy() {}
+        destroy() {
+          var ref3;
+          if (this.property.options.destroy === true && (((ref3 = this.value) != null ? ref3.destroy : void 0) != null)) {
+            this.value.destroy();
+          }
+          if (typeof this.property.options.destroy === 'function') {
+            this.callOptionFunct('destroy', this.value);
+          }
+          return this.value = null;
+        }
 
         callOptionFunct(funct, ...args) {
           if (typeof funct === 'string') {
@@ -2465,8 +2484,12 @@
         }
 
         destroy() {
+          if (this.walker.walk === this) {
+            this.walker.walk = null;
+          }
           this.pathTimeout.destroy();
-          return this.destroyProperties();
+          this.destroyProperties();
+          return this.removeAllListeners();
         }
 
       };
@@ -2636,6 +2659,9 @@
           if (options.arrived != null) {
             this.arrivedCallback = options.arrived;
           }
+          if (options.efficiency != null) {
+            this.efficiencyCallback = options.efficiency;
+          }
         }
 
         reset() {
@@ -2659,11 +2685,15 @@
             this.addNextSteps(next);
             return true;
           } else if (!this.started) {
-            this.started = true;
-            if (this.tileIsValid(this.to)) {
-              this.addNextSteps();
-              return true;
-            }
+            return this.start();
+          }
+        }
+
+        start() {
+          this.started = true;
+          if (this.to === false || this.tileIsValid(this.to)) {
+            this.addNextSteps();
+            return true;
           }
         }
 
@@ -2702,6 +2732,19 @@
               prc = (time - step.getStartLength()) / step.getLength();
               return step.posToTileOffset(step.getEntry().x + (step.getExit().x - step.getEntry().x) * prc, step.getEntry().y + (step.getExit().y - step.getEntry().y) * prc);
             }
+          }
+        }
+
+        getSolutionTileList() {
+          var step, tilelist;
+          if (this.solution) {
+            step = this.solution;
+            tilelist = [step.tile];
+            while (step.prev != null) {
+              step = step.prev;
+              tilelist.unshift(step.tile);
+            }
+            return tilelist;
           }
         }
 
@@ -2920,7 +2963,11 @@
 
       getEfficiency() {
         if (this.efficiency == null) {
-          this.efficiency = -this.getRemaining() * 1.1 - this.getTotalLength();
+          if (typeof this.pathFinder.efficiencyCallback === "function") {
+            this.efficiency = this.pathFinder.efficiencyCallback(this);
+          } else {
+            this.efficiency = -this.getRemaining() * 1.1 - this.getTotalLength();
+          }
         }
         return this.efficiency;
       }
@@ -3658,6 +3705,112 @@
   });
 
   (function(definition) {
+    Parallelio.AttackAction = definition();
+    return Parallelio.AttackAction.definition = definition;
+  })(function(dependencies = {}) {
+    var AttackAction, EventBind, TargetAction, WalkAction;
+    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
+    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
+    EventBind = dependencies.hasOwnProperty("EventBind") ? dependencies.EventBind : Parallelio.Spark.EventBind;
+    AttackAction = (function() {
+      class AttackAction extends TargetAction {
+        validTarget() {
+          return this.targetIsAttackable() && (this.canUseWeapon() || this.canWalkToTarget());
+        }
+
+        targetIsAttackable() {
+          return this.target.damageable && this.target.health >= 0;
+        }
+
+        canMelee() {
+          return Math.abs(this.target.tile.x - this.actor.tile.x) + Math.abs(this.target.tile.y - this.actor.tile.y) === 1;
+        }
+
+        canUseWeapon() {
+          return this.bestUsableWeapon != null;
+        }
+
+        canUseWeaponAt(tile) {
+          var ref3;
+          return ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) && this.actor.weapons.find((weapon) => {
+            return weapon.canUseFrom(tile, this.target);
+          });
+        }
+
+        canWalkToTarget() {
+          return this.walkAction.isReady();
+        }
+
+        execute() {
+          if (this.actor.walk != null) {
+            this.actor.walk.interrupt();
+          }
+          if (this.bestUsableWeapon != null) {
+            this.bestUsableWeapon.useOn(this.target);
+            return this.finish();
+          } else {
+            this.walkAction.on('finished', () => {
+              this.interruptBinder.unbind();
+              if (this.isReady()) {
+                return this.start();
+              }
+            });
+            this.interruptBinder.bindTo(this.walkAction);
+            return this.walkAction.execute();
+          }
+        }
+
+      };
+
+      AttackAction.properties({
+        walkAction: {
+          calcul: function() {
+            var walkAction;
+            walkAction = new WalkAction({
+              actor: this.actor,
+              target: this.target,
+              parent: this.parent
+            });
+            walkAction.pathFinder.arrivedCallback = (tile) => {
+              return this.canUseWeaponAt(tile);
+            };
+            return walkAction;
+          }
+        },
+        bestUsableWeapon: {
+          calcul: function(invalidator) {
+            var ref3, usableWeapons;
+            invalidator.propPath('actor.tile');
+            if ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) {
+              usableWeapons = this.actor.weapons.filter((weapon) => {
+                return weapon.canUseOn(this.target);
+              });
+              usableWeapons.sort((a, b) => {
+                return b.dps - a.dps;
+              });
+              return usableWeapons[0];
+            } else {
+              return null;
+            }
+          }
+        },
+        interruptBinder: {
+          calcul: function() {
+            return new EventBind('interrupted', null, () => {
+              return this.interrupt();
+            });
+          },
+          destroy: true
+        }
+      });
+
+      return AttackAction;
+
+    }).call(this);
+    return AttackAction;
+  });
+
+  (function(definition) {
     Parallelio.VisionCalculator = definition();
     return Parallelio.VisionCalculator.definition = definition;
   })(function(dependencies = {}) {
@@ -3901,14 +4054,119 @@
   });
 
   (function(definition) {
+    Parallelio.AttackMoveAction = definition();
+    return Parallelio.AttackMoveAction.definition = definition;
+  })(function(dependencies = {}) {
+    var AttackAction, AttackMoveAction, EventBind, LineOfSight, PathFinder, PropertyWatcher, TargetAction, WalkAction;
+    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
+    AttackAction = dependencies.hasOwnProperty("AttackAction") ? dependencies.AttackAction : Parallelio.AttackAction;
+    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
+    PathFinder = dependencies.hasOwnProperty("PathFinder") ? dependencies.PathFinder : Parallelio.PathFinder;
+    LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
+    EventBind = dependencies.hasOwnProperty("EventBind") ? dependencies.EventBind : Parallelio.Spark.EventBind;
+    AttackMoveAction = (function() {
+      class AttackMoveAction extends TargetAction {
+        isEnemy(elem) {
+          var ref3;
+          return (ref3 = this.actor.owner) != null ? typeof ref3.isEnemy === "function" ? ref3.isEnemy(elem) : void 0 : void 0;
+        }
+
+        validTarget() {
+          return this.walkAction.validTarget();
+        }
+
+        execute() {
+          this.walkAction.on('finished', () => {
+            return this.finished();
+          });
+          this.interruptBinder.bindTo(this.walkAction);
+          this.tileWatcher.bind();
+          return this.walkAction.execute();
+        }
+
+      };
+
+      AttackMoveAction.properties({
+        walkAction: {
+          calcul: function() {
+            var walkAction;
+            walkAction = new WalkAction({
+              actor: this.actor,
+              target: this.target,
+              parent: this.parent
+            });
+            return walkAction;
+          }
+        },
+        enemySpotted: {
+          calcul: function() {
+            this.path = new PathFinder(this.actor.tile.container, this.actor.tile, false, {
+              validTile: (tile) => {
+                return tile.transparent && (new LineOfSight(this.actor.tile.container, this.actor.tile.x, this.actor.tile.y, tile.x, tile.y)).getSuccess();
+              },
+              arrived: (tile) => {
+                return tile.children.find((c) => {
+                  return this.isEnemy(c);
+                });
+              },
+              efficiency: (tile) => {}
+            });
+            this.path.calcul();
+            return this.path.solution;
+          }
+        },
+        tileWatcher: {
+          calcul: function() {
+            return new PropertyWatcher({
+              callback: () => {
+                this.invalidateEnemySpotted();
+                if (this.enemySpotted) {
+                  this.attackAction = new AttackAction({
+                    actor: this.actor,
+                    target: this.enemySpotted
+                  });
+                  this.attackAction.on('finished', () => {
+                    if (this.isReady()) {
+                      return this.start();
+                    }
+                  });
+                  this.interruptBinder.bindTo(this.attackAction);
+                  this.invalidateWalkAction();
+                  return this.walkAction.execute();
+                }
+              },
+              property: this.actor.getPropertyInstance('tile')
+            });
+          },
+          destroy: true
+        },
+        interruptBinder: {
+          calcul: function() {
+            return new EventBind('interrupted', null, () => {
+              return this.interrupt();
+            });
+          },
+          destroy: true
+        }
+      });
+
+      return AttackMoveAction;
+
+    }).call(this);
+    return AttackMoveAction;
+  });
+
+  (function(definition) {
     Parallelio.CharacterAI = definition();
     return Parallelio.CharacterAI.definition = definition;
   })(function(dependencies = {}) {
-    var CharacterAI, Door, TileContainer, VisionCalculator, WalkAction;
+    var AttackMoveAction, CharacterAI, Door, TileContainer, VisionCalculator, WalkAction;
     TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
     VisionCalculator = dependencies.hasOwnProperty("VisionCalculator") ? dependencies.VisionCalculator : Parallelio.VisionCalculator;
     Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
     WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
+    AttackMoveAction = dependencies.hasOwnProperty("AttackMoveAction") ? dependencies.AttackMoveAction : Parallelio.AttackMoveAction;
     CharacterAI = class CharacterAI {
       constructor(character) {
         var visionMemory;
@@ -3962,7 +4220,8 @@
       }
 
       isEnnemy(elem) {
-        return false;
+        var ref3;
+        return (ref3 = this.character.owner) != null ? typeof ref3.isEnemy === "function" ? ref3.isEnemy(elem) : void 0 : void 0;
       }
 
       getClosestEnemy() {
@@ -3984,8 +4243,15 @@
       }
 
       attackMoveTo(tile) {
-        // todo
-        return this.walkTo(tile);
+        var action;
+        action = new AttackMoveAction({
+          actor: this.character,
+          target: tile
+        });
+        if (action.isReady()) {
+          action.execute();
+          return action;
+        }
       }
 
       walkTo(tile) {
@@ -5879,138 +6145,6 @@
   });
 
   (function(definition) {
-    Parallelio.AttackAction = definition();
-    return Parallelio.AttackAction.definition = definition;
-  })(function(dependencies = {}) {
-    var AttackAction, TargetAction, WalkAction;
-    WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
-    TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
-    AttackAction = (function() {
-      class AttackAction extends TargetAction {
-        validTarget() {
-          return this.targetIsAttackable() && (this.canUseWeapon() || this.canWalkToTarget());
-        }
-
-        targetIsAttackable() {
-          return this.target.damageable && this.target.health >= 0;
-        }
-
-        canMelee() {
-          return Math.abs(this.target.tile.x - this.actor.tile.x) + Math.abs(this.target.tile.y - this.actor.tile.y) === 1;
-        }
-
-        canUseWeapon() {
-          return this.bestUsableWeapon != null;
-        }
-
-        canUseWeaponAt(tile) {
-          var ref3;
-          return ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) && this.actor.weapons.find((weapon) => {
-            return weapon.canUseFrom(tile, this.target);
-          });
-        }
-
-        canWalkToTarget() {
-          return this.walkAction.isReady();
-        }
-
-        execute() {
-          if (this.actor.walk != null) {
-            this.actor.walk.interrupt();
-          }
-          if (this.bestUsableWeapon != null) {
-            this.bestUsableWeapon.useOn(this.target);
-            return this.finish();
-          } else {
-            this.walkAction.on('finished', () => {
-              if (this.isReady()) {
-                return this.start();
-              }
-            });
-            this.walkAction.on('interrupted', () => {
-              return this.interrupt();
-            });
-            return this.walkAction.execute();
-          }
-        }
-
-      };
-
-      AttackAction.properties({
-        walkAction: {
-          calcul: function() {
-            var walkAction;
-            walkAction = new WalkAction({
-              actor: this.actor,
-              target: this.target,
-              parent: this.parent
-            });
-            walkAction.pathFinder.arrivedCallback = (tile) => {
-              return this.canUseWeaponAt(tile);
-            };
-            return walkAction;
-          }
-        },
-        bestUsableWeapon: {
-          calcul: function(invalidator) {
-            var ref3, usableWeapons;
-            invalidator.propPath('actor.tile');
-            if ((ref3 = this.actor.weapons) != null ? ref3.length : void 0) {
-              usableWeapons = this.actor.weapons.filter((weapon) => {
-                return weapon.canUseOn(this.target);
-              });
-              usableWeapons.sort((a, b) => {
-                return b.dps - a.dps;
-              });
-              return usableWeapons[0];
-            } else {
-              return null;
-            }
-          }
-        }
-      });
-
-      return AttackAction;
-
-    }).call(this);
-    return AttackAction;
-  });
-
-  (function(definition) {
-    Parallelio.SimpleActionProvider = definition();
-    return Parallelio.SimpleActionProvider.definition = definition;
-  })(function(dependencies = {}) {
-    var ActionProvider, SimpleActionProvider;
-    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
-    SimpleActionProvider = (function() {
-      class SimpleActionProvider extends ActionProvider {};
-
-      SimpleActionProvider.properties({
-        providedActions: {
-          calcul: function() {
-            var actions;
-            actions = this.actions || this.constructor.actions;
-            if (typeof actions === "object") {
-              actions = Object.keys(actions).map(function(key) {
-                return actions[key];
-              });
-            }
-            return actions.map((action) => {
-              return new action({
-                target: this
-              });
-            });
-          }
-        }
-      });
-
-      return SimpleActionProvider;
-
-    }).call(this);
-    return SimpleActionProvider;
-  });
-
-  (function(definition) {
     Parallelio.SignalOperation = definition();
     return Parallelio.SignalOperation.definition = definition;
   })(function(dependencies = {}) {
@@ -6523,6 +6657,40 @@
 
     };
     return Invalidated;
+  });
+
+  (function(definition) {
+    Parallelio.SimpleActionProvider = definition();
+    return Parallelio.SimpleActionProvider.definition = definition;
+  })(function(dependencies = {}) {
+    var ActionProvider, SimpleActionProvider;
+    ActionProvider = dependencies.hasOwnProperty("ActionProvider") ? dependencies.ActionProvider : Parallelio.ActionProvider;
+    SimpleActionProvider = (function() {
+      class SimpleActionProvider extends ActionProvider {};
+
+      SimpleActionProvider.properties({
+        providedActions: {
+          calcul: function() {
+            var actions;
+            actions = this.actions || this.constructor.actions;
+            if (typeof actions === "object") {
+              actions = Object.keys(actions).map(function(key) {
+                return actions[key];
+              });
+            }
+            return actions.map((action) => {
+              return new action({
+                target: this
+              });
+            });
+          }
+        }
+      });
+
+      return SimpleActionProvider;
+
+    }).call(this);
+    return SimpleActionProvider;
   });
 
   (function(definition) {

@@ -2,7 +2,9 @@ WalkAction = require('./WalkAction')
 AttackAction = require('./AttackAction')
 TargetAction = require('./TargetAction')
 PathFinder = require('parallelio-pathfinder')
+LineOfSight = require('../LineOfSight')
 PropertyWatcher = require('spark-starter').PropertyWatcher
+EventBind = require('spark-starter').EventBind
 
 class AttackMoveAction extends TargetAction
   @properties
@@ -10,7 +12,7 @@ class AttackMoveAction extends TargetAction
       calcul: ->
         walkAction = new WalkAction(actor: @actor, target: @target, parent: @parent)
         walkAction
-    enemySpotted: ->
+    enemySpotted:
       calcul: ->
         @path = new PathFinder(@actor.tile.container, @actor.tile, false, {
           validTile: (tile)=>
@@ -21,22 +23,30 @@ class AttackMoveAction extends TargetAction
         })
         @path.calcul()
         @path.solution
-    tileWatcher: ->
-      new PropertyWatcher({
-        callback: =>
-          if @enemySpotted
-            @attackAction = new AttackAction(actor: @actor, target: @enemySpotted)
-            @attackAction.on 'finished', =>
-              if @isReady()
-                @start()
-            @attackAction.on 'interrupted', =>
-              @interrupt()
-            @walkAction.execute()
-        property: @actor.getPropertyIntance('tile')
-      })
+    tileWatcher:
+      calcul: ->
+        new PropertyWatcher({
+          callback: =>
+            @invalidateEnemySpotted()
+            if @enemySpotted
+              @attackAction = new AttackAction(actor: @actor, target: @enemySpotted)
+              @attackAction.on 'finished', =>
+                if @isReady()
+                  @start()
+              @interruptBinder.bindTo(@attackAction)
+              @invalidateWalkAction()
+              @walkAction.execute()
+          property: @actor.getPropertyInstance('tile')
+        })
+      destroy: true
+    interruptBinder:
+      calcul: ->
+        new EventBind 'interrupted', null, =>
+          @interrupt()
+      destroy: true
 
   isEnemy: (elem)->
-    false
+    @actor.owner?.isEnemy?(elem)
 
   validTarget: ()->
     @walkAction.validTarget()
@@ -44,6 +54,6 @@ class AttackMoveAction extends TargetAction
   execute: ->
     @walkAction.on 'finished', =>
       @finished()
-    @walkAction.on 'interrupted', =>
-      @interrupt()
+    @interruptBinder.bindTo(@walkAction)
+    @tileWatcher.bind()
     @walkAction.execute()

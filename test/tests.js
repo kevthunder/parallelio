@@ -39,6 +39,8 @@
 
   require('./attackAction');
 
+  require('./attackMoveAction');
+
   require('./concat');
 
 }).call(this);

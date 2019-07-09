@@ -47,6 +47,9 @@ class PathWalk extends Element
     @trigger('end')
     @destroy()
   destroy: ->
+    if @walker.walk == this
+      @walker.walk = null
     @pathTimeout.destroy()
     @destroyProperties()
+    @removeAllListeners()
 

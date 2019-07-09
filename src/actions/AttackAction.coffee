@@ -1,5 +1,6 @@
 WalkAction = require('./WalkAction')
 TargetAction = require('./TargetAction')
+EventBind = require('spark-starter').EventBind
 
 class AttackAction extends TargetAction
   @properties
@@ -20,6 +21,11 @@ class AttackAction extends TargetAction
           usableWeapons[0]
         else
           null
+    interruptBinder:
+      calcul: ->
+        new EventBind 'interrupted', null, =>
+          @interrupt()
+      destroy: true
 
   validTarget: ()->
     @targetIsAttackable() and (@canUseWeapon() or @canWalkToTarget())
@@ -43,8 +49,8 @@ class AttackAction extends TargetAction
       @finish()
     else
       @walkAction.on 'finished', =>
+        @interruptBinder.unbind()
         if @isReady()
           @start()
-      @walkAction.on 'interrupted', =>
-        @interrupt()
+      @interruptBinder.bindTo(@walkAction)
       @walkAction.execute()

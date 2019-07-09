@@ -20,5 +20,6 @@ require './path_walk'
 require './personalWeapon'
 require './character'
 require './attackAction'
+require './attackMoveAction'
 
 require './concat'

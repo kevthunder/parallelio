@@ -65,7 +65,6 @@ describe 'AttackAction', ->
 
     assert.equal char1.tile.x, 1
     assert.equal char1.tile.y, 0
-    assert.isTrue action.canUseWeapon()
     assert.equal char2.health, 990
 
 

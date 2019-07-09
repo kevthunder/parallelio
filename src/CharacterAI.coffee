@@ -40,7 +40,7 @@ class CharacterAI
     tile
 
   isEnnemy: (elem)->
-    false
+    @character.owner?.isEnemy?(elem)
 
   getClosestEnemy: ->
     visionMemory.closest (t)=> t.ennemySpotted
