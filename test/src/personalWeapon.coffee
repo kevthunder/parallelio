@@ -44,4 +44,6 @@ describe 'PersonalWeapon', ->
     weapon.useOn target
     assert.equal target.health, 990
 
+    weapon.destroy()
+
 

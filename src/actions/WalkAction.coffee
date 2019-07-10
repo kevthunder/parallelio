@@ -17,12 +17,17 @@ class WalkAction extends TargetAction
   execute: -> 
     if @actor.walk?
       @actor.walk.interrupt()
-    @actor.walk = new PathWalk(@actor, @pathFinder)
+    @walk = @actor.walk = new PathWalk(@actor, @pathFinder)
     @actor.walk.on 'finished', =>
       @finish()
     @actor.walk.on 'interrupted', =>
       @interrupt()
     @actor.walk.start()
+
+  destroy: ->
+    super()
+    if @walk
+      @walk.destroy()
 
   validTarget: ()->
     @pathFinder.calcul()

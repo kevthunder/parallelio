@@ -17,7 +17,6 @@
         minVolume: 10,
         maxVolume: 15
       });
-      debugger;
       tiles = gen.getTiles();
       map = (function() {
         var i, ref, results;

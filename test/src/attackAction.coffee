@@ -41,6 +41,9 @@ describe 'AttackAction', ->
 
     assert.equal char2.health, 990
 
+    char1.weapons.forEach (w)=> 
+      w.destroy()
+
   it 'can move to attack a target', ->
     ctn = createStage()
     char1 = new Character()
@@ -66,6 +69,9 @@ describe 'AttackAction', ->
     assert.equal char1.tile.x, 1
     assert.equal char1.tile.y, 0
     assert.equal char2.health, 990
+
+    char1.weapons.forEach (w)=> 
+      w.destroy()
 
 
 

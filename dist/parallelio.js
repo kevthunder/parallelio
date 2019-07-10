@@ -653,7 +653,7 @@
           if (!Array.isArray(def)) {
             def = [def];
           }
-          return this.preloaded = this.preloaded.concat(def);
+          return this.preloaded = (this.preloaded || []).concat(def);
         }
 
         destroyLoaded() {
@@ -661,6 +661,17 @@
             var ref3;
             return (ref3 = def.instance) != null ? typeof ref3.destroy === "function" ? ref3.destroy() : void 0 : void 0;
           });
+        }
+
+        getFinalProperties() {
+          return super.getFinalProperties().concat(['preloaded']);
+        }
+
+        extended(target) {
+          super.extended(target);
+          if (this.preloaded) {
+            return target.preloaded = (target.preloaded || []).concat(this.preloaded);
+          }
         }
 
         static loadMany(def) {
@@ -2814,13 +2825,14 @@
 
         arrivedAtDestination(step) {
           if (this.arrivedCallback != null) {
-            return this.arrivedCallback(step.nextTile, this);
+            return this.arrivedCallback(step);
           } else {
-            return this.tileEqual(step.nextTile, this.to);
+            return this.tileEqual(step.tile, this.to);
           }
         }
 
         addStep(step) {
+          var solutionCandidate;
           if (this.paths[step.getExit().x] == null) {
             this.paths[step.getExit().x] = {};
           }
@@ -2830,8 +2842,9 @@
             }
             this.paths[step.getExit().x][step.getExit().y] = step;
             this.queue.splice(this.getStepRank(step), 0, step);
-            if (this.arrivedAtDestination(step) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
-              return this.solution = new PathFinder.Step(this, step, step.nextTile, null);
+            solutionCandidate = new PathFinder.Step(this, step, step.nextTile, null);
+            if (this.arrivedAtDestination(solutionCandidate) && !((this.solution != null) && this.solution.prev.getTotalLength() <= step.getTotalLength())) {
+              return this.solution = solutionCandidate;
             }
           }
         }
@@ -3126,7 +3139,7 @@
           if (this.actor.walk != null) {
             this.actor.walk.interrupt();
           }
-          this.actor.walk = new PathWalk(this.actor, this.pathFinder);
+          this.walk = this.actor.walk = new PathWalk(this.actor, this.pathFinder);
           this.actor.walk.on('finished', () => {
             return this.finish();
           });
@@ -3134,6 +3147,13 @@
             return this.interrupt();
           });
           return this.actor.walk.start();
+        }
+
+        destroy() {
+          super.destroy();
+          if (this.walk) {
+            return this.walk.destroy();
+          }
         }
 
         validTarget() {
@@ -3708,10 +3728,11 @@
     Parallelio.AttackAction = definition();
     return Parallelio.AttackAction.definition = definition;
   })(function(dependencies = {}) {
-    var AttackAction, EventBind, TargetAction, WalkAction;
+    var AttackAction, EventBind, PropertyWatcher, TargetAction, WalkAction;
     WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
     TargetAction = dependencies.hasOwnProperty("TargetAction") ? dependencies.TargetAction : Parallelio.TargetAction;
     EventBind = dependencies.hasOwnProperty("EventBind") ? dependencies.EventBind : Parallelio.Spark.EventBind;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
     AttackAction = (function() {
       class AttackAction extends TargetAction {
         validTarget() {
@@ -3741,13 +3762,21 @@
           return this.walkAction.isReady();
         }
 
+        useWeapon() {
+          this.bestUsableWeapon.useOn(this.target);
+          return this.finish();
+        }
+
         execute() {
           if (this.actor.walk != null) {
             this.actor.walk.interrupt();
           }
           if (this.bestUsableWeapon != null) {
-            this.bestUsableWeapon.useOn(this.target);
-            return this.finish();
+            if (this.bestUsableWeapon.charged) {
+              return this.useWeapon();
+            } else {
+              return this.weaponChargeWatcher.bind();
+            }
           } else {
             this.walkAction.on('finished', () => {
               this.interruptBinder.unbind();
@@ -3771,8 +3800,8 @@
               target: this.target,
               parent: this.parent
             });
-            walkAction.pathFinder.arrivedCallback = (tile) => {
-              return this.canUseWeaponAt(tile);
+            walkAction.pathFinder.arrivedCallback = (step) => {
+              return this.canUseWeaponAt(step.tile);
             };
             return walkAction;
           }
@@ -3798,6 +3827,19 @@
           calcul: function() {
             return new EventBind('interrupted', null, () => {
               return this.interrupt();
+            });
+          },
+          destroy: true
+        },
+        weaponChargeWatcher: {
+          calcul: function() {
+            return new PropertyWatcher({
+              callback: () => {
+                if (this.bestUsableWeapon.charged) {
+                  return this.useWeapon();
+                }
+              },
+              property: this.bestUsableWeapon.getPropertyInstance('charged')
             });
           },
           destroy: true
@@ -4076,13 +4118,34 @@
           return this.walkAction.validTarget();
         }
 
+        testEnemySpotted() {
+          this.invalidateEnemySpotted();
+          if (this.enemySpotted) {
+            this.attackAction = new AttackAction({
+              actor: this.actor,
+              target: this.enemySpotted
+            });
+            this.attackAction.on('finished', () => {
+              if (this.isReady()) {
+                return this.start();
+              }
+            });
+            this.interruptBinder.bindTo(this.attackAction);
+            this.walkAction.interrupt();
+            this.invalidateWalkAction();
+            return this.attackAction.execute();
+          }
+        }
+
         execute() {
-          this.walkAction.on('finished', () => {
-            return this.finished();
-          });
-          this.interruptBinder.bindTo(this.walkAction);
-          this.tileWatcher.bind();
-          return this.walkAction.execute();
+          if (!this.testEnemySpotted()) {
+            this.walkAction.on('finished', () => {
+              return this.finished();
+            });
+            this.interruptBinder.bindTo(this.walkAction);
+            this.tileWatcher.bind();
+            return this.walkAction.execute();
+          }
         }
 
       };
@@ -4101,40 +4164,27 @@
         },
         enemySpotted: {
           calcul: function() {
+            var ref3;
             this.path = new PathFinder(this.actor.tile.container, this.actor.tile, false, {
               validTile: (tile) => {
                 return tile.transparent && (new LineOfSight(this.actor.tile.container, this.actor.tile.x, this.actor.tile.y, tile.x, tile.y)).getSuccess();
               },
-              arrived: (tile) => {
-                return tile.children.find((c) => {
+              arrived: (step) => {
+                return step.enemy = step.tile.children.find((c) => {
                   return this.isEnemy(c);
                 });
               },
               efficiency: (tile) => {}
             });
             this.path.calcul();
-            return this.path.solution;
+            return (ref3 = this.path.solution) != null ? ref3.enemy : void 0;
           }
         },
         tileWatcher: {
           calcul: function() {
             return new PropertyWatcher({
               callback: () => {
-                this.invalidateEnemySpotted();
-                if (this.enemySpotted) {
-                  this.attackAction = new AttackAction({
-                    actor: this.actor,
-                    target: this.enemySpotted
-                  });
-                  this.attackAction.on('finished', () => {
-                    if (this.isReady()) {
-                      return this.start();
-                    }
-                  });
-                  this.interruptBinder.bindTo(this.attackAction);
-                  this.invalidateWalkAction();
-                  return this.walkAction.execute();
-                }
+                return this.testEnemySpotted();
               },
               property: this.actor.getPropertyInstance('tile')
             });
@@ -5198,14 +5248,19 @@
     Parallelio.PersonalWeapon = definition();
     return Parallelio.PersonalWeapon.definition = definition;
   })(function(dependencies = {}) {
-    var Element, LineOfSight, PersonalWeapon;
+    var Element, LineOfSight, PersonalWeapon, Timing;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
     LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
+    Timing = dependencies.hasOwnProperty("Timing") ? dependencies.Timing : Parallelio.Timing;
     PersonalWeapon = (function() {
       class PersonalWeapon extends Element {
         constructor(options) {
           super();
           this.setProperties(options);
+        }
+
+        canBeUsed() {
+          return this.charged;
         }
 
         canUseOn(target) {
@@ -5243,7 +5298,29 @@
         }
 
         useOn(target) {
-          return target.damage(this.power);
+          if (this.canBeUsed()) {
+            target.damage(this.power);
+            this.charged = false;
+            return this.recharge();
+          }
+        }
+
+        recharge() {
+          this.charging = true;
+          return this.chargeTimeout = this.timing.setTimeout(() => {
+            this.charging = false;
+            return this.recharged();
+          }, this.rechargeTime);
+        }
+
+        recharged() {
+          return this.charged = true;
+        }
+
+        destroy() {
+          if (this.chargeTimeout) {
+            return this.chargeTimeout.destroy();
+          }
         }
 
       };
@@ -5251,6 +5328,12 @@
       PersonalWeapon.properties({
         rechargeTime: {
           default: 1000
+        },
+        charged: {
+          default: true
+        },
+        charging: {
+          default: true
         },
         power: {
           default: 10
@@ -5265,6 +5348,11 @@
         },
         user: {
           default: null
+        },
+        timing: {
+          calcul: function() {
+            return new Timing();
+          }
         }
       });
 

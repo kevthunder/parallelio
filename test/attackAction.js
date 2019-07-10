@@ -55,7 +55,10 @@
       assert.isTrue(action.isReady());
       assert.equal(char2.health, 1000);
       action.execute();
-      return assert.equal(char2.health, 990);
+      assert.equal(char2.health, 990);
+      return char1.weapons.forEach((w) => {
+        return w.destroy();
+      });
     });
     return it('can move to attack a target', function() {
       var action, char1, char2, ctn;
@@ -84,7 +87,10 @@
       char1.walk.finish();
       assert.equal(char1.tile.x, 1);
       assert.equal(char1.tile.y, 0);
-      return assert.equal(char2.health, 990);
+      assert.equal(char2.health, 990);
+      return char1.weapons.forEach((w) => {
+        return w.destroy();
+      });
     });
   });
 

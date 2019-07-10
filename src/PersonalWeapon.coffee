@@ -1,5 +1,6 @@
 Element = require('spark-starter').Element
 LineOfSight = require('./LineOfSight')
+Timing = require('parallelio-timing')
 
 class PersonalWeapon extends Element
   constructor: (options) ->
@@ -8,6 +9,10 @@ class PersonalWeapon extends Element
   @properties
     rechargeTime:
       default: 1000
+    charged:
+      default: true
+    charging:
+      default: true
     power:
       default: 10
     dps:
@@ -17,6 +22,12 @@ class PersonalWeapon extends Element
       default: 10
     user:
       default: null
+    timing:
+      calcul: ->
+        new Timing()
+
+  canBeUsed: ()->
+    @charged
 
   canUseOn: (target)->
     @canUseFrom(@user.tile, target)
@@ -44,4 +55,21 @@ class PersonalWeapon extends Element
     los.getSuccess()
 
   useOn: (target)->
-    target.damage(@power)
+    if @canBeUsed()
+      target.damage(@power)
+      @charged = false
+      @recharge()
+
+  recharge: ->
+    @charging = true
+    @chargeTimeout = @timing.setTimeout =>
+      @charging = false
+      @recharged()
+    , @rechargeTime
+
+  recharged: ->
+    @charged = true
+
+  destroy: ->
+    if @chargeTimeout
+      @chargeTimeout.destroy()

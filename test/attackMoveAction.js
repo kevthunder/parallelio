@@ -69,8 +69,16 @@
       char1.walk.pathTimeout.updater.dispatcher.update();
       assert.equal(char1.tile.x, 2);
       assert.equal(char1.tile.y, 2);
-      assert.isTrue(action.enemySpotted);
-      return assert.equal(char2.health, 990);
+      assert.isNotNull(action.enemySpotted);
+      assert.equal(char2.health, 990);
+      char1.weapons[0].chargeTimeout.destroy();
+      char1.weapons[0].charged = true;
+      assert.equal(char2.health, 980);
+      action.interrupt();
+      return char1.weapons.forEach((w) => {
+        debugger;
+        return w.destroy();
+      });
     });
   });
 

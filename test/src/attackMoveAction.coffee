@@ -52,7 +52,16 @@ describe 'AttackMoveAction', ->
 
     assert.equal char1.tile.x, 2
     assert.equal char1.tile.y, 2
-    assert.isTrue action.enemySpotted
+    assert.isNotNull action.enemySpotted
     assert.equal char2.health, 990
+
+    char1.weapons[0].chargeTimeout.destroy()
+    char1.weapons[0].charged = true
+
+    assert.equal char2.health, 980
+
+    action.interrupt()
+    char1.weapons.forEach (w)=> 
+      w.destroy()
 
 

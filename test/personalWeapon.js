@@ -53,7 +53,8 @@
       weapon = new PersonalWeapon();
       assert.equal(target.health, 1000);
       weapon.useOn(target);
-      return assert.equal(target.health, 990);
+      assert.equal(target.health, 990);
+      return weapon.destroy();
     });
   });
 

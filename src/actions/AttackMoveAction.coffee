@@ -17,25 +17,17 @@ class AttackMoveAction extends TargetAction
         @path = new PathFinder(@actor.tile.container, @actor.tile, false, {
           validTile: (tile)=>
             tile.transparent and (new LineOfSight(@actor.tile.container, @actor.tile.x, @actor.tile.y, tile.x, tile.y)).getSuccess()
-          arrived: (tile)=>
-            tile.children.find (c) => @isEnemy(c)
+          arrived: (step)=>
+            step.enemy = step.tile.children.find (c) => @isEnemy(c)
           efficiency: (tile)=>
         })
         @path.calcul()
-        @path.solution
+        @path.solution?.enemy
     tileWatcher:
       calcul: ->
         new PropertyWatcher({
           callback: =>
-            @invalidateEnemySpotted()
-            if @enemySpotted
-              @attackAction = new AttackAction(actor: @actor, target: @enemySpotted)
-              @attackAction.on 'finished', =>
-                if @isReady()
-                  @start()
-              @interruptBinder.bindTo(@attackAction)
-              @invalidateWalkAction()
-              @walkAction.execute()
+            @testEnemySpotted()
           property: @actor.getPropertyInstance('tile')
         })
       destroy: true
@@ -51,9 +43,22 @@ class AttackMoveAction extends TargetAction
   validTarget: ()->
     @walkAction.validTarget()
 
+  testEnemySpotted: ()->
+    @invalidateEnemySpotted()
+    if @enemySpotted
+      @attackAction = new AttackAction(actor: @actor, target: @enemySpotted)
+      @attackAction.on 'finished', =>
+        if @isReady()
+          @start()
+      @interruptBinder.bindTo(@attackAction)
+      @walkAction.interrupt()
+      @invalidateWalkAction()
+      @attackAction.execute()
+
   execute: ->
-    @walkAction.on 'finished', =>
-      @finished()
-    @interruptBinder.bindTo(@walkAction)
-    @tileWatcher.bind()
-    @walkAction.execute()
+    unless @testEnemySpotted()
+      @walkAction.on 'finished', =>
+        @finished()
+      @interruptBinder.bindTo(@walkAction)
+      @tileWatcher.bind()
+      @walkAction.execute()

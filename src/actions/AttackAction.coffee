@@ -1,14 +1,15 @@
 WalkAction = require('./WalkAction')
 TargetAction = require('./TargetAction')
 EventBind = require('spark-starter').EventBind
+PropertyWatcher = require('spark-starter').PropertyWatcher
 
 class AttackAction extends TargetAction
   @properties
     walkAction:
       calcul: ->
         walkAction = new WalkAction(actor: @actor, target: @target, parent: @parent)
-        walkAction.pathFinder.arrivedCallback = (tile) =>
-          @canUseWeaponAt(tile)
+        walkAction.pathFinder.arrivedCallback = (step) =>
+          @canUseWeaponAt(step.tile)
         walkAction
     bestUsableWeapon:
       calcul: (invalidator)->
@@ -26,6 +27,15 @@ class AttackAction extends TargetAction
         new EventBind 'interrupted', null, =>
           @interrupt()
       destroy: true
+    weaponChargeWatcher:
+      calcul: ->
+        new PropertyWatcher({
+          callback: ()=>
+            if @bestUsableWeapon.charged
+              @useWeapon()
+          property: @bestUsableWeapon.getPropertyInstance('charged')
+        })
+      destroy: true
 
   validTarget: ()->
     @targetIsAttackable() and (@canUseWeapon() or @canWalkToTarget())
@@ -41,12 +51,18 @@ class AttackAction extends TargetAction
   canWalkToTarget: ->
     @walkAction.isReady()
 
+  useWeapon: ->
+    @bestUsableWeapon.useOn(@target)
+    @finish()
+
   execute: ->
     if @actor.walk?
       @actor.walk.interrupt()
     if @bestUsableWeapon?
-      @bestUsableWeapon.useOn(@target)
-      @finish()
+      if @bestUsableWeapon.charged
+        @useWeapon()
+      else
+        @weaponChargeWatcher.bind()
     else
       @walkAction.on 'finished', =>
         @interruptBinder.unbind()
