@@ -43,10 +43,10 @@ class CharacterAI
     @character.owner?.isEnemy?(elem)
 
   getClosestEnemy: ->
-    visionMemory.closest (t)=> t.ennemySpotted
+    visionMemory.closest @character.tile, (t)=> t.ennemySpotted
 
   getClosestUnexplored: ->
-    visionMemory.closest (t)=> t.visibility < 1 and t.explorable
+    visionMemory.closest @character.tile, (t)=> t.visibility < 1 and t.explorable
 
   isExplorable: (tile)->
     t.walkable or a.tile.children.find (c)=>
