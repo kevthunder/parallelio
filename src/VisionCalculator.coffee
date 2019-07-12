@@ -1,5 +1,7 @@
 LineOfSight = require('./LineOfSight')
 Direction = require('parallelio-tiles').Direction
+TileContainer = require('parallelio-tiles').TileContainer
+TileReference = require('parallelio-tiles').TileReference
 
 class VisionCalculator
   constructor: (@originTile, @offset = {x:0.5,y:0.5})->
@@ -76,6 +78,18 @@ class VisionCalculator
         if !boundaries.right? || x > boundaries.right
           boundaries.right = x
     boundaries
+
+  toContainer: ->
+    res = new TileContainer()
+    res.owner = false
+    for x, col of @visibility
+      for y, val of col
+        tile = @originTile.container.getTile(x,y)
+        if val!=0 and tile?
+          tile = new TileReference(tile)
+          tile.visibility = val
+          res.addTile tile
+    res
 
   toMap: ->
     res = Object.assign({map:[]},@getBounds())

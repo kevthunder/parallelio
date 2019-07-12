@@ -3,13 +3,20 @@ VisionCalculator = require('./VisionCalculator')
 Door = require('./Door')
 WalkAction = require('./actions/WalkAction')
 AttackMoveAction = require('./actions/AttackMoveAction')
+PropertyWatcher = require('spark-starter').PropertyWatcher
 
 class CharacterAI
   constructor: (@character)->
     @nextActionCallback = => @nextAction()
-    visionMemory = new TileContainer()
+    @visionMemory = new TileContainer()
+    @tileWatcher = new PropertyWatcher
+      callback: =>
+        @updateVisionMemory()
+      property: @character.getPropertyInstance('tile')
+      
 
   start: ->
+    @tileWatcher.bind()
     @nextAction()
 
   nextAction: ->
@@ -25,7 +32,7 @@ class CharacterAI
   updateVisionMemory: ->
     calculator = new VisionCalculator(@character.tile)
     calculator.calcul()
-    visionMemory = calculator.toContainer().merge visionMemory, (a, b)=>
+    @visionMemory = calculator.toContainer().merge @visionMemory, (a, b)=>
       if a?
         a = @analyzeTile(a)
       if a? and b?
@@ -35,7 +42,7 @@ class CharacterAI
         a || b
 
   analyzeTile: (tile)->
-    tile.ennemySpotted = a.tile.children.find (c)=> @isEnnemy(c)
+    tile.ennemySpotted = tile.getFinalTile().children?.find (c)=> @isEnnemy(c)
     tile.explorable = @isExplorable(tile)
     tile
 
@@ -43,22 +50,25 @@ class CharacterAI
     @character.owner?.isEnemy?(elem)
 
   getClosestEnemy: ->
-    visionMemory.closest @character.tile, (t)=> t.ennemySpotted
+    @visionMemory.closest @character.tile, (t)=> t.ennemySpotted
 
   getClosestUnexplored: ->
-    visionMemory.closest @character.tile, (t)=> t.visibility < 1 and t.explorable
+    @visionMemory.closest @character.tile, (t)=> t.visibility < 1 and t.explorable
 
   isExplorable: (tile)->
-    t.walkable or a.tile.children.find (c)=>
+    tile = tile.getFinalTile()
+    tile.walkable or tile.children?.find (c)=>
       c instanceof Door
 
   attackMoveTo: (tile)->
+    tile = tile.getFinalTile()
     action = new AttackMoveAction(actor: @character, target: tile)
     if action.isReady()
       action.execute()
       action
 
   walkTo: (tile)->
+    tile = tile.getFinalTile()
     action = new WalkAction(actor: @character, target: tile)
     if action.isReady()
       action.execute()

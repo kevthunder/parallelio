@@ -76,7 +76,6 @@
       assert.equal(char2.health, 980);
       action.interrupt();
       return char1.weapons.forEach((w) => {
-        debugger;
         return w.destroy();
       });
     });

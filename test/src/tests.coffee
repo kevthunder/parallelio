@@ -21,5 +21,6 @@ require './personalWeapon'
 require './character'
 require './attackAction'
 require './attackMoveAction'
+require './characterAI'
 
 require './concat'

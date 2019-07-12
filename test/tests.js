@@ -41,6 +41,8 @@
 
   require('./attackMoveAction');
 
+  require('./characterAI');
+
   require('./concat');
 
 }).call(this);

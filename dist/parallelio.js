@@ -2567,6 +2567,10 @@
           return true;
         }
 
+        getFinalTile() {
+          return this.tile.getFinalTile();
+        }
+
       };
 
       Tiled.properties({
@@ -3397,11 +3401,42 @@
   });
 
   (function(definition) {
+    Parallelio.TileReference = definition();
+    return Parallelio.TileReference.definition = definition;
+  })(function() {
+    var TileReference;
+    TileReference = class TileReference {
+      constructor(tile1) {
+        this.tile = tile1;
+        Object.defineProperties(this, {
+          x: {
+            get: () => {
+              return this.getFinalTile().x;
+            }
+          },
+          y: {
+            get: () => {
+              return this.getFinalTile().y;
+            }
+          }
+        });
+      }
+
+      getFinalTile() {
+        return this.tile.getFinalTile();
+      }
+
+    };
+    return TileReference;
+  });
+
+  (function(definition) {
     Parallelio.TileContainer = definition();
     return Parallelio.TileContainer.definition = definition;
   })(function(dependencies = {}) {
-    var Element, TileContainer;
+    var Element, TileContainer, TileReference;
     Element = dependencies.hasOwnProperty("Element") ? dependencies.Element : Parallelio.Spark.Element;
+    TileReference = dependencies.hasOwnProperty("TileReference") ? dependencies.TileReference : Parallelio.TileReference;
     TileContainer = (function() {
       class TileContainer extends Element {
         constructor() {
@@ -3437,7 +3472,9 @@
               this.coords[tile.x] = {};
             }
             this.coords[tile.x][tile.y] = tile;
-            tile.container = this;
+            if (this.owner) {
+              tile.container = this;
+            }
             if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
               this._addToBondaries(tile, this._boundaries.value);
             }
@@ -3451,7 +3488,9 @@
           if (index > -1) {
             this.tiles.splice(index, 1);
             delete this.coords[tile.x][tile.y];
-            tile.container = null;
+            if (this.owner) {
+              tile.container = null;
+            }
             if ((ref3 = this._boundaries) != null ? ref3.calculated : void 0) {
               if (this.boundaries.top === tile.y || this.boundaries.bottom === tile.y || this.boundaries.left === tile.x || this.boundaries.right === tile.x) {
                 return this.invalidateBoundaries();
@@ -3516,19 +3555,81 @@
 
         clearAll() {
           var k, len, ref3, tile;
-          ref3 = this.tiles;
-          for (k = 0, len = ref3.length; k < len; k++) {
-            tile = ref3[k];
-            tile.container = null;
+          if (this.owner) {
+            ref3 = this.tiles;
+            for (k = 0, len = ref3.length; k < len; k++) {
+              tile = ref3[k];
+              tile.container = null;
+            }
           }
           this.coords = {};
           this.tiles = [];
           return this;
         }
 
+        closest(originTile, filter) {
+          var candidates, getScore;
+          getScore = function(candidate) {
+            if (candidate.score != null) {
+              return candidate.score;
+            } else {
+              return candidate.score = candidate.getFinalTile().dist(originTile).length;
+            }
+          };
+          candidates = this.tiles.filter(filter).map((t) => {
+            return new TileReference(t);
+          });
+          candidates.sort((a, b) => {
+            return getScore(a) - getScore(b);
+          });
+          if (candidates.length > 0) {
+            return candidates[0].tile;
+          } else {
+            return null;
+          }
+        }
+
+        copy() {
+          var out;
+          out = new TileContainer();
+          out.coords = this.coords;
+          out.tiles = this.tiles;
+          out.owner = false;
+          return out;
+        }
+
+        merge(ctn, mergeFn, asOwner = false) {
+          var out, tmp;
+          out = new TileContainer();
+          out.owner = asOwner;
+          tmp = ctn.copy();
+          this.tiles.forEach(function(tileA) {
+            var mergedTile, tileB;
+            tileB = tmp.getTile(tileA.x, tileA.y);
+            if (tileB) {
+              tmp.removeTile(tileB);
+            }
+            mergedTile = mergeFn(tileA, tileB);
+            if (mergedTile) {
+              return out.addTile(mergedTile);
+            }
+          });
+          tmp.tiles.forEach(function(tileB) {
+            var mergedTile;
+            mergedTile = mergeFn(null, tileB);
+            if (mergedTile) {
+              return out.addTile(mergedTile);
+            }
+          });
+          return out;
+        }
+
       };
 
       TileContainer.properties({
+        owner: {
+          default: true
+        },
         boundaries: {
           calcul: function() {
             var boundaries;
@@ -3856,9 +3957,11 @@
     Parallelio.VisionCalculator = definition();
     return Parallelio.VisionCalculator.definition = definition;
   })(function(dependencies = {}) {
-    var Direction, LineOfSight, VisionCalculator;
+    var Direction, LineOfSight, TileContainer, TileReference, VisionCalculator;
     LineOfSight = dependencies.hasOwnProperty("LineOfSight") ? dependencies.LineOfSight : Parallelio.LineOfSight;
     Direction = dependencies.hasOwnProperty("Direction") ? dependencies.Direction : Parallelio.Direction;
+    TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
+    TileReference = dependencies.hasOwnProperty("TileReference") ? dependencies.TileReference : Parallelio.TileReference;
     VisionCalculator = class VisionCalculator {
       constructor(originTile1, offset1 = {
           x: 0.5,
@@ -4077,6 +4180,26 @@
         return boundaries;
       }
 
+      toContainer() {
+        var col, ref3, res, tile, val, x, y;
+        res = new TileContainer();
+        res.owner = false;
+        ref3 = this.visibility;
+        for (x in ref3) {
+          col = ref3[x];
+          for (y in col) {
+            val = col[y];
+            tile = this.originTile.container.getTile(x, y);
+            if (val !== 0 && (tile != null)) {
+              tile = new TileReference(tile);
+              tile.visibility = val;
+              res.addTile(tile);
+            }
+          }
+        }
+        return res;
+      }
+
       toMap() {
         var k, l, ref3, ref4, ref5, ref6, res, x, y;
         res = Object.assign({
@@ -4211,23 +4334,30 @@
     Parallelio.CharacterAI = definition();
     return Parallelio.CharacterAI.definition = definition;
   })(function(dependencies = {}) {
-    var AttackMoveAction, CharacterAI, Door, TileContainer, VisionCalculator, WalkAction;
+    var AttackMoveAction, CharacterAI, Door, PropertyWatcher, TileContainer, VisionCalculator, WalkAction;
     TileContainer = dependencies.hasOwnProperty("TileContainer") ? dependencies.TileContainer : Parallelio.TileContainer;
     VisionCalculator = dependencies.hasOwnProperty("VisionCalculator") ? dependencies.VisionCalculator : Parallelio.VisionCalculator;
     Door = dependencies.hasOwnProperty("Door") ? dependencies.Door : Parallelio.Door;
     WalkAction = dependencies.hasOwnProperty("WalkAction") ? dependencies.WalkAction : Parallelio.WalkAction;
     AttackMoveAction = dependencies.hasOwnProperty("AttackMoveAction") ? dependencies.AttackMoveAction : Parallelio.AttackMoveAction;
+    PropertyWatcher = dependencies.hasOwnProperty("PropertyWatcher") ? dependencies.PropertyWatcher : Parallelio.Spark.PropertyWatcher;
     CharacterAI = class CharacterAI {
       constructor(character) {
-        var visionMemory;
         this.character = character;
         this.nextActionCallback = () => {
           return this.nextAction();
         };
-        visionMemory = new TileContainer();
+        this.visionMemory = new TileContainer();
+        this.tileWatcher = new PropertyWatcher({
+          callback: () => {
+            return this.updateVisionMemory();
+          },
+          property: this.character.getPropertyInstance('tile')
+        });
       }
 
       start() {
+        this.tileWatcher.bind();
         return this.nextAction();
       }
 
@@ -4245,10 +4375,10 @@
       }
 
       updateVisionMemory() {
-        var calculator, visionMemory;
+        var calculator;
         calculator = new VisionCalculator(this.character.tile);
         calculator.calcul();
-        return visionMemory = calculator.toContainer().merge(visionMemory, (a, b) => {
+        return this.visionMemory = calculator.toContainer().merge(this.visionMemory, (a, b) => {
           if (a != null) {
             a = this.analyzeTile(a);
           }
@@ -4262,9 +4392,10 @@
       }
 
       analyzeTile(tile) {
-        tile.ennemySpotted = a.tile.children.find((c) => {
+        var ref3;
+        tile.ennemySpotted = (ref3 = tile.getFinalTile().children) != null ? ref3.find((c) => {
           return this.isEnnemy(c);
-        });
+        }) : void 0;
         tile.explorable = this.isExplorable(tile);
         return tile;
       }
@@ -4275,25 +4406,28 @@
       }
 
       getClosestEnemy() {
-        return visionMemory.closest((t) => {
+        return this.visionMemory.closest(this.character.tile, (t) => {
           return t.ennemySpotted;
         });
       }
 
       getClosestUnexplored() {
-        return visionMemory.closest((t) => {
+        return this.visionMemory.closest(this.character.tile, (t) => {
           return t.visibility < 1 && t.explorable;
         });
       }
 
       isExplorable(tile) {
-        return t.walkable || a.tile.children.find((c) => {
+        var ref3;
+        tile = tile.getFinalTile();
+        return tile.walkable || ((ref3 = tile.children) != null ? ref3.find((c) => {
           return c instanceof Door;
-        });
+        }) : void 0);
       }
 
       attackMoveTo(tile) {
         var action;
+        tile = tile.getFinalTile();
         action = new AttackMoveAction({
           actor: this.character,
           target: tile
@@ -4306,6 +4440,7 @@
 
       walkTo(tile) {
         var action;
+        tile = tile.getFinalTile();
         action = new WalkAction({
           actor: this.character,
           target: tile
@@ -4690,6 +4825,9 @@
 
         dist(tile) {
           var ctnDist, ref3, x, y;
+          if ((tile != null ? tile.getFinalTile : void 0) != null) {
+            tile = tile.getFinalTile();
+          }
           if (((tile != null ? tile.x : void 0) != null) && (tile.y != null) && (this.x != null) && (this.y != null) && (this.container === tile.container || (ctnDist = (ref3 = this.container) != null ? typeof ref3.dist === "function" ? ref3.dist(tile.container) : void 0 : void 0))) {
             x = tile.x - this.x;
             y = tile.y - this.y;
@@ -4705,6 +4843,10 @@
           } else {
             return null;
           }
+        }
+
+        getFinalTile() {
+          return this;
         }
 
       };
