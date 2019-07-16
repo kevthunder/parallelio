@@ -31,6 +31,8 @@
 
   require('./room_generator');
 
+  require('./starMapGenerator');
+
   require('./path_walk');
 
   require('./personalWeapon');
