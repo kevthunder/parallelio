@@ -10,10 +10,6 @@
   Floor = require('../lib/Floor');
 
   describe('Door', function() {
-    before(function() {
-      Door = Door.definition();
-      return Door.include(EventEmitter.prototype);
-    });
     it('make the tile un-walkable when closed', function() {
       var door, floor;
       floor = new Floor();

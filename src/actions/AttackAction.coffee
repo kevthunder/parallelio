@@ -1,7 +1,7 @@
 WalkAction = require('./WalkAction')
 TargetAction = require('./TargetAction')
 EventBind = require('spark-starter').EventBind
-PropertyWatcher = require('spark-starter').PropertyWatcher
+PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
 
 module.exports = class AttackAction extends TargetAction
   @properties

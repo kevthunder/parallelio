@@ -36,7 +36,7 @@ gulp.task('concatStrings', function() {
 
 gulp.task('concat', gulp.series('concatStrings', function() {
   var b = browserify({
-    entries: ['./lib/parallelio.js','./tmp/_strings.coffee'],
+    entries: ['./lib/parallelio.js'],
     debug: true,
     standalone: 'Parallelio'
   })

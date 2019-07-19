@@ -3,7 +3,7 @@ VisionCalculator = require('./VisionCalculator')
 Door = require('./Door')
 WalkAction = require('./actions/WalkAction')
 AttackMoveAction = require('./actions/AttackMoveAction')
-PropertyWatcher = require('spark-starter').PropertyWatcher
+PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
 
 module.exports = class CharacterAI
   constructor: (@character)->

@@ -15,7 +15,7 @@ describe 'Projectile', ->
   afterEach ->
     Invalidator.strict = true
   before ->
-    DamagableTile = Tile.definition()
+    DamagableTile = class DamagableTile extends Tile
     DamagableTile.extend(Damageable)
 
   createTiles = ->

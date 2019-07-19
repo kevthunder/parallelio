@@ -27,7 +27,7 @@
       return Invalidator.strict = true;
     });
     before(function() {
-      DamagableTile = Tile.definition();
+      DamagableTile = DamagableTile = class DamagableTile extends Tile {};
       return DamagableTile.extend(Damageable);
     });
     createTiles = function() {

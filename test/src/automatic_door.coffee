@@ -7,12 +7,6 @@ Tiled = require('parallelio-tiles').Tiled
 TileContainer = require('parallelio-tiles').TileContainer
 
 describe 'AutomaticDoor', ->
-  before ->
-    AutomaticDoor = AutomaticDoor.definition()
-    AutomaticDoor.include EventEmitter.prototype
-    
-    Floor = Floor.definition()
-    Floor.include EventEmitter.prototype
 
   createStage = ->
     ctn = new TileContainer()

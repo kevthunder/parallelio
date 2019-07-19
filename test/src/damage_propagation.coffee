@@ -9,7 +9,7 @@ alea = require('seedrandom/lib/alea')
 describe 'DamagePropagation', ->
   DamagableTile = null
   before ->
-    DamagableTile = Tile.definition()
+    DamagableTile = class DamagableTile extends Tile
     DamagableTile.extend(Damageable)
   createTiles = ->
     ctn = new TileContainer()

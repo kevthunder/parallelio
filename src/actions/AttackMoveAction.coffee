@@ -3,7 +3,7 @@ AttackAction = require('./AttackAction')
 TargetAction = require('./TargetAction')
 PathFinder = require('parallelio-pathfinder')
 LineOfSight = require('../LineOfSight')
-PropertyWatcher = require('spark-starter').PropertyWatcher
+PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
 EventBind = require('spark-starter').EventBind
 
 module.exports = class AttackMoveAction extends TargetAction

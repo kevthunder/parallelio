@@ -17,12 +17,6 @@
 
   describe('AutomaticDoor', function() {
     var createStage;
-    before(function() {
-      AutomaticDoor = AutomaticDoor.definition();
-      AutomaticDoor.include(EventEmitter.prototype);
-      Floor = Floor.definition();
-      return Floor.include(EventEmitter.prototype);
-    });
     createStage = function() {
       var ctn;
       ctn = new TileContainer();
