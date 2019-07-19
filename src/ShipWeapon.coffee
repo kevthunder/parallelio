@@ -3,7 +3,7 @@ Timing = require('parallelio-timing')
 Damageable = require('./Damageable')
 Projectile = require('./Projectile')
 
-class ShipWeapon extends Tiled
+module.exports = class ShipWeapon extends Tiled
   @extend Damageable
   constructor: (options) ->
     super()

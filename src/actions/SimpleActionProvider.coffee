@@ -1,6 +1,6 @@
 ActionProvider = require('./ActionProvider')
 
-class SimpleActionProvider extends ActionProvider
+module.exports = class SimpleActionProvider extends ActionProvider
   @properties
     providedActions: 
       calcul: ->

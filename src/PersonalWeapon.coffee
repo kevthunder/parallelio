@@ -2,7 +2,7 @@ Element = require('spark-starter').Element
 LineOfSight = require('./LineOfSight')
 Timing = require('parallelio-timing')
 
-class PersonalWeapon extends Element
+module.exports = class PersonalWeapon extends Element
   constructor: (options) ->
     super()
     @setProperties(options)

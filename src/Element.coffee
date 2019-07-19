@@ -1,1 +1,1 @@
-Element = require('spark-starter').Element
+module.exports = require('spark-starter').Element

@@ -4,7 +4,7 @@ Tile = require('parallelio-tiles').Tile
 Direction = require('parallelio-tiles').Direction
 Door = require('./Door')
 
-class RoomGenerator extends Element
+module.exports = class RoomGenerator extends Element
   constructor: (options) ->
     super()
     @setProperties(options)

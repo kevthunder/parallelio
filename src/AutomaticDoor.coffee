@@ -1,7 +1,7 @@
 Door = require('./Door')
 Character = require('./Character')
 
-class AutomaticDoor extends Door
+module.exports = class AutomaticDoor extends Door
   @properties
     open:
       calcul: (invalidate) ->

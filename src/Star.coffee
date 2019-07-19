@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 
-class Star extends Element
+module.exports = class Star extends Element
   constructor: (@x, @y) ->
     super()
     @init()

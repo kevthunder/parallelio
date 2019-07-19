@@ -1,6 +1,6 @@
 Tiled = require('parallelio-tiles').Tiled
 
-class Door extends Tiled
+module.exports = class Door extends Tiled
   constructor: (@direction = Door.directions.horizontal) ->
     super()
   @properties

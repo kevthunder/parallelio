@@ -1,7 +1,7 @@
 Element = require('spark-starter').Element
 Grid = require('parallelio-grids').Grid
 
-class View extends Element
+module.exports = class View extends Element
   @properties
     game:
       change: (old)->

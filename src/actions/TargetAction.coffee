@@ -1,6 +1,6 @@
 Action = require('./Action')
 
-class TargetAction extends Action
+module.exports = class TargetAction extends Action
   @properties
     target: {}
   withTarget: (target)->

@@ -1,7 +1,7 @@
 Element = require('spark-starter').Element
 EventEmitter = require('spark-starter').EventEmitter
 
-class Action extends Element
+module.exports = class Action extends Element
   @include EventEmitter.prototype
   constructor: (options) ->
     super()

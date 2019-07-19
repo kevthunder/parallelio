@@ -2,7 +2,7 @@ Element = require('spark-starter').Element
 LineOfSight = require('./LineOfSight')
 Direction = require('parallelio-tiles').Direction
 
-class DamagePropagation extends Element
+module.exports = class DamagePropagation extends Element
   constructor: (options)->
     super()
     @setProperties(options)

@@ -2,7 +2,7 @@ PathFinder = require('parallelio-pathfinder')
 PathWalk = require('../PathWalk')
 TargetAction = require('./TargetAction')
 
-class WalkAction extends TargetAction
+module.exports = class WalkAction extends TargetAction
   @properties
     pathFinder:
       calcul: ->

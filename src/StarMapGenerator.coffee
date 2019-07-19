@@ -2,7 +2,7 @@ Element = require('spark-starter').Element
 Map = require('./Map')
 Star = require('./Star')
 
-class StarMapGenerator extends Element
+module.exports = class StarMapGenerator extends Element
   constructor: (options)->
     super()
     @opt = Object.assign({},@defOpt,options)

@@ -6,7 +6,7 @@ LineOfSight = require('../LineOfSight')
 PropertyWatcher = require('spark-starter').PropertyWatcher
 EventBind = require('spark-starter').EventBind
 
-class AttackMoveAction extends TargetAction
+module.exports = class AttackMoveAction extends TargetAction
   @properties
     walkAction:
       calcul: ->

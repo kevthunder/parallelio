@@ -1,7 +1,7 @@
 ActionProvider = require('./ActionProvider')
 Mixable = require('spark-starter').Mixable
 
-class TiledActionProvider extends ActionProvider
+module.exports = class TiledActionProvider extends ActionProvider
   @properties
     tile:
       change: (old,overrided) ->

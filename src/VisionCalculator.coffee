@@ -3,7 +3,7 @@ Direction = require('parallelio-tiles').Direction
 TileContainer = require('parallelio-tiles').TileContainer
 TileReference = require('parallelio-tiles').TileReference
 
-class VisionCalculator
+module.exports = class VisionCalculator
   constructor: (@originTile, @offset = {x:0.5,y:0.5})->
     @pts = {}
     @visibility = {}

@@ -1,4 +1,4 @@
-class LineOfSight
+module.exports = class LineOfSight
   constructor: (@tiles, @x1=0, @y1=0, @x2=0, @y2=0) ->
   setX1: (val) ->
     @x1 = val

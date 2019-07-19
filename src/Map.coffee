@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 
-class Map extends Element
+module.exports = class Map extends Element
   @properties
     locations:
       collection: 

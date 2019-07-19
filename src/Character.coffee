@@ -2,7 +2,7 @@ Tiled = require('parallelio-tiles').Tiled
 Damageable = require('./Damageable')
 WalkAction = require('./actions/WalkAction')
 
-class Character extends Tiled
+module.exports = class Character extends Tiled
   @extend Damageable
   constructor: (@name) ->
     super()

@@ -5,7 +5,7 @@ WalkAction = require('./actions/WalkAction')
 AttackMoveAction = require('./actions/AttackMoveAction')
 PropertyWatcher = require('spark-starter').PropertyWatcher
 
-class CharacterAI
+module.exports = class CharacterAI
   constructor: (@character)->
     @nextActionCallback = => @nextAction()
     @visionMemory = new TileContainer()

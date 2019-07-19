@@ -3,7 +3,7 @@ Timing = require('parallelio-timing')
 EventEmitter = require('spark-starter').EventEmitter
 
 
-class PathWalk extends Element
+module.exports = class PathWalk extends Element
   @include EventEmitter.prototype
   constructor: (@walker, @path, options) ->
     super()

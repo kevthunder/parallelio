@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 
-class Damageable extends Element
+module.exports = class Damageable extends Element
   @properties
     damageable:
       default: true

@@ -3,7 +3,7 @@ Timing = require('parallelio-timing')
 View = require('./View')
 Player = require('./Player')
 
-class Game extends Element
+module.exports = class Game extends Element
   @properties
     timing:
       calcul: ->
