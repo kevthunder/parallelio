@@ -23,18 +23,12 @@ gulp.task('coffee', function() {
 });
 
 gulp.task('buildIndex', function () {
-  return gulp.src(['./lib/**/*.js','!./lib/parallelio.js'])
-    .pipe(requireIndex({name:'parallelio.js'}))
+  return gulp.src(['./lib/**/*.js','!./lib/libs.js','!./lib/parallelio.js'])
+    .pipe(requireIndex({name:'libs.js'}))
     .pipe(gulp.dest('./lib'));
 });
 
-gulp.task('concatStrings', function() {
-  return concatStrings('_strings.js')
-    .pipe(coffee({bare: true}))
-    .pipe(gulp.dest('./tmp/'));
-});
-
-gulp.task('concat', gulp.series('concatStrings', function() {
+gulp.task('concat', function() {
   var b = browserify({
     entries: ['./lib/parallelio.js'],
     debug: true,
@@ -43,7 +37,7 @@ gulp.task('concat', gulp.series('concatStrings', function() {
   return b.bundle()
     .pipe(source('parallelio.js'))
     .pipe(gulp.dest('./dist/'));
-}));
+});
 
 gulp.task('compress', gulp.series('concat', function () {
   return gulp.src('./dist/parallelio.js')

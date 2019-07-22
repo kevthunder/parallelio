@@ -21,14 +21,17 @@
     it('contains Timing', function() {
       return assert.isFunction(Parallelio.Timing);
     });
+    it('contains TargetAction', function() {
+      return assert.isFunction(Parallelio.actions.TargetAction);
+    });
     it('contains Tile', function() {
-      assert.isFunction(Parallelio.Tile);
-      assert.isFunction(Parallelio.Tiled);
-      return assert.isFunction(Parallelio.Direction);
+      assert.isFunction(Parallelio.tiles.Tile);
+      assert.isFunction(Parallelio.tiles.Tiled);
+      return assert.isFunction(Parallelio.tiles.Direction);
     });
     it('contains Wire', function() {
-      assert.isFunction(Parallelio.Wire);
-      return assert.isFunction(Parallelio.Connected);
+      assert.isFunction(Parallelio.wiring.Wire);
+      return assert.isFunction(Parallelio.wiring.Connected);
     });
     return it('contains strings', function() {
       assert.isObject(Parallelio.strings);

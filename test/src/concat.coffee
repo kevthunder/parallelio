@@ -14,13 +14,15 @@ describe 'concatened file check', ->
     assert.isFunction Parallelio.PathFinder
   it 'contains Timing', ->
     assert.isFunction Parallelio.Timing
+  it 'contains TargetAction', ->
+    assert.isFunction Parallelio.actions.TargetAction
   it 'contains Tile', ->
-    assert.isFunction Parallelio.Tile
-    assert.isFunction Parallelio.Tiled
-    assert.isFunction Parallelio.Direction
+    assert.isFunction Parallelio.tiles.Tile
+    assert.isFunction Parallelio.tiles.Tiled
+    assert.isFunction Parallelio.tiles.Direction
   it 'contains Wire', ->
-    assert.isFunction Parallelio.Wire
-    assert.isFunction Parallelio.Connected
+    assert.isFunction Parallelio.wiring.Wire
+    assert.isFunction Parallelio.wiring.Connected
   it 'contains strings', ->
     assert.isObject Parallelio.strings
     assert.isArray Parallelio.strings.greekAlphabet
