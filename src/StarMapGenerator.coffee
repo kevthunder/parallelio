@@ -1,6 +1,7 @@
 Element = require('spark-starter').Element
 Map = require('./Map')
 Star = require('./Star')
+starNames = require('parallelio-strings').starNames
 
 module.exports = class StarMapGenerator extends Element
   constructor: (options)->
@@ -20,6 +21,7 @@ module.exports = class StarMapGenerator extends Element
     starClass: Star
     linkClass: Star.Link
     rng: Math.random
+    starNames: starNames
   }
   generate: ->
     @map = new @opt.mapClass()
@@ -31,7 +33,27 @@ module.exports = class StarMapGenerator extends Element
   createStars: (nb)->
     for i in [0...nb]
       @createStar()
-  createStar: ->
+  createStar: (opt = {})->
+    unless opt.x and opt.y
+      pos = @randomStarPos()
+      if pos?
+        opt = Object.assign({},opt, {x:pos.x,y:pos.y})
+      else
+        return null
+
+    unless opt.name
+      name = @randomStarName()
+      if name?
+        opt = Object.assign({},opt, {name:name})
+      else
+        return null
+
+    star = new @opt.starClass(opt)
+    @map.locations.push(star)
+    @stars.push(star)
+    star
+
+  randomStarPos: ->
     j = 0
     loop
       pos = 
@@ -40,12 +62,14 @@ module.exports = class StarMapGenerator extends Element
       break unless j < 10 and @stars.find((star)=> star.dist(pos.x,pos.y) <= @opt.minStarDist)
       j++
     unless j >= 10
-      @createStarAtPos(pos.x,pos.y)
-  createStarAtPos: (x,y)->
-    star = new @opt.starClass(x,y)
-    @map.locations.push(star)
-    @stars.push(star)
-    star
+      pos
+
+  randomStarName: ->
+    if @opt.starNames?.length
+      pos = Math.floor(@opt.rng()*@opt.starNames.length)
+      name = @opt.starNames[pos]
+      @opt.starNames.splice(pos,1)
+      name
   makeLinks: ->
     @stars.forEach (star)=>
       @makeLinksFrom(star)

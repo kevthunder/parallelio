@@ -1,12 +1,13 @@
 Element = require('spark-starter').Element
 
 module.exports = class Star extends Element
-  constructor: (@x, @y) ->
-    super()
+  constructor: (data) ->
+    super(data)
     @init()
   @properties
     x:{}
     y:{}
+    name:{}
     links:
       collection:
         findStar: (star)->
