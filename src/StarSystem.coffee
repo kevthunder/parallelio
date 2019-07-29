@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 
-module.exports = class Star extends Element
+module.exports = class StarSystem extends Element
   constructor: (data) ->
     super(data)
     @init()
@@ -40,7 +40,7 @@ module.exports = class Star extends Element
         a.dist - b.dist
       @copy(dists.map (dist)-> dist.star)
 
-class Star.Link extends Element
+class StarSystem.Link extends Element
   constructor: (@star1, @star2) ->
     super()
   remove: ->

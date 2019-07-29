@@ -1,5 +1,5 @@
 (function() {
-  require('./star');
+  require('./starSystem');
 
   require('./damageable');
 

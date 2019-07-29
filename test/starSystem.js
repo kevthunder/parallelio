@@ -1,20 +1,20 @@
 (function() {
-  var Collection, Star, assert;
+  var Collection, StarSystem, assert;
 
   assert = require('chai').assert;
 
-  Star = require('../lib/Star');
+  StarSystem = require('../lib/StarSystem');
 
   Collection = require('spark-starter/lib/Collection');
 
-  describe('Star', function() {
+  describe('StarSystem', function() {
     return it('can calcul the distance to a point', function() {
       var a, b;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 3,
         y: 4
       });
@@ -22,24 +22,24 @@
     });
   });
 
-  describe('Star.collenctionFn', function() {
+  describe('StarSystem.collenctionFn', function() {
     it('can get closest point', function() {
       var a, b, c, coll, d;
-      coll = Collection.newSubClass(Star.collenctionFn, [
-        a = new Star({
+      coll = Collection.newSubClass(StarSystem.collenctionFn, [
+        a = new StarSystem({
           x: 2,
           y: 4
         }),
-        b = new Star({
+        b = new StarSystem({
           x: 0,
           y: 0
         }),
-        c = new Star({
+        c = new StarSystem({
           x: 3,
           y: 4
         })
       ]);
-      d = new Star({
+      d = new StarSystem({
         x: 1,
         y: 1
       });
@@ -47,21 +47,21 @@
     });
     return it('can get closests points', function() {
       var a, b, c, closests, coll, d;
-      coll = Collection.newSubClass(Star.collenctionFn, [
-        a = new Star({
+      coll = Collection.newSubClass(StarSystem.collenctionFn, [
+        a = new StarSystem({
           x: 2,
           y: 4
         }),
-        b = new Star({
+        b = new StarSystem({
           x: 0,
           y: 0
         }),
-        c = new Star({
+        c = new StarSystem({
           x: 3,
           y: 4
         })
       ]);
-      d = new Star({
+      d = new StarSystem({
         x: 1,
         y: 1
       });
@@ -72,14 +72,14 @@
     });
   });
 
-  describe('Star.Link', function() {
+  describe('StarSystem.Link', function() {
     it('can get the length', function() {
       var a, ab, b;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 3,
         y: 4
       });
@@ -88,20 +88,20 @@
     });
     it('can find if it intersect another path - true', function() {
       var a, ab, b, c, cd, d;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 4,
         y: 4
       });
       ab = a.linkTo(b);
-      c = new Star({
+      c = new StarSystem({
         x: 4,
         y: 0
       });
-      d = new Star({
+      d = new StarSystem({
         x: 0,
         y: 4
       });
@@ -110,20 +110,20 @@
     });
     it('can find if it intersect another path - false', function() {
       var a, ab, b, c, cd, d;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 4,
         y: 4
       });
       ab = a.linkTo(b);
-      c = new Star({
+      c = new StarSystem({
         x: 2,
         y: 2
       });
-      d = new Star({
+      d = new StarSystem({
         x: 0,
         y: 4
       });
@@ -132,16 +132,16 @@
     });
     it('can find if it is close to a point - true', function() {
       var a, ab, b, c;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 4,
         y: 4
       });
       ab = a.linkTo(b);
-      c = new Star({
+      c = new StarSystem({
         x: 3,
         y: 2
       });
@@ -149,16 +149,16 @@
     });
     return it('can find if it is close to a point - false', function() {
       var a, ab, b, c;
-      a = new Star({
+      a = new StarSystem({
         x: 0,
         y: 0
       });
-      b = new Star({
+      b = new StarSystem({
         x: 8,
         y: 8
       });
       ab = a.linkTo(b);
-      c = new Star({
+      c = new StarSystem({
         x: 6,
         y: 4
       });

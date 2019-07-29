@@ -8,8 +8,8 @@ describe 'concatened file check', ->
     Parallelio = require('../dist/parallelio.js')
   it 'contains Element', ->
     assert.isFunction Parallelio.Element
-  it 'contains Star', ->
-    assert.isFunction Parallelio.Star
+  it 'contains StarSystem', ->
+    assert.isFunction Parallelio.StarSystem
   it 'contains PathFinder', ->
     assert.isFunction Parallelio.PathFinder
   it 'contains Timing', ->

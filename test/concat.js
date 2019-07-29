@@ -12,8 +12,8 @@
     it('contains Element', function() {
       return assert.isFunction(Parallelio.Element);
     });
-    it('contains Star', function() {
-      return assert.isFunction(Parallelio.Star);
+    it('contains StarSystem', function() {
+      return assert.isFunction(Parallelio.StarSystem);
     });
     it('contains PathFinder', function() {
       return assert.isFunction(Parallelio.PathFinder);

@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 Map = require('./Map')
-Star = require('./Star')
+StarSystem = require('./StarSystem')
 starNames = require('parallelio-strings').starNames
 
 module.exports = class StarMapGenerator extends Element
@@ -18,8 +18,8 @@ module.exports = class StarMapGenerator extends Element
     linksByStars: 3
     linkTries: 3
     mapClass: Map
-    starClass: Star
-    linkClass: Star.Link
+    starClass: StarSystem
+    linkClass: StarSystem.Link
     rng: Math.random
     starNames: starNames
   }

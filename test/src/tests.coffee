@@ -1,4 +1,4 @@
-require './star'
+require './starSystem'
 require './damageable'
 
 require('parallelio-tiles/test/tests.js')
