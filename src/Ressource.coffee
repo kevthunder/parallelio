@@ -1,6 +1,6 @@
 Element = require('spark-starter').Element
 
-class Ressource extends Element
+module.exports = class Ressource extends Element
   @properties
     type: 
       default: null

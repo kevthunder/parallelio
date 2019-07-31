@@ -1,11 +1,20 @@
 Element = require('spark-starter').Element
+Travel = require('./Travel')
 
-class Ship extends Element
+module.exports = class Ship extends Element
   @properties
     location: 
       default: null
-    travelTarget:
+    travel: 
       default: null
-    travelProgress:
-      default: null
+
+  travelTo: (location)->
+    travel = new Travel({
+      traveller: this
+      startLocation: @location
+      targetLocation: location
+    })
+    if travel.valid
+      travel.start()
+      @travel = travel
 

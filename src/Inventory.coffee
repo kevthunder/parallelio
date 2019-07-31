@@ -1,6 +1,6 @@
 Collection = require('spark-starter').Collection
 
-class Inventory extends Collection
+module.exports = class Inventory extends Collection
   getByType: (type)->
     res = @filter (r)->
       r.type == type
