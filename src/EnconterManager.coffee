@@ -16,7 +16,7 @@ module.exports = class EncounterManager extends Element
           property: @subject.getPropertyInstance('location')
         })
 
-  init: 
+  init: ->
     @locationWatcher.bind()
 
   testEncounter: ->

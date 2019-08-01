@@ -40,9 +40,11 @@ module.exports = class ShipWeapon extends Tiled
     timing:
       calcul: ->
         new Timing()
+    projectileClass:
+      default: Projectile
   fire: ->
     if @canFire
-      projectile = new Projectile({
+      projectile = new @projectileClass({
         origin: this
         target: @target
         power: @power
