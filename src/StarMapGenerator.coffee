@@ -13,8 +13,8 @@ module.exports = class StarMapGenerator extends Element
     maxX: 500
     minY: 0
     maxY: 500
-    minStarDist: 10
-    minLinkDist: 10
+    minStarDist: 20
+    minLinkDist: 20
     linksByStars: 3
     linkTries: 3
     mapClass: Map

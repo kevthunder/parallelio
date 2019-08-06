@@ -10,7 +10,7 @@
   "scripts": {
     "test": "gulp test",
     "build": "gulp build",
-    "watch": "gulp watch",
+    "watch": "gulp dev",
     "update": "gulp update",
     "build-debug": "node --inspect-brk ./node_modules/gulp/bin/gulp build",
     "test-debug": "gulp test-debug"

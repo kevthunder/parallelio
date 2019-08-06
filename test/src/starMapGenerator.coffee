@@ -10,7 +10,7 @@ describe 'StarMapGenerator', ->
     })
     map = gen.generate()
     assert.equal map.locations.count(), 20
-    assert.equal map.locations.get(1).links.count(), 3
+    assert.isAtLeast map.locations.get(1).links.count(), 3
 
     assert.isNumber map.locations.get(1).x
     assert.isNumber map.locations.get(1).y

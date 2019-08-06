@@ -17,6 +17,24 @@ module.exports = class Player extends Element
           old.selected = false
         if @selected?.getProperty('selected')
           @selected.selected = this
+    globalActionProviders:
+      collection: true
+    actionProviders:
+      calcul: (invalidator)->
+        res = invalidator.prop('globalActionProviders').toArray()
+        selected = invalidator.prop('selected')
+        if selected
+          res.push(selected)
+        res
+    availableActions:
+      calcul: (invalidator)->
+        invalidator.prop("actionProviders").reduce((res,provider)=>
+          actions = invalidator.prop("availableActions", provider)
+          if actions
+            res.concat(actions.toArray())
+          else
+            res
+        ,[])
     selectedAction: {}
     controller: 
       change: (old)->
@@ -43,6 +61,11 @@ module.exports = class Player extends Element
       elem.IsFocusableBy(this)
     else if typeof elem.IsSelectableBy == "function"
       elem.IsSelectableBy(this)
+  selectAction: (action)->
+    if action.isReady()
+      action.start()
+    else
+      @selectedAction = action
   setActionTarget: (elem)->
     action = @selectedAction || @selected?.defaultAction
     action = action.withTarget(elem)

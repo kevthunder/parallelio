@@ -50,7 +50,9 @@
     };
     it('can damage tiles', function() {
       var ctn, payload, projectile, timing;
-      timing = new Timing(false);
+      timing = new Timing({
+        running: false
+      });
       ctn = createTiles();
       projectile = new Projectile({
         origin: ctn.getTile(1, 1),
@@ -64,7 +66,9 @@
     });
     it('damage tiles after some time', function() {
       var ctn, projectile, timing;
-      timing = new Timing(false);
+      timing = new Timing({
+        running: false
+      });
       ctn = createTiles();
       projectile = new Projectile({
         origin: ctn.getTile(1, 1),
@@ -74,16 +78,14 @@
       });
       projectile.launch();
       assert.equal(ctn.getTile(3, 3).health, ctn.getTile(3, 3).maxHealth);
-      assert.isAbove(timing.children.length, 0);
-      timing.children.slice().forEach(function(timer) {
-        return timer.tick();
-      });
-      assert.equal(timing.children.length, 0);
+      projectile.pathTimeout.tick();
       return assert.isBelow(ctn.getTile(3, 3).health, ctn.getTile(3, 3).maxHealth);
     });
     return it('get position at half time', function() {
-      var ctn, projectile, timing;
-      timing = new Timing(false);
+      var ctn, projectile, timer, timing;
+      timing = new Timing({
+        running: false
+      });
       ctn = createTiles();
       projectile = new Projectile({
         origin: ctn.getTile(1, 1),
@@ -94,9 +96,8 @@
       projectile.launch();
       assert.equal(projectile.startPos.x, 1.5);
       assert.equal(projectile.startPos.y, 1.5);
-      timing.children.slice().forEach(function(timer) {
-        return timer.remainingTime = timer.time / 2;
-      });
+      timer = projectile.pathTimeout;
+      timer.remainingTime = timer.time / 2;
       assert.equal(projectile.x, 3.5);
       return assert.equal(projectile.y, 2);
     });

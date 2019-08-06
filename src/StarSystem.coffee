@@ -40,6 +40,9 @@ module.exports = class StarSystem extends Element
         a.dist - b.dist
       @copy(dists.map (dist)-> dist.star)
 
+  isSelectableBy: (player)->
+    true
+
 class StarSystem.Link extends Element
   constructor: (@star1, @star2) ->
     super()

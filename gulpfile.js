@@ -6,7 +6,6 @@ var coffee = require('gulp-coffee');
 var uglify = require('gulp-uglify-es').default;
 var mocha = require('gulp-mocha');
 var clean = require('gulp-clean');
-var concatStrings = require('parallelio-strings/gulp/concatStrings');
 var browserify = require('browserify');
 var source = require('vinyl-source-stream');
 var requireIndex = require('gulp-require-index');
@@ -69,9 +68,11 @@ gulp.task('build', build = gulp.series('clean', 'coffee', 'buildIndex', 'compres
     done();
 }));
 
-gulp.task('watch', gulp.series('build', function() {
+gulp.task('watch', function() {
   return gulp.watch(['./src/**/*.coffee'], gulp.series('coffee', 'buildIndex', 'compress'));
-}));
+});
+
+gulp.task('dev', gulp.series('build', 'watch'));
 
 gulp.task('cleanTests', function() {
   return gulp.src(['./test/**/*.js'], {read: false, allowEmpty:true})

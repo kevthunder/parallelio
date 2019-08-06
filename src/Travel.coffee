@@ -1,4 +1,5 @@
 Element = require('spark-starter').Element
+Timing = require('parallelio-timing')
 
 module.exports = class Travel extends Element
   @properties
@@ -19,7 +20,7 @@ module.exports = class Travel extends Element
       calcul: ->
         if @targetLocation == @startLocation
           return false
-        if @targetLocation.links? and @startLocation.links?
+        if @targetLocation?.links? and @startLocation?.links?
           return @currentSection?
     timing:
       calcul: ->
@@ -28,8 +29,10 @@ module.exports = class Travel extends Element
   start: (location)->
     if @valid
       @moving = true
+      @traveller.travel = this
       @pathTimeout = @timing.setTimeout =>
         @traveller.location = @targetLocation
+        @traveller.travel = null
         @moving = false
       , @duration
 
