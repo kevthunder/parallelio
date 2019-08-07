@@ -65,8 +65,10 @@
       assert.isTrue(action.isReady());
       assert.equal(char2.health, 1000);
       action.execute();
+      assert.equal(char1.tile.x, 0);
+      assert.equal(char1.tile.y, 2);
+      char1.walk.timing.running = false;
       char1.walk.pathTimeout.setPrc(0.5);
-      char1.walk.pathTimeout.updater.dispatcher.update();
       assert.equal(char1.tile.x, 2);
       assert.equal(char1.tile.y, 2);
       assert.isNotNull(action.enemySpotted);
@@ -82,3 +84,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/attackMoveAction.js.map

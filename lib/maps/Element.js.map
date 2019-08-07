@@ -1,1 +1,0 @@
-{"version":3,"file":"../Element.js","sourceRoot":"../../src","sources":["Element.coffee"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAP,GAAiB,OAAA,CAAQ,eAAR,CAAwB,CAAC","sourcesContent":["module.exports = require('spark-starter').Element"]}

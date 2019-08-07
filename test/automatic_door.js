@@ -89,3 +89,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/automatic_door.js.map

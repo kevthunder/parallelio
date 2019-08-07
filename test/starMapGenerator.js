@@ -33,3 +33,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/starMapGenerator.js.map

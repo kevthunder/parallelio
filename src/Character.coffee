@@ -14,10 +14,15 @@ module.exports = class Character extends Tiled
           @setDefaults()
 
     offsetX:
+      composed: true
       default: 0.5
 
     offsetY:
+      composed: true
       default: 0.5
+
+    tile:
+      composed: true
 
     defaultAction:
       calcul: ->

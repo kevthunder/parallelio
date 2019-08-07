@@ -167,3 +167,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/starSystem.js.map

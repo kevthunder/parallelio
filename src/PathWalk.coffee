@@ -20,6 +20,9 @@ module.exports = class PathWalk extends Element
     totalTime:
       calcul: ->
         @pathLength / @speed * 1000
+    position:
+      calcul: (invalidator)->
+        @path.getPosAtPrc(invalidator.propPath('pathTimeout.prc'))
   start: ->
     if !@path.solution
       @path.calcul()
@@ -27,20 +30,19 @@ module.exports = class PathWalk extends Element
       @pathTimeout = @timing.setTimeout =>
         @finish()
       , @totalTime
-      @pathTimeout.updater.addCallback(@callback('update'))
+      
+      @walker.tileMembers.addPropertyRef('position.tile',this)
+      @walker.offsetXMembers.addPropertyRef('position.offsetX',this)
+      @walker.offsetYMembers.addPropertyRef('position.offsetY',this)
   stop: ->
     @pathTimeout.pause()
-  update: ->
-    pos = @path.getPosAtPrc(@pathTimeout.getPrc())
-    @walker.tile = pos.tile
-    @walker.offsetX = pos.offsetX
-    @walker.offsetY = pos.offsetY
   finish: ->
-    @update()
+    @walker.tile = @position.tile
+    @walker.offsetX = @position.offsetX
+    @walker.offsetY = @position.offsetY
     @trigger('finished')
     @end()
   interrupt: ->
-    @update()
     @trigger('interrupted')
     @end()
   end: ->
@@ -49,6 +51,9 @@ module.exports = class PathWalk extends Element
   destroy: ->
     if @walker.walk == this
       @walker.walk = null
+    @walker.tileMembers.removeRef('position.tile',this)
+    @walker.offsetXMembers.removeRef('position.offsetX',this)
+    @walker.offsetYMembers.removeRef('position.offsetY',this)
     @pathTimeout.destroy()
     @destroyProperties()
     @removeAllListeners()

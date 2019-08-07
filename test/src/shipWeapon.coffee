@@ -11,7 +11,7 @@ describe 'ShipWeapon', ->
   afterEach ->
     Invalidator.strict = true
   it 'fire projectile', ->
-    timing = new Timing(false)
+    timing = new Timing(running:false)
     weapon = new ShipWeapon({
       autoFire:false,
       autoFire:false,
@@ -25,7 +25,7 @@ describe 'ShipWeapon', ->
     assert.instanceOf projectile, Projectile
     assert.isFalse weapon.charged
   it 'cannot fire when heavily damaged', ->
-    timing = new Timing(false)
+    timing = new Timing(running:false)
     weapon = new ShipWeapon({
       autoFire:false,
       autoFire:false,

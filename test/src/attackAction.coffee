@@ -63,6 +63,7 @@ describe 'AttackAction', ->
     assert.equal char2.health, 1000
     assert.exists char1.walk
 
+    char1.walk.timing.running = false
     char1.walk.pathTimeout.setPrc(1)
     char1.walk.finish()
 

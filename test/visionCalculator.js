@@ -35,3 +35,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/visionCalculator.js.map

@@ -1,5 +1,5 @@
 (function() {
-  var PathFinder, PathWalk, Tile, TileContainer, assert;
+  var Element, PathFinder, PathWalk, Tile, TileContainer, assert;
 
   assert = require('chai').assert;
 
@@ -10,6 +10,8 @@
   TileContainer = require('parallelio-tiles').TileContainer;
 
   PathFinder = require('parallelio-pathfinder');
+
+  Element = require('spark-starter').Element;
 
   describe('PathWalk', function() {
     var createTiles;
@@ -32,8 +34,26 @@
       });
     };
     return it('start walking', function() {
-      var character, ctn, path, walk;
-      character = {};
+      var Walker, character, ctn, path, walk;
+      Walker = (function() {
+        class Walker extends Element {};
+
+        Walker.properties({
+          offsetX: {
+            composed: true
+          },
+          offsetY: {
+            composed: true
+          },
+          tile: {
+            composed: true
+          }
+        });
+
+        return Walker;
+
+      }).call(this);
+      character = new Walker();
       ctn = createTiles();
       path = new PathFinder(ctn, ctn.getTile(1, 1), ctn.getTile(5, 1), {
         validTile: function(tile) {
@@ -41,19 +61,19 @@
         }
       });
       walk = new PathWalk(character, path);
+      walk.timing.running = false;
       walk.start();
       assert.isAbove(walk.pathLength, 0);
       assert.isAbove(walk.totalTime, 0);
-      walk.pathTimeout.updater.dispatcher.update();
-      assert.equal(character.tile, ctn.getTile(1, 1));
+      assert.equal(character.tile, ctn.getTile(1, 1), "initial pos");
       walk.pathTimeout.setPrc(0.5);
-      walk.pathTimeout.updater.dispatcher.update();
-      assert.equal(character.tile, ctn.getTile(3, 4));
+      assert.equal(character.tile, ctn.getTile(3, 4), "mid pos");
       walk.pathTimeout.setPrc(1);
-      walk.pathTimeout.updater.dispatcher.update();
-      assert.equal(character.tile, ctn.getTile(5, 1));
+      assert.equal(character.tile, ctn.getTile(5, 1), "final pos");
       return walk.end();
     });
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/path_walk.js.map

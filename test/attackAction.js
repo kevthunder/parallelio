@@ -83,6 +83,7 @@
       action.execute();
       assert.equal(char2.health, 1000);
       assert.exists(char1.walk);
+      char1.walk.timing.running = false;
       char1.walk.pathTimeout.setPrc(1);
       char1.walk.finish();
       assert.equal(char1.tile.x, 1);
@@ -95,3 +96,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/attackAction.js.map

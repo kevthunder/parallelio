@@ -25,3 +25,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/character.js.map

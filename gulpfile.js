@@ -47,7 +47,9 @@ gulp.task('compress', gulp.series('concat', function () {
 
 gulp.task('coffeeTest', function() {
   return gulp.src('./test/src/**/*.coffee')
+    .pipe(sourcemaps.init())
     .pipe(coffee())
+    .pipe(sourcemaps.write('./maps', {sourceRoot: './src'}))
     .pipe(gulp.dest('./test/'));
 });
 
@@ -81,7 +83,7 @@ gulp.task('cleanTests', function() {
 
 gulp.task('test', gulp.series('cleanTests', 'build','coffeeTest', function() {
   return gulp.src('./test/tests.js')
-    .pipe(mocha());
+    .pipe(mocha({require:['source-map-support/register']}));
 }));
 
 gulp.task('test-debug', gulp.series('build','coffeeTest', function() {

@@ -22,7 +22,9 @@
     });
     it('fire projectile', function() {
       var projectile, timing, weapon;
-      timing = new Timing(false);
+      timing = new Timing({
+        running: false
+      });
       weapon = new ShipWeapon({
         autoFire: false,
         autoFire: false,
@@ -38,7 +40,9 @@
     });
     return it('cannot fire when heavily damaged', function() {
       var projectile, timing, weapon;
-      timing = new Timing(false);
+      timing = new Timing({
+        running: false
+      });
       weapon = new ShipWeapon({
         autoFire: false,
         autoFire: false,
@@ -55,3 +59,5 @@
   });
 
 }).call(this);
+
+//# sourceMappingURL=maps/shipWeapon.js.map
