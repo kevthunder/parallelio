@@ -33,6 +33,8 @@
 
   require('./starMapGenerator');
 
+  require('./travel');
+
   require('./path_walk');
 
   require('./personalWeapon');

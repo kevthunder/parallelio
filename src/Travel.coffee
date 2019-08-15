@@ -34,5 +34,6 @@ module.exports = class Travel extends Element
         @traveller.location = @targetLocation
         @traveller.travel = null
         @moving = false
+        console.log('stop moving')
       , @duration
 
