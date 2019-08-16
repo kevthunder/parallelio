@@ -25,6 +25,17 @@ module.exports = class Travel extends Element
     timing:
       calcul: ->
         new Timing()
+    spaceCoodinate:
+      calcul: (invalidator)->
+        startX = invalidator.propPath('startLocation.x')
+        startY = invalidator.propPath('startLocation.y')
+        endX = invalidator.propPath('targetLocation.x')
+        endY = invalidator.propPath('targetLocation.y')
+        prc = invalidator.propPath('pathTimeout.prc')
+        {
+          x: (startX - endX) * prc + endX
+          y: (startY - endY) * prc + endY
+        }
 
   start: (location)->
     if @valid

@@ -16,15 +16,7 @@ module.exports = class Ship extends Element
     spaceCoodinate:
       calcul: (invalidator)->
         if invalidator.prop('travel')
-          startX = invalidator.propPath('travel.startLocation.x')
-          startY = invalidator.propPath('travel.startLocation.y')
-          endX = invalidator.propPath('travel.targetLocation.x')
-          endY = invalidator.propPath('travel.targetLocation.y')
-          prc = invalidator.propPath('travel.pathTimeout.prc')
-          {
-            x: (startX - endX) * prc + endX
-            y: (startY - endY) * prc + endY
-          }
+          invalidator.propPath('travel.spaceCoodinate')
         else
           {
             x: invalidator.propPath('location.x')
