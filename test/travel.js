@@ -36,13 +36,20 @@
       });
       assert.isTrue(travel.valid);
       assert.equal(ship.location, locationA);
+      assert.equal(ship.spaceCoodinate.x, locationA.x);
+      assert.equal(ship.spaceCoodinate.y, locationA.y);
       travel.start();
       assert.isTrue(travel.moving);
       assert.equal(ship.location, locationA);
+      travel.pathTimeout.prc = 0.5;
+      assert.equal(ship.spaceCoodinate.x, (locationA.x - locationB.x) * 0.5 + locationB.x);
+      assert.equal(ship.spaceCoodinate.y, (locationA.y - locationB.y) * 0.5 + locationB.y);
       travel.pathTimeout.tick();
       assert.equal(travel.pathTimeout.remainingTime, 0);
       assert.isFalse(travel.moving);
-      return assert.equal(ship.location, locationB);
+      assert.equal(ship.location, locationB);
+      assert.equal(ship.spaceCoodinate.x, locationB.x);
+      return assert.equal(ship.spaceCoodinate.y, locationB.y);
     });
   });
 
