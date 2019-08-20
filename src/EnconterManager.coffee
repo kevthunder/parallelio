@@ -15,12 +15,14 @@ module.exports = class EncounterManager extends Element
             @testEncounter()
           property: @subject.getPropertyInstance('location')
         })
+    rng: 
+      default: Math.random
 
   init: ->
     @locationWatcher.bind()
 
   testEncounter: ->
-    if Math.random() <= @baseProbability
+    if @rng() <= @baseProbability
       @startEncounter()
 
   startEncounter: ->
