@@ -8,7 +8,7 @@ module.exports = class Ship extends Element
       default: null
     travel: 
       default: null
-    availableActions:
+    providedActions:
       collection: true
       calcul: (invalidator)->
         new TravelAction

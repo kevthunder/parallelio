@@ -29,7 +29,7 @@ module.exports = class Character extends Tiled
         new WalkAction
           actor: this
 
-    availableActions:
+    providedActions:
       collection: true
       calcul: (invalidator)->
         tile = invalidator.prop("tile")

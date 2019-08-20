@@ -23,6 +23,7 @@ require './personalWeapon'
 require './character'
 require './attackAction'
 require './attackMoveAction'
+require './player'
 require './characterAI'
 
 require './concat'

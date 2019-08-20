@@ -8,13 +8,16 @@ module.exports = class Action extends Element
     @setProperties(options)
   @properties
     actor: {}
+    base: {}
   withActor: (actor)->
     if @actor != actor
       @copyWith actor: actor
     else
       this
   copyWith:(options)->
-    new this.constructor(Object.assign({base:this},@getManualDataProperties(),options))
+    new this.constructor(Object.assign({base:@baseOrThis()},@getManualDataProperties(),options))
+  baseOrThis:->
+    @base || this
   start:->
     @execute()
   validActor: ()->

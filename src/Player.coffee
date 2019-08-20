@@ -29,9 +29,13 @@ module.exports = class Player extends Element
     availableActions:
       calcul: (invalidator)->
         invalidator.prop("actionProviders").reduce((res,provider)=>
-          actions = invalidator.prop("availableActions", provider)
+          actions = invalidator.prop("providedActions", provider).toArray()
+          selected = invalidator.prop('selected')
+          if selected?
+            actions = actions.map (action)=>
+              @guessActionTarget(action)
           if actions
-            res.concat(actions.toArray())
+            res.concat(actions)
           else
             res
         ,[])
@@ -54,6 +58,14 @@ module.exports = class Player extends Element
   canTargetActionOn: (elem)->
     action = @selectedAction || @selected?.defaultAction
     action? && typeof action.canTarget == "function" && action.canTarget(elem)
+
+  guessActionTarget: (action)->
+    selected = @selected
+    if typeof action.canTarget == "function" && !action.target? && action.actor != selected && action.canTarget(selected)
+      action.withTarget(selected)
+    else
+      action
+
   canSelect: (elem)->
     typeof elem.isSelectableBy == "function" && elem.isSelectableBy(this)
   canFocusOn: (elem)->
