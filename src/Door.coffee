@@ -5,7 +5,7 @@ module.exports = class Door extends Tiled
     super()
   @properties
     tile:
-      change: (old) ->
+      change: (val, old) ->
         @updateTileMembers(old)
     open:
       default: false
@@ -13,11 +13,11 @@ module.exports = class Door extends Tiled
 
   updateTileMembers:(old)->
     if old?
-      old.walkableMembers?.removeRef('open',this)
-      old.transparentMembers?.removeRef('open',this)
+      old.walkableMembers?.removeProperty(@openProperty)
+      old.transparentMembers?.removeProperty(@openProperty)
     if @tile
-      @tile.walkableMembers?.addPropertyRef('open',this)
-      @tile.transparentMembers?.addPropertyRef('open',this)
+      @tile.walkableMembers?.addProperty(@openProperty)
+      @tile.transparentMembers?.addProperty(@openProperty)
 
   @directions = {
     horizontal: 'horizontal'

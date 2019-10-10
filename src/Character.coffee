@@ -9,7 +9,7 @@ module.exports = class Character extends Tiled
 
   @properties
     game:
-      change: (old)->
+      change: (val, old)->
         if @game 
           @setDefaults()
 
@@ -32,11 +32,7 @@ module.exports = class Character extends Tiled
     providedActions:
       collection: true
       calcul: (invalidator)->
-        tile = invalidator.prop("tile")
-        if tile
-          invalidator.prop("providedActions",tile)
-        else
-          []
+        invalidator.propPath("tile.providedActions") || []
 
   setDefaults: ->
     if !@tile && @game.mainTileContainer?

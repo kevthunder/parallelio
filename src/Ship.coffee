@@ -15,7 +15,7 @@ module.exports = class Ship extends Element
           actor: this
     spaceCoodinate:
       calcul: (invalidator)->
-        if invalidator.prop('travel')
+        if invalidator.prop(@travelProperty)
           invalidator.propPath('travel.spaceCoodinate')
         else
           {

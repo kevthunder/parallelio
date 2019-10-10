@@ -5,7 +5,7 @@
 
   StarSystem = require('../lib/StarSystem');
 
-  Collection = require('spark-starter/lib/Collection');
+  Collection = require('spark-starter').Collection;
 
   describe('StarSystem', function() {
     return it('can calcul the distance to a point', function() {

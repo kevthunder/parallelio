@@ -6,8 +6,7 @@ Projectile = require('./Projectile')
 module.exports = class ShipWeapon extends Tiled
   @extend Damageable
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     rechargeTime:
       default: 1000

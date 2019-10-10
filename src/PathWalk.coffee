@@ -1,13 +1,11 @@
 Element = require('spark-starter').Element
 Timing = require('parallelio-timing')
-EventEmitter = require('spark-starter').EventEmitter
-
+EventEmitter = require('events')
 
 module.exports = class PathWalk extends Element
   @include EventEmitter.prototype
   constructor: (@walker, @path, options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     speed:
       default: 5
@@ -22,7 +20,7 @@ module.exports = class PathWalk extends Element
         @pathLength / @speed * 1000
     position:
       calcul: (invalidator)->
-        @path.getPosAtPrc(invalidator.propPath('pathTimeout.prc'))
+        @path.getPosAtPrc(invalidator.propPath('pathTimeout.prc') || 0)
   start: ->
     if !@path.solution
       @path.calcul()
@@ -31,22 +29,22 @@ module.exports = class PathWalk extends Element
         @finish()
       , @totalTime
       
-      @walker.tileMembers.addPropertyRef('position.tile',this)
-      @walker.offsetXMembers.addPropertyRef('position.offsetX',this)
-      @walker.offsetYMembers.addPropertyRef('position.offsetY',this)
+      @walker.tileMembers.addPropertyPath('position.tile',this)
+      @walker.offsetXMembers.addPropertyPath('position.offsetX',this)
+      @walker.offsetYMembers.addPropertyPath('position.offsetY',this)
   stop: ->
     @pathTimeout.pause()
   finish: ->
     @walker.tile = @position.tile
     @walker.offsetX = @position.offsetX
     @walker.offsetY = @position.offsetY
-    @trigger('finished')
+    @emit('finished')
     @end()
   interrupt: ->
-    @trigger('interrupted')
+    @emit('interrupted')
     @end()
   end: ->
-    @trigger('end')
+    @emit('end')
     @destroy()
   destroy: ->
     if @walker.walk == this
@@ -55,6 +53,6 @@ module.exports = class PathWalk extends Element
     @walker.offsetXMembers.removeRef('position.offsetX',this)
     @walker.offsetYMembers.removeRef('position.offsetY',this)
     @pathTimeout.destroy()
-    @destroyProperties()
+    @propertiesManager.destroy()
     @removeAllListeners()
 

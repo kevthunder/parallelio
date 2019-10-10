@@ -6,8 +6,7 @@ Door = require('./Door')
 
 module.exports = class RoomGenerator extends Element
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     rng:
       default: Math.random

@@ -3,7 +3,7 @@ AttackAction = require('./AttackAction')
 TargetAction = require('./TargetAction')
 PathFinder = require('parallelio-pathfinder')
 LineOfSight = require('../LineOfSight')
-PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
+PropertyWatcher = require('spark-starter').watchers.PropertyWatcher
 EventBind = require('spark-starter').EventBind
 
 module.exports = class AttackMoveAction extends TargetAction
@@ -28,7 +28,7 @@ module.exports = class AttackMoveAction extends TargetAction
         new PropertyWatcher({
           callback: =>
             @testEnemySpotted()
-          property: @actor.getPropertyInstance('tile')
+          property: @actor.propertiesManager.getProperty('tile')
         })
       destroy: true
     interruptBinder:
@@ -44,7 +44,7 @@ module.exports = class AttackMoveAction extends TargetAction
     @walkAction.validTarget()
 
   testEnemySpotted: ()->
-    @invalidateEnemySpotted()
+    @enemySpottedProperty.invalidate()
     if @enemySpotted
       @attackAction = new AttackAction(actor: @actor, target: @enemySpotted)
       @attackAction.on 'finished', =>
@@ -52,7 +52,7 @@ module.exports = class AttackMoveAction extends TargetAction
           @start()
       @interruptBinder.bindTo(@attackAction)
       @walkAction.interrupt()
-      @invalidateWalkAction()
+      @walkActionProperty.invalidate()
       @attackAction.execute()
 
   execute: ->

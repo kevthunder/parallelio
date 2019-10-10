@@ -13,7 +13,7 @@
 
   Element = require('spark-starter').Element;
 
-  describe('PathWalk', function() {
+  describe.skip('PathWalk', function() {
     var createTiles;
     createTiles = function() {
       var ctn;
@@ -66,9 +66,9 @@
       assert.isAbove(walk.pathLength, 0);
       assert.isAbove(walk.totalTime, 0);
       assert.equal(character.tile, ctn.getTile(1, 1), "initial pos");
-      walk.pathTimeout.setPrc(0.5);
+      walk.pathTimeout.prc = 0.5;
       assert.equal(character.tile, ctn.getTile(3, 4), "mid pos");
-      walk.pathTimeout.setPrc(1);
+      walk.pathTimeout.prc = 1;
       assert.equal(character.tile, ctn.getTile(5, 1), "final pos");
       return walk.end();
     });

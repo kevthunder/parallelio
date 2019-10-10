@@ -67,7 +67,7 @@ module.exports = class AttackAction extends TargetAction
       @walkAction.on 'finished', =>
         @interruptBinder.unbind()
         @walkAction.destroy()
-        @invalidateWalkAction()
+        @walkActionProperty.invalidate()
         if @isReady()
           @start()
       @interruptBinder.bindTo(@walkAction)

@@ -1,11 +1,10 @@
 Element = require('spark-starter').Element
-EventEmitter = require('spark-starter').EventEmitter
+EventEmitter = require('events')
 
 module.exports = class Action extends Element
   @include EventEmitter.prototype
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     actor: {}
     base: {}
@@ -15,7 +14,7 @@ module.exports = class Action extends Element
     else
       this
   copyWith:(options)->
-    new this.constructor(Object.assign({base:@baseOrThis()},@getManualDataProperties(),options))
+    new this.constructor(Object.assign({base:@baseOrThis()},@propertiesManager.getManualDataProperties(),options))
   baseOrThis:->
     @base || this
   start:->
@@ -25,13 +24,13 @@ module.exports = class Action extends Element
   isReady: ->
     @validActor()
   finish: ->
-    @trigger('finished')
+    @emit('finished')
     @end()
   interrupt: ->
-    @trigger('interrupted')
+    @emit('interrupted')
     @end()
   end: ->
-    @trigger('end')
+    @emit('end')
     @destroy()
   destroy: ->
-    @destroyProperties()
+    @propertiesManager.destroy()

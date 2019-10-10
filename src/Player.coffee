@@ -1,36 +1,33 @@
 Element = require('spark-starter').Element
-EventEmitter = require('spark-starter').EventEmitter
 
 
 module.exports = class Player extends Element
-  @include EventEmitter.prototype
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     name:
       default: 'Player'
     focused: {}
     selected: 
-      change: (old)->
-        if old?.getProperty('selected')
+      change: (val, old)->
+        if old?.propertiesManager.getProperty('selected')
           old.selected = false
-        if @selected?.getProperty('selected')
+        if @selected?.propertiesManager.getProperty('selected')
           @selected.selected = this
     globalActionProviders:
       collection: true
     actionProviders:
       calcul: (invalidator)->
-        res = invalidator.prop('globalActionProviders').toArray()
-        selected = invalidator.prop('selected')
+        res = invalidator.prop(@globalActionProvidersProperty).toArray()
+        selected = invalidator.prop(@selectedProperty)
         if selected
           res.push(selected)
         res
     availableActions:
       calcul: (invalidator)->
-        invalidator.prop("actionProviders").reduce((res,provider)=>
-          actions = invalidator.prop("providedActions", provider).toArray()
-          selected = invalidator.prop('selected')
+        invalidator.prop(@actionProvidersProperty).reduce((res,provider)=>
+          actions = invalidator.prop(provider.providedActionsProperty).toArray()
+          selected = invalidator.prop(@selectedProperty)
           if selected?
             actions = actions.map (action)=>
               @guessActionTarget(action)
@@ -41,11 +38,11 @@ module.exports = class Player extends Element
         ,[])
     selectedAction: {}
     controller: 
-      change: (old)->
+      change: (val, old)->
         if @controller
           @controller.player = this
     game:
-      change: (old)->
+      change: (val, old)->
         if @game 
           @setDefaults()
 

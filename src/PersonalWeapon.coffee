@@ -4,8 +4,7 @@ Timing = require('parallelio-timing')
 
 module.exports = class PersonalWeapon extends Element
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     rechargeTime:
       default: 1000
@@ -17,7 +16,7 @@ module.exports = class PersonalWeapon extends Element
       default: 10
     dps:
       calcul: (invalidator)->
-        invalidator.prop('power') / invalidator.prop('rechargeTime') * 1000
+        invalidator.prop(@powerProperty) / invalidator.prop(@rechargeTimeProperty) * 1000
     range:
       default: 10
     user:

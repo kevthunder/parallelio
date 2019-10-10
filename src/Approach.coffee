@@ -45,8 +45,8 @@ module.exports = class Approach extends Element
       default: false
     currentPos:
       calcul: (invalidator)->
-        start = invalidator.prop("startingPos")
-        end = invalidator.prop("targetPos")
+        start = invalidator.prop(@startingPosProperty)
+        end = invalidator.prop(@targetPosProperty)
         prc = invalidator.propPath("timeout.prc") || 0
         {
           x: (end.x-start.x) * prc + start.x

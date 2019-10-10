@@ -4,8 +4,7 @@ Direction = require('parallelio-tiles').Direction
 
 module.exports = class DamagePropagation extends Element
   constructor: (options)->
-    super()
-    @setProperties(options)
+    super(options)
   @properties
     tile:
       default: null

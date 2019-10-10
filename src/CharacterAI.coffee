@@ -3,7 +3,7 @@ VisionCalculator = require('./VisionCalculator')
 Door = require('./Door')
 WalkAction = require('./actions/WalkAction')
 AttackMoveAction = require('./actions/AttackMoveAction')
-PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
+PropertyWatcher = require('spark-starter').watchers.PropertyWatcher
 
 module.exports = class CharacterAI
   constructor: (@character)->
@@ -12,7 +12,7 @@ module.exports = class CharacterAI
     @tileWatcher = new PropertyWatcher
       callback: =>
         @updateVisionMemory()
-      property: @character.getPropertyInstance('tile')
+      property: @character.propertiesManager.getProperty('tile')
       
 
   start: ->

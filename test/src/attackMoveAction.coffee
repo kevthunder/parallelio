@@ -50,7 +50,7 @@ describe 'AttackMoveAction', ->
     assert.equal char1.tile.y, 2
 
     char1.walk.timing.running = false
-    char1.walk.pathTimeout.setPrc(0.5)
+    char1.walk.pathTimeout.prc = 0.5
 
     assert.equal char1.tile.x, 2
     assert.equal char1.tile.y, 2

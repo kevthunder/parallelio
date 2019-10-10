@@ -4,14 +4,14 @@ Mixable = require('spark-starter').Mixable
 module.exports = class TiledActionProvider extends ActionProvider
   @properties
     tile:
-      change: (old,overrided) ->
+      change: (val, old,overrided) ->
         overrided(old)
         @forwardedActions
 
     actionTiles:
       collection: true
       calcul: (invalidator)->
-        myTile = invalidator.prop('tile')
+        myTile = invalidator.prop(@tileProperty)
         if myTile
           @actionTilesCoord.map (coord)=>
               myTile.getRelativeTile(coord.x,coord.y)
@@ -25,8 +25,8 @@ module.exports = class TiledActionProvider extends ActionProvider
         compare: (a,b) ->
           a.action == b.action && a.location == b.location
       calcul: (invalidator)->
-        actionTiles = invalidator.prop('actionTiles')
-        actions = invalidator.prop('providedActions')
+        actionTiles = invalidator.prop(@actionTilesProperty)
+        actions = invalidator.prop(@providedActionsProperty)
         actionTiles.reduce( (res,tile)=>
           res.concat actions.map (act)->
             {action:act, location:tile}

@@ -3,7 +3,7 @@ Tiled = require('parallelio-tiles').Tiled
 module.exports = class Obstacle extends Tiled
   @properties
     tile:
-      change: (old,overrided) ->
+      change: (val, old,overrided) ->
         overrided(old)
         @updateWalkables(old)
 

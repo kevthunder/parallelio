@@ -4,7 +4,7 @@ Grid = require('parallelio-grids').Grid
 module.exports = class View extends Element
   @properties
     game:
-      change: (old)->
+      change: (val, old)->
         if @game 
           @game.views.add(this)
           @setDefaults()
@@ -21,7 +21,7 @@ module.exports = class View extends Element
 
   setDefaults: ->
     if !@bounds
-      @grid = @grid || @game._mainView?.value?.grid || new Grid()
+      @grid = @grid || @game.mainViewProperty.value?.grid || new Grid()
       @bounds = @grid.addCell()
 
   destroy: ->

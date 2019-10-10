@@ -1,6 +1,6 @@
 assert = require('chai').assert
 StarSystem = require('../lib/StarSystem')
-Collection = require('spark-starter/lib/Collection')
+Collection = require('spark-starter').Collection
 
 describe 'StarSystem', ->
   it 'can calcul the distance to a point', ->

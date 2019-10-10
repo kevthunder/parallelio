@@ -36,6 +36,7 @@
     "vinyl-source-stream": "^2.0.0"
   },
   "dependencies": {
+    "events": "^3.0.0",
     "parallelio-grids": "github:kevthunder/parallelio-grids",
     "parallelio-pathfinder": "github:kevthunder/parallelio-pathfinder",
     "parallelio-strings": "github:kevthunder/parallelio-strings",

@@ -3,8 +3,7 @@ Timing = require('parallelio-timing')
 
 module.exports = class Projectile extends Element
   constructor: (options) ->
-    super()
-    @setProperties(options)
+    super(options)
     @init()
   init:->
   @properties
@@ -29,36 +28,36 @@ module.exports = class Projectile extends Element
         100
     originTile: 
       calcul: (invalidator)->
-        origin = invalidator.prop('origin')
+        origin = invalidator.prop(@originProperty)
         if origin?
           origin.tile || origin
     targetTile: 
       calcul: (invalidator)->
-        target = invalidator.prop('target')
+        target = invalidator.prop(@targetProperty)
         if target?
           target.tile || target
     container:
       calcul: (invalidate)->
-        originTile = invalidate.prop('originTile')
-        targetTile = invalidate.prop('targetTile')
+        originTile = invalidate.prop(@originTileProperty)
+        targetTile = invalidate.prop(@targetTileProperty)
         if originTile.container == targetTile.container
           originTile.container
-        else if invalidate.prop('prcPath') > 0.5
+        else if invalidate.prop(@prcPathProperty) > 0.5
           targetTile.container
         else
           originTile.container
     x:
       calcul: (invalidate)->
-        startPos = invalidate.prop('startPos')
-        (invalidate.prop('targetPos').x - startPos.x)*invalidate.prop('prcPath') + startPos.x
+        startPos = invalidate.prop(@startPosProperty)
+        (invalidate.prop(@targetPosProperty).x - startPos.x)*invalidate.prop(@prcPathProperty) + startPos.x
     y:
       calcul: (invalidate)->
-        startPos = invalidate.prop('startPos')
-        (invalidate.prop('targetPos').y - startPos.y)*invalidate.prop('prcPath') + startPos.y
+        startPos = invalidate.prop(@startPosProperty)
+        (invalidate.prop(@targetPosProperty).y - startPos.y)*invalidate.prop(@prcPathProperty) + startPos.y
     startPos:
       calcul: (invalidate)->
-        originTile = invalidate.prop('originTile')
-        container = invalidate.prop('container')
+        originTile = invalidate.prop(@originTileProperty)
+        container = invalidate.prop(@containerProperty)
         offset = @startOffset;
         unless originTile.container == container
           dist = container.dist(originTile.container)
@@ -72,8 +71,8 @@ module.exports = class Projectile extends Element
         Object.assign({},val)
     targetPos:
       calcul: (invalidate)->
-        targetTile = invalidate.prop('targetTile')
-        container = invalidate.prop('container')
+        targetTile = invalidate.prop(@targetTileProperty)
+        container = invalidate.prop(@containerProperty)
         offset = @targetOffset;
         unless targetTile.container == container
           dist = container.dist(targetTile.container)
@@ -95,7 +94,7 @@ module.exports = class Projectile extends Element
         Object.assign({},val)
     prcPath:
       calcul: ->
-        @pathTimeout?.getPrc() || 0
+        @pathTimeout?.prc || 0
     timing:
       calcul: ->
         new Timing()
@@ -119,4 +118,4 @@ module.exports = class Projectile extends Element
   payloadDelivered: ->
     @destroy()
   destroy: ->
-    @destroyProperties()
+    @propertiesManager.destroy()

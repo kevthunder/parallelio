@@ -5,20 +5,20 @@ module.exports = class AutomaticDoor extends Door
   @properties
     open:
       calcul: (invalidate) ->
-        !invalidate.prop('locked') && @isActivatorPresent(invalidate)
+        !invalidate.prop(@lockedProperty) && @isActivatorPresent(invalidate)
     locked:
       default: false
     unlocked:
       calcul: (invalidate) ->
-        !invalidate.prop('locked')
+        !invalidate.prop(@lockedProperty)
 
   updateTileMembers:(old)->
     if old?
-      old.walkableMembers?.removeRef('unlocked',this)
-      old.transparentMembers?.removeRef('open',this)
+      old.walkableMembers?.removeProperty(this.unlockedProperty)
+      old.transparentMembers?.removeProperty(this.openProperty)
     if @tile
-      @tile.walkableMembers?.addPropertyRef('unlocked',this)
-      @tile.transparentMembers?.addPropertyRef('open',this)
+      @tile.walkableMembers?.addProperty(this.unlockedProperty)
+      @tile.transparentMembers?.addProperty(this.openProperty)
 
   init: ->
     super()
@@ -26,7 +26,7 @@ module.exports = class AutomaticDoor extends Door
 
   isActivatorPresent:(invalidate)->
     @getReactiveTiles(invalidate).some (tile) =>
-      children = if invalidate then invalidate.prop('children',tile) else tile.children
+      children = if invalidate then invalidate.prop(tile.childrenProperty) else tile.children
       children.some (child) =>
         @canBeActivatedBy(child)
 
@@ -34,10 +34,10 @@ module.exports = class AutomaticDoor extends Door
     elem instanceof Character
 
   getReactiveTiles: (invalidate)->
-    tile = if invalidate then invalidate.prop('tile') else @tile
+    tile = if invalidate then invalidate.prop(@tileProperty) else @tile
     unless tile
       return []
-    direction = if invalidate then invalidate.prop('direction') else @direction
+    direction = if invalidate then invalidate.prop(@directionProperty) else @direction
     if direction == Door.directions.horizontal
       [
         tile
