@@ -1,7 +1,7 @@
 WalkAction = require('./WalkAction')
 TargetAction = require('./TargetAction')
 EventBind = require('spark-starter').EventBind
-PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
+PropertyWatcher = require('spark-starter').watchers.PropertyWatcher
 
 module.exports = class AttackAction extends TargetAction
   @properties
@@ -33,7 +33,7 @@ module.exports = class AttackAction extends TargetAction
           callback: ()=>
             if @bestUsableWeapon.charged
               @useWeapon()
-          property: @bestUsableWeapon.getPropertyInstance('charged')
+          property: @bestUsableWeapon.propertiesManager.getProperty('charged')
         })
       destroy: true
 

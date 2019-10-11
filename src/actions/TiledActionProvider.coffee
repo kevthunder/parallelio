@@ -50,7 +50,7 @@ module.exports = class TiledActionProvider extends ActionProvider
     tile?
 
   prepareActionTile: (tile)->
-    unless tile.getPropertyInstance('providedActions')
+    unless tile.propertiesManager.getProperty('providedActions')
       Mixable.Extension.make(ActionProvider.prototype, tile)
 
 

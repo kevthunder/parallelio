@@ -13,7 +13,7 @@
 
   Element = require('spark-starter').Element;
 
-  describe.skip('PathWalk', function() {
+  describe('PathWalk', function() {
     var createTiles;
     createTiles = function() {
       var ctn;

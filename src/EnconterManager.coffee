@@ -1,5 +1,5 @@
 Element = require('spark-starter').Element
-PropertyWatcher = require('spark-starter').Invalidated.PropertyWatcher
+PropertyWatcher = require('spark-starter').watchers.PropertyWatcher
 Confrontation = require('./Confrontation')
 
 module.exports = class EncounterManager extends Element
@@ -13,7 +13,7 @@ module.exports = class EncounterManager extends Element
         new PropertyWatcher({
           callback: =>
             @testEncounter()
-          property: @subject.getPropertyInstance('location')
+          property: @subject.propertiesManager.getProperty('location')
         })
     rng: 
       default: Math.random

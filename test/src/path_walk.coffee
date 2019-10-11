@@ -6,7 +6,7 @@ PathFinder = require('parallelio-pathfinder')
 Element = require('spark-starter').Element
 
 
-describe.skip 'PathWalk', ->
+describe 'PathWalk', ->
   createTiles = ->
     ctn = new TileContainer()
     ctn.tap ->
