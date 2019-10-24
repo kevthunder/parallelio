@@ -120,6 +120,7 @@ module.exports = class RoomGenerator extends Element
             nextRoom.addWall(next, room) if nextRoom?
           if @wallFactory
             next.factory = (opt)=> @wallFactory(opt)
+            next.factory.base = @wallFactory
           @allocateTile(next)
   createDoors: ->
     for room in @rooms
@@ -127,8 +128,10 @@ module.exports = class RoomGenerator extends Element
         if walls.room? and room.doorsForRoom(walls.room) < 1
           door = walls.tiles[Math.floor(@rng()*walls.tiles.length)]
           door.factory = (opt)=> @doorFactory(opt)
+          door.factory.base = @doorFactory
+          adjacent = @tileContainer.getTile(door.x+1, door.y)
           door.factoryOptions = {
-            direction: if @tileContainer.getTile(door.x+1, door.y).factory == @floorFactory then Door.directions.vertical else Door.directions.horizontal
+            direction: if adjacent.factory and adjacent.factory.base == @floorFactory then Door.directions.vertical else Door.directions.horizontal
           }
           room.addDoor(door, walls.room)
           walls.room.addDoor(door, room)
@@ -136,6 +139,7 @@ module.exports = class RoomGenerator extends Element
     if room?
       room.addTile(tile)
       tile.factory = (opt)=> @floorFactory(opt)
+      tile.factory.base = @floorFactory
     index = @free.indexOf(tile)
     if index > -1
       @free.splice(index, 1)

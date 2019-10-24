@@ -1,15 +1,19 @@
 Tiled = require('parallelio-tiles').Tiled
 
+directions = {
+  horizontal: 'horizontal'
+  vertical: 'vertical'
+}
+
 module.exports = class Door extends Tiled
-  constructor: (@direction = Door.directions.horizontal) ->
-    super()
   @properties
     tile:
       change: (val, old) ->
         @updateTileMembers(old)
     open:
       default: false
-    direction: {}
+    direction: 
+      default: directions.horizontal
 
   updateTileMembers:(old)->
     if old?
@@ -19,7 +23,4 @@ module.exports = class Door extends Tiled
       @tile.walkableMembers?.addProperty(@openProperty)
       @tile.transparentMembers?.addProperty(@openProperty)
 
-  @directions = {
-    horizontal: 'horizontal'
-    vertical: 'vertical'
-  }
+  @directions = directions
