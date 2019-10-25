@@ -49,9 +49,9 @@ module.exports = class PathWalk extends Element
   destroy: ->
     if @walker.walk == this
       @walker.walk = null
-    @walker.tileMembers.removeRef('position.tile',this)
-    @walker.offsetXMembers.removeRef('position.offsetX',this)
-    @walker.offsetYMembers.removeRef('position.offsetY',this)
+    @walker.tileMembers.removeRef({name: 'position.tile', obj: this})
+    @walker.offsetXMembers.removeRef({name: 'position.offsetX', obj: this})
+    @walker.offsetYMembers.removeRef({name: 'position.offsetY', obj: this})
     @pathTimeout.destroy()
     @propertiesManager.destroy()
     @removeAllListeners()

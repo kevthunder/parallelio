@@ -9,6 +9,6 @@ module.exports = class Obstacle extends Tiled
 
   updateWalkables:(old)->
     if old?
-      old.walkableMembers?.removeRef('walkable',this)
+      old.walkableMembers?.removeRef({name: 'walkable', obj: this})
     if @tile
       @tile.walkableMembers?.setValueRef(false,'walkable',this)

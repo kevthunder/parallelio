@@ -67,8 +67,8 @@ module.exports = class Approach extends Element
       , @duration
 
   done: ->
-    @subject.xMembers.removeRef('position.offsetX', this)
-    @subject.yMembers.removeRef('position.offsetY', this)
+    @subject.xMembers.removeRef({name: 'position.offsetX', obj: this})
+    @subject.yMembers.removeRef({name: 'position.offsetY', obj: this})
     @subject.x = @targetPos.x
     @subject.y = @targetPos.x
     @subjectAirlock.attachTo(targetAirlock)
