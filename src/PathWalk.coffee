@@ -11,7 +11,10 @@ module.exports = class PathWalk extends Element
       default: 5
     timing:
       calcul: ->
-        new Timing()
+        if @walker.game?.timing
+          @walker.game.timing
+        else
+          new Timing()
     pathLength:
       calcul: ->
         @path.solution.getTotalLength()
