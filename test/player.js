@@ -14,7 +14,7 @@
       var action, player, provider;
       action = new TargetAction();
       provider = new SimpleActionProvider();
-      provider.providedActions.add(action);
+      provider.actions.add(action);
       player = new Player();
       player.selected = provider;
       assert.equal(player.availableActions.length, 1);
@@ -24,7 +24,7 @@
       var action, player, provider;
       action = new TargetAction();
       provider = new SimpleActionProvider();
-      provider.providedActions.add(action);
+      provider.actions.add(action);
       player = new Player();
       player.globalActionProviders.add(provider);
       assert.equal(player.availableActions.length, 1);

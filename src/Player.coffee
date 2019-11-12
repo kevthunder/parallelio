@@ -26,7 +26,7 @@ module.exports = class Player extends Element
     availableActions:
       calcul: (invalidator)->
         invalidator.prop(@actionProvidersProperty).reduce((res,provider)=>
-          actions = invalidator.prop(provider.providedActionsProperty).toArray()
+          actions = invalidator.prop(provider.actionsProperty).toArray()
           selected = invalidator.prop(@selectedProperty)
           if selected?
             actions = actions.map (action)=>

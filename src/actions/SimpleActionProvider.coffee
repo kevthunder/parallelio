@@ -2,9 +2,9 @@ ActionProvider = require('./ActionProvider')
 
 module.exports = class SimpleActionProvider extends ActionProvider
   @properties
-    providedActions: 
+    actions: 
       calcul: ->
-        actions = @actions || @constructor.actions || []
+        actions = @actionOptions || @constructor.actions || []
         if typeof actions == "object"
           actions = Object.keys(actions).map (key)->
             actions[key]

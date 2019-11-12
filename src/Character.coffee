@@ -32,7 +32,7 @@ module.exports = class Character extends Tiled
     providedActions:
       collection: true
       calcul: (invalidator)->
-        invalidator.propPath("tile.providedActions") || []
+        invalidator.propPath("tile.actionProvider.actions") || []
 
   setDefaults: ->
     if !@tile && @game.mainTileContainer?

@@ -2,5 +2,7 @@ Element = require('spark-starter').Element
 
 module.exports = class ActionProvider extends Element
   @properties
-    providedActions: 
+    actions: 
       collection: true
+      composed: true
+    owner: {}

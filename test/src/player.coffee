@@ -8,7 +8,7 @@ describe 'Player', ->
   it 'can get action from selected action provider', ->
     action = new TargetAction()
     provider = new SimpleActionProvider()
-    provider.providedActions.add(action)
+    provider.actions.add(action)
 
     player = new Player()
     player.selected = provider
@@ -19,7 +19,7 @@ describe 'Player', ->
   it 'can get action from global action provider', ->
     action = new TargetAction()
     provider = new SimpleActionProvider()
-    provider.providedActions.add(action)
+    provider.actions.add(action)
 
     player = new Player()
     player.globalActionProviders.add(provider)
