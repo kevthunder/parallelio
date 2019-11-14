@@ -1,27 +1,18 @@
-(function() {
-  var Game, Timing, View, assert;
 
-  assert = require('chai').assert;
+const assert = require('chai').assert
+const View = require('../lib/View')
+const Game = require('../lib/Game')
+const Timing = require('parallelio-timing')
 
-  View = require('../lib/View');
-
-  Game = require('../lib/Game');
-
-  Timing = require('parallelio-timing');
-
-  describe('Game', function() {
-    it('has some default Timing', function() {
-      var game;
-      game = new Game();
-      return assert.instanceOf(game.timing, Timing);
-    });
-    return it('has some default View', function() {
-      var game;
-      game = new Game();
-      return assert.instanceOf(game.mainView, View);
-    });
-  });
-
-}).call(this);
-
-//# sourceMappingURL=maps/game.js.map
+describe('Game', function () {
+  it('has some default Timing', function () {
+    var game
+    game = new Game()
+    return assert.instanceOf(game.timing, Timing)
+  })
+  it('has some default View', function () {
+    var game
+    game = new Game()
+    return assert.instanceOf(game.mainView, View)
+  })
+})

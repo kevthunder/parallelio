@@ -1,56 +1,52 @@
-(function() {
-  require('./starSystem');
 
-  require('./damageable');
+require('./starSystem')
 
-  require('parallelio-tiles/test/tests.js');
+require('./damageable')
 
-  require('parallelio-pathfinder/test/path_finder.js');
+require('parallelio-tiles/test/tests.js')
 
-  require('parallelio-wiring/test/tests.js');
+require('parallelio-pathfinder/test/path_finder.js')
 
-  require('parallelio-grids/test/tests.js');
+require('parallelio-wiring/test/tests.js')
 
-  require('./game');
+require('parallelio-grids/test/tests.js')
 
-  require('./view');
+require('./game')
 
-  require('./door');
+require('./view')
 
-  require('./automatic_door');
+require('./door')
 
-  require('./line_of_sight');
+require('./automatic_door')
 
-  require('./visionCalculator');
+require('./line_of_sight')
 
-  require('./damage_propagation');
+require('./visionCalculator')
 
-  require('./shipWeapon');
+require('./damage_propagation')
 
-  require('./projectile');
+require('./shipWeapon')
 
-  require('./room_generator');
+require('./projectile')
 
-  require('./starMapGenerator');
+require('./room_generator')
 
-  require('./travel');
+require('./starMapGenerator')
 
-  require('./path_walk');
+require('./travel')
 
-  require('./personalWeapon');
+require('./path_walk')
 
-  require('./character');
+require('./personalWeapon')
 
-  require('./attackAction');
+require('./character')
 
-  require('./attackMoveAction');
+require('./attackAction')
 
-  require('./player');
+require('./attackMoveAction')
 
-  require('./characterAI');
+require('./player')
 
-  require('./concat');
+require('./characterAI')
 
-}).call(this);
-
-//# sourceMappingURL=maps/tests.js.map
+require('./concat')
