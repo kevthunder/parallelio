@@ -6,7 +6,7 @@ const TileContainer = require('parallelio-tiles').TileContainer
 const PathFinder = require('parallelio-pathfinder')
 const Element = require('spark-starter').Element
 
-describe.skip('PathWalk', function () {
+describe('PathWalk', function () {
   var createTiles
   createTiles = function () {
     var ctn
