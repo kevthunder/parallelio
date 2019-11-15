@@ -8,11 +8,12 @@
     "url": "git://github.com/kevthunder/parallelio.git"
   },
   "scripts": {
-    "test": "gulp test",
-    "build": "gulp build",
+    "test": "npm run build && nyc --reporter=lcov --reporter=text mocha test/tests.js",
+    "build": "gulp build && eslint --fix lib/libs.js",
     "watch": "gulp dev",
     "update": "gulp update",
     "build-debug": "node --inspect-brk ./node_modules/gulp/bin/gulp build",
+    "cover": "eslint '**/*.js' && npm run test && nyc check-coverage --statements 75 --branches 60 --functions 70 --lines 75",
     "test-debug": "gulp test-debug",
     "lint": "eslint '**/*.js'"
   },
@@ -35,6 +36,7 @@
     "gulp-require-index": "^0.1.1",
     "gulp-uglify-es": "^1.0.4",
     "mocha": "^5.2.0",
+    "nyc": "^14.1.1",
     "run-sequence": "^2.2.1",
     "seedrandom": "^2.4.4",
     "spark-auto-commit": "github:kevthunder/spark-auto-commit",
@@ -49,5 +51,10 @@
     "parallelio-timing": "github:kevthunder/parallelio-timing",
     "parallelio-wiring": "github:kevthunder/parallelio-wiring",
     "spark-starter": "github:kevthunder/spark-starter#use-spark-properties"
+  },
+  "nyc": {
+    "include": [
+      "lib"
+    ]
   }
 }
