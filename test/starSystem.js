@@ -20,26 +20,26 @@ describe('StarSystem', function () {
 
 describe('StarSystem.collenctionFn', function () {
   it('can get closest point', function () {
-    var a, b, c, coll, d
-    coll = Collection.newSubClass(StarSystem.collenctionFn, [
-      a = new StarSystem({
+    const expected = new StarSystem({
+      x: 0,
+      y: 0
+    })
+    const coll = Collection.newSubClass(StarSystem.collenctionFn, [
+      new StarSystem({
         x: 2,
         y: 4
       }),
-      b = new StarSystem({
-        x: 0,
-        y: 0
-      }),
-      c = new StarSystem({
+      expected,
+      new StarSystem({
         x: 3,
         y: 4
       })
     ])
-    d = new StarSystem({
+    const origin = new StarSystem({
       x: 1,
       y: 1
     })
-    return assert.equal(coll.closest(d.x, d.y), b)
+    return assert.equal(coll.closest(origin.x, origin.y), expected)
   })
   it('can get closests points', function () {
     var a, b, c, closests, coll, d

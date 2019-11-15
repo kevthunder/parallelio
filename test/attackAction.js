@@ -36,7 +36,7 @@ describe('AttackAction', function () {
     char1 = new Character()
     char1.tap(function () {
       this.tile = ctn.getTile(0, 0)
-      return this.weapons = [
+      this.weapons = [
         new PersonalWeapon({
           user: char1
         })

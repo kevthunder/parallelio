@@ -51,11 +51,11 @@ describe('AttackMoveAction', function () {
           user: char1
         })
       ]
-      return this.owner = p1
+      this.owner = p1
     })
     char2 = new Character().tap(function () {
       this.tile = ctn.getTile(2, 0)
-      return this.owner = p2
+      this.owner = p2
     })
     action = new AttackMoveAction({
       actor: char1,

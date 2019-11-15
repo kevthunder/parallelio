@@ -1,6 +1,5 @@
 
 const assert = require('chai').assert
-const EventEmitter = require('spark-starter').EventEmitter
 const Door = require('../lib/Door')
 const Floor = require('../lib/Floor')
 

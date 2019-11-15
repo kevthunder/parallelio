@@ -5,7 +5,7 @@ describe('concatened file check', function () {
   var Parallelio
   Parallelio = null
   before(function () {
-    return Parallelio = require('../dist/parallelio.js')
+    Parallelio = require('../dist/parallelio.js')
   })
   it('contains Element', function () {
     return assert.isFunction(Parallelio.Element)

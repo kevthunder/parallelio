@@ -20,7 +20,6 @@ describe('ShipWeapon', function () {
     })
     weapon = new ShipWeapon({
       autoFire: false,
-      autoFire: false,
       tile: new Tile(),
       target: new Tile(),
       timing: timing
@@ -37,7 +36,6 @@ describe('ShipWeapon', function () {
       running: false
     })
     weapon = new ShipWeapon({
-      autoFire: false,
       autoFire: false,
       tile: new Tile(),
       target: new Tile(),

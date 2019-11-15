@@ -1,6 +1,5 @@
 
 const assert = require('chai').assert
-const EventEmitter = require('spark-starter').EventEmitter
 const AutomaticDoor = require('../lib/AutomaticDoor')
 const Floor = require('../lib/Floor')
 const Tile = require('parallelio-tiles').Tile
