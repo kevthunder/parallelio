@@ -1,10 +1,10 @@
 
 const assert = require('chai').assert
-const AttackMoveAction = require('../lib/actions/AttackMoveAction')
+const AttackMoveAction = require('../../lib/actions/AttackMoveAction')
 const Tile = require('parallelio-tiles').Tile
 const TileContainer = require('parallelio-tiles').TileContainer
-const Character = require('../lib/Character')
-const PersonalWeapon = require('../lib/PersonalWeapon')
+const Character = require('../../lib/Character')
+const PersonalWeapon = require('../../lib/PersonalWeapon')
 
 const createStage = function () {
   var ctn

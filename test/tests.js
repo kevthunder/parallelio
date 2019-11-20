@@ -41,9 +41,11 @@ require('./personalWeapon')
 
 require('./character')
 
-require('./attackAction')
+require('./actions/attackAction')
 
-require('./attackMoveAction')
+require('./actions/attackMoveAction')
+
+require('./actions/TiledActionProvider')
 
 require('./player')
 

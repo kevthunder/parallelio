@@ -1,6 +1,7 @@
 {
     "plugins": [
-        "mocha"
+        "mocha",
+        "chai-friendly"
     ],
     "env": {
         "commonjs": true,
@@ -9,7 +10,8 @@
         "mocha": true
     },
     "extends": [
-        "standard"
+        "standard",
+        "plugin:chai-friendly/recommended"
     ],
     "globals": {
         "Atomics": "readonly",
