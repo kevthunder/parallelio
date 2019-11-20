@@ -11,7 +11,10 @@ describe('Player', function () {
     provider = new SimpleActionProvider()
     provider.actions.add(action)
     player = new Player()
-    player.selected = provider
+    const selected = {
+      actionProvider: provider
+    }
+    player.selected = selected
     assert.equal(player.availableActions.length, 1)
     return assert.equal(player.availableActions[0].baseOrThis(), action)
   })
