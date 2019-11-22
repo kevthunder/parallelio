@@ -13,7 +13,10 @@ class ExploringScenario extends Game {
     this.ship = new Ship()
     this.ship.location = this.map.locations.get(1)
     this.currentPlayer.globalActionProviders.add(this.ship)
-    this.encounterManager = new EncounterManager({ baseProbability: 0 })
+    this.encounterManager = new EncounterManager({
+      subject: this.ship,
+      baseProbability: 0
+    })
     this.add(this.encounterManager)
   }
 }
@@ -39,5 +42,16 @@ describe('Exploring scenario', function () {
     expect(game.ship.travel).to.exist
     travelAction.travel.pathTimeout.prc = 100
     expect(game.ship.location).to.equal(target)
+  })
+  it('can trigger encounters while travelling between starts', function () {
+    const game = new ExploringScenario()
+    game.start()
+    game.encounterManager.baseProbability = 1
+    const target = game.ship.location.links.get(0).otherStar(game.ship.location)
+    const travelAction = game.ship.actionProvider.actions.find((a) => a instanceof TravelAction).withTarget(target)
+    travelAction.execute()
+    travelAction.travel.pathTimeout.prc = 100
+    expect(game.ship.encounter).to.exist
+    expect(game.ship.encounter.approach.valid).to.be.true
   })
 })
