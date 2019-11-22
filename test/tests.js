@@ -51,4 +51,6 @@ require('./player')
 
 require('./characterAI')
 
+require('./scenario/exploring')
+
 require('./concat')
