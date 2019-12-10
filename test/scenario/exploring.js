@@ -1,6 +1,6 @@
 const expect = require('chai').expect
 const Game = require('../../lib/Game')
-const StarMapGenerator = require('../../lib/StarMapGenerator')
+const StarMapGenerator = require('../../lib/generators/StarMapGenerator')
 const Ship = require('../../lib/Ship')
 const TravelAction = require('../../lib/actions/TravelAction')
 const EncounterManager = require('../../lib/EncounterManager')

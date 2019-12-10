@@ -1,6 +1,6 @@
 
 const assert = require('chai').assert
-const RoomGenerator = require('../lib/RoomGenerator')
+const RoomGenerator = require('../lib/generators/RoomGenerator')
 const Alea = require('seedrandom/lib/alea')
 
 describe('RoomGenerator', function () {

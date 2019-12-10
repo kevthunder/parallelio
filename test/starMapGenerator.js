@@ -1,6 +1,6 @@
 
 const assert = require('chai').assert
-const StarMapGenerator = require('../lib/StarMapGenerator')
+const StarMapGenerator = require('../lib/generators/StarMapGenerator')
 const Alea = require('seedrandom/lib/alea')
 
 describe('StarMapGenerator', function () {

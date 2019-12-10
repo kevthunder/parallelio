@@ -2,7 +2,7 @@
 const assert = require('chai').assert
 const Ship = require('../lib/Ship')
 const Travel = require('../lib/Travel')
-const StarMapGenerator = require('../lib/StarMapGenerator')
+const StarMapGenerator = require('../lib/generators/StarMapGenerator')
 const Alea = require('seedrandom/lib/alea')
 const Timing = require('parallelio-timing')
 
