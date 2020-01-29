@@ -31,6 +31,8 @@ require('./projectile')
 
 require('./room_generator')
 
+require('./generators/AirlockGeneratorTest')
+
 require('./starMapGenerator')
 
 require('./travel')
