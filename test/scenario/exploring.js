@@ -53,5 +53,7 @@ describe('Exploring scenario', function () {
     travelAction.travel.pathTimeout.prc = 100
     expect(game.ship.encounter).to.exist
     expect(game.ship.encounter.approach.valid).to.be.true
+    game.ship.encounter.approach.timeout.prc = 1
+    game.ship.encounter.approach.destroy()
   })
 })
