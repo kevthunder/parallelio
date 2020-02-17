@@ -8,7 +8,8 @@
     "url": "git://github.com/kevthunder/parallelio.git"
   },
   "scripts": {
-    "test": "npm run build && nyc --reporter=lcov --reporter=text mocha test/tests.js",
+    "test": "npm run build && nyc --reporter=lcov --reporter=text npm run test-unit",
+    "test-unit": "mocha test/tests.js",
     "build": "gulp build && eslint --fix lib/libs.js",
     "watch": "gulp dev",
     "update": "gulp update",
