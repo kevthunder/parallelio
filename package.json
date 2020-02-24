@@ -53,7 +53,7 @@
     "parallelio-tiles": "github:kevthunder/parallelio-tiles",
     "parallelio-timing": "github:kevthunder/parallelio-timing",
     "parallelio-wiring": "github:kevthunder/parallelio-wiring",
-    "spark-starter": "github:kevthunder/spark-starter#use-spark-properties"
+    "spark-starter": "github:kevthunder/spark-starter#v0.11.x"
   },
   "nyc": {
     "include": [
