@@ -50,7 +50,7 @@ describe('Exploring scenario', function () {
     const target = game.ship.location.links.get(0).otherStar(game.ship.location)
     const travelAction = game.ship.actionProvider.actions.find((a) => a instanceof TravelAction).withTarget(target)
     travelAction.execute()
-    travelAction.travel.pathTimeout.prc = 100
+    travelAction.travel.pathTimeout.prc = 1
     expect(game.ship.encounter).to.exist
     expect(game.ship.encounter.approach.valid).to.be.true
     game.ship.encounter.approach.timeout.prc = 1
