@@ -51,7 +51,7 @@ gulp.task('build', build = gulp.series('clean', 'buildIndex', 'compress', functi
 }))
 
 gulp.task('watch', function () {
-  return gulp.watch(['./lib/**/*.js'], gulp.series('buildIndex', 'compress'))
+  return gulp.watch(['./lib/**/*.js', '!./lib/libs.js', '!./lib/parallelio.js'], gulp.series('buildIndex', 'compress'))
 })
 
 gulp.task('dev', gulp.series('build', 'watch'))
