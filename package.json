@@ -38,7 +38,7 @@
     "gulp-rename": "^1.4.0",
     "gulp-require-index": "^0.1.1",
     "gulp-uglify-es": "^1.0.4",
-    "mocha": "^8.1.1",
+    "mocha": "^8.4.0",
     "nyc": "^14.1.1",
     "run-sequence": "^2.2.1",
     "seedrandom": "^2.4.4",
